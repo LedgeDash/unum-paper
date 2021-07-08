@@ -1,0 +1,31 @@
+\usepackage{dirtree}
+\usepackage{times}
+\usepackage{amsmath}
+\usepackage{adjustbox}    % Auto-resize table content
+\usepackage{booktabs}
+\usepackage[outputdir=latex.out]{minted}
+%\usepackage{minted}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{subcaption}
+\usepackage{framed}
+\usepackage{soul}
+\usepackage{textcomp}     % Provides \textmu for upright mu's
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{xspace}
+\usepackage{tabularx}
+\frenchspacing
+
+% And, of course, cleveref must be loaded last-last (read: after hyperref)
+\usepackage[capitalise,nameinlink,noabbrev]{cleveref}     % Do the right thing with fig/table references
+
+% Break URLs properly (thanks to Alex Halderman)
+\def\UrlBreaks{\do-\do\.\do\@\do\\\do\!\do\_\do\|\do\;\do\>\do\]\do\)\do\,\do\?\do\'\do+\do\=\do\#}
+\def\UrlBigBreaks{\do\:\do\/}
+
+%%
+\def \gg {\texttt{gg}\xspace}
+\newcommand{\shadi}[1]{ {\bf \color{cyan} Shadi: #1} }
+\newcommand{\shadiS}[1]{ {\bf \color{blue} #1} }
+\newcommand{\dhl}[1]{ {\color{red} DHL: #1} }
