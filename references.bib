@@ -41,6 +41,109 @@ pages = {2438–2452},
 numpages = {15}
 }
 
+@inproceedings{triggerflow,
+author = {L\'{o}pez, Pedro Garc\'{\i}a and Arjona, Aitor and Samp\'{e}, Josep and Slominski, Aleksander and Villard, Lionel},
+title = {Triggerflow: Trigger-Based Orchestration of Serverless Workflows},
+year = {2020},
+isbn = {9781450380287},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3401025.3401731},
+doi = {10.1145/3401025.3401731},
+abstract = {As more applications are being moved to the Cloud thanks to serverless computing,
+it is increasingly necessary to support native life cycle execution of those applications
+in the data center.But existing systems either focus on short-running workflows (like
+IBM Composer or Amazon Express Workflows) or impose considerable overheads for synchronizing
+massively parallel jobs (Azure Durable Functions, Amazon Step Functions, Google Cloud
+Composer). None of them are open systems enabling extensible interception and optimization
+of custom workflows.We present Triggerflow: an extensible Trigger-based Orchestration
+architecture for serverless workflows built on top of Knative Eventing and Kubernetes
+technologies. We demonstrate that Triggerflow is a novel serverless building block
+capable of constructing different reactive schedulers (State Machines, Directed Acyclic
+Graphs, Workflow as code). We also validate that it can support high-volume event
+processing workloads, auto-scale on demand and transparently optimize scientific workflows.},
+booktitle = {Proceedings of the 14th ACM International Conference on Distributed and Event-Based Systems},
+pages = {3–14},
+numpages = {12},
+keywords = {serverless, orchestration, event-based},
+location = {Montreal, Quebec, Canada},
+series = {DEBS '20}
+}
+
+@inproceedings{pywren,
+author = {Jonas, Eric and Pu, Qifan and Venkataraman, Shivaram and Stoica, Ion and Recht, Benjamin},
+title = {Occupy the Cloud: Distributed Computing for the 99%},
+year = {2017},
+isbn = {9781450350280},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3127479.3128601},
+doi = {10.1145/3127479.3128601},
+abstract = {Distributed computing remains inaccessible to a large number of users, in spite of
+many open source platforms and extensive commercial offerings. While distributed computation
+frameworks have moved beyond a simple map-reduce model, many users are still left
+to struggle with complex cluster management and configuration tools, even for running
+simple embarrassingly parallel jobs. We argue that stateless functions represent a
+viable platform for these users, eliminating cluster management overhead, fulfilling
+the promise of elasticity. Furthermore, using our prototype implementation, PyWren,
+we show that this model is general enough to implement a number of distributed computing
+models, such as BSP, efficiently. Extrapolating from recent trends in network bandwidth
+and the advent of disaggregated storage, we suggest that stateless functions are a
+natural fit for data processing in future computing environments.},
+booktitle = {Proceedings of the 2017 Symposium on Cloud Computing},
+pages = {445–451},
+numpages = {7},
+keywords = {distributed computing, AWS lambda, PyWren, serverless},
+location = {Santa Clara, California},
+series = {SoCC '17}
+}
+
+@inproceedings{kappa,
+author = {Zhang, Wen and Fang, Vivian and Panda, Aurojit and Shenker, Scott},
+title = {Kappa: A Programming Framework for Serverless Computing},
+year = {2020},
+isbn = {9781450381376},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3419111.3421277},
+doi = {10.1145/3419111.3421277},
+abstract = {Serverless computing has recently emerged as a new paradigm for running software on
+the cloud. In this paradigm, programs need to be expressed as a set of short-lived
+tasks, each of which can complete within a short bounded time (e.g., 15 minutes on
+AWS Lambda). Serverless computing is beneficial to cloud providers---by allowing them
+to better utilize resources---and to users---by simplifying management and enabling
+greater elasticity. However, developing applications to run in this environment is
+challenging, requiring users to appropriately partition their code, develop new coordination
+mechanisms, and deal with failure recovery. In this paper, we propose Kappa, a framework
+that simplifies serverless development. It uses checkpointing to handle lambda function
+timeouts, and provides concurrency mechanisms that enable parallel computation and
+coordination.},
+booktitle = {Proceedings of the 11th ACM Symposium on Cloud Computing},
+pages = {328–343},
+numpages = {16},
+keywords = {distributed computing, serverless},
+location = {Virtual Event, USA},
+series = {SoCC '20}
+}
+
+@misc{aws-step-functions,
+	title = {{AWS Step Functions}},
+	note = "\url{https://aws.amazon.com/step-functions/}",
+	urldate = {1-14-2021},
+}
+
+@misc{google-cloud-composer,
+	title = {{Google Cloud Composer (GCC)}},
+	note = "\url{https://cloud.google.com/composer}",
+	urldate = {1-14-2021},
+}
+
+@misc{google-workflows,
+	title = {{Google Workflows}},
+	note = "\url{https://cloud.google.com/workflows}",
+	urldate = {1-14-2021},
+}
+
 @misc{faas-vs-ruby-on-rails,
 	title = {{Moving my serverless project to Ruby on Rails}},
 	note = "\url{https://frantic.im/back-to-rails}",
@@ -86,13 +189,6 @@ numpages = {15}
 @misc{sensedeep-async-lambda,
 	title = {{Invoke HTTP from AWS Lambda without Waiting}},
 	note = "\url{https://www.sensedeep.com/blog/posts/stories/lambda-fast-http.html}",
-	urldate = {1-14-2021},
-}
-
-
-@misc{aws-step-functions,
-	title = {{AWS Step Functions}},
-	note = "\url{https://aws.amazon.com/step-functions/}",
 	urldate = {1-14-2021},
 }
 

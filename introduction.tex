@@ -1,8 +1,143 @@
 \section{Introduction}
 
-\textbf{unum Intermediary Data Store Requirement}
+\begin{itemize}
+  \item The serverless paradigm simplifies developing and scaling applications
+  through the abstraction of stateless functions.
 
-\begin{enumerate}
-    \item "Addressable"? Or does "storage" already imply addressability of individual items?
-    \item Explain why pub/sub messaging service such as SNS doesn't work.
-\end{enumerate}
+  \item However, building workflows that consist of multiple functions and
+  complex orchestration patterns remains a challenging problem and limits the
+  adoption of serverless for general-purpose cloud computing.
+
+  \item Contrary to stateless functions, workflows are intrinsically
+  \emph{stateful} and states need to be shared and synchronized correctly
+  across functions.
+
+  \item Existing solutions all take the approach of defining a workflow
+  language/DSL and then building a specialized stateful service/engine (often
+  called a controller, executor, coordinator or orchestrator) that executes
+  the language~\cite{gg-atc, excamera, kappa, triggerflow, pywren,
+  durable-functions, aws-step-functions, google-cloud-composer,
+  google-workflows}.
+
+  \item In their model, all orchestration actions (e.g., launch a function,
+  retry a function) are initiated by the workflow engine and all data (e.g.,
+  task results, task inputs) flow through the engine. (TODO:
+  graph example.)
+
+  \item This design has several downsides:
+
+  For service providers,
+
+  \begin{enumerate}
+    \item Another system to build and maintain.
+
+    \item Workflow engine is in the critical path of the execution and has to
+    perform and scale well. This can be challenging with highly-parallel
+    serverless applications where the orchestrator has to coordinate and
+    process the data for thousands of concurrent functions.
+
+    \item Need to reserve resources for the entire duration of a workflow
+    invocation, even when the orchestrator is simply waiting for functions to
+    return results.
+
+    \item (True for many of the existing systems~\cite{gg-atc,excamera, kappa,
+    pywren}) Needs to reserve resources for the workflow engine. Cannot scale
+    down to zero when not in use.
+  \end{enumerate}
+
+  For application programmers,
+
+  \begin{enumerate}
+    \item Coupling the workflow language with a specialized execution engine
+    prohibits interoperability. Workflow written for platform A cannot run on
+    platform B (Azure doesn't have a Step Function engine. AWS doesn't have
+    Netherite).
+
+    \item Users pay for resources when the orchestrator is not doing useful
+    work (true for most prior academic prototypes~\cite{gg-atc, excamera,
+    kappa, triggerflow, pywren})
+  \end{enumerate}
+
+
+  \item \textbf{In this paper, we argue that building cloud workflows with serverless
+does not require specialized orchestrators. Instead, orchestration logic can
+be distributed to and executed as a \emph{library} on component functions.}
+
+  \item We show that given workflow definitions written for existing systems,
+  a significant portion of the workflow states can be derived statically and
+  encoded as a \emph{continuation-based intermediary representation}.
+
+  \item The advantage of the continuation-based IR is that it is
+  platform-independent and that the continuations can be distributed to
+  component functions.
+
+  \item A runtime library is packaged with each function. The library executes
+  the continuations and makes sure each function's output is uniquely named.
+
+  \item We show that it is possible to manage runtime states with any storage
+  as long as function outputs are uniquely named and the storage supports
+  querying items with names (e.g., databases, KV stores, object stores, etc.).
+
+  \item Benefits:
+
+    \begin{enumerate}
+
+      \item Orchestration is distributed to component functions and
+      automatically parallelized.
+
+      \item Each function only processes the data it needs. Data only flow
+      through the function that requires it, which reduces the amount of
+      network communication.
+
+      \item Removes the need of building and maintaining specialized execution
+      engines for workflow languages.
+
+      \item Complete separate of compute (serverless) and storage.
+      Workflows can then automatically scale with the serverless system and
+      the storage system.
+
+      \item (Run on any environment that has a serverless offering and a named
+      storage.) (Easier to support different platforms by writing library than
+      building a specialized workflow system)
+
+      \item IR can express workflows that existing workflow languages
+      cannot/awkward to express.
+
+    \end{enumerate}
+
+  \item We implement a system called \name{} that consists of a suite of
+  frontend compilers, an IR and runtime libraries.
+
+  \begin{enumerate}
+    \item supports workflows written in AWS Step Functions (state machine),
+  Google Cloud Composer (DAG) and PyWren (procedural code)
+
+    \item Runtime library that can execute workflows on AWS, Azure (and Google Cloud).
+
+    \item supports all of the workflow features of Step Functions and GCC.
+      % chain, branch, catch-and-retry, map, parallel
+
+    \item Execution guarantee: at-least once, not worse than existing systems.
+  (Maybe can do exactly-once for internal states with a strongly consistent
+  storage and checkpointing on)
+
+    \item Performance highlights: 1. runtime overhead (latency and memory) 2.
+    latency comparison (improvements) with Step Functions (Durable Functions,
+    GCC).
+  \end{enumerate}
+
+\end{itemize}
+
+
+% Distributing coordination via a Continuation-passing style IR and runtime.
+% Contribution: identified the necessary states that needs to be passed around.
+% Identify what states can be generated static at compile-time (and then just
+% save as a configuration file) and what states can only be known at runtime.
+% This step is fundamental for distributing coordination.
+
+% Alternative story lines: 
+% 1. The approach is reminisent of traditional workflow systems
+% 2. Lessons previously from building stateful distributed applications cannot be applied in serverless (CAN WE MAKE THIS ARGUMENT?)
+
+
+

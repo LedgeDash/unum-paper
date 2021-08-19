@@ -1,13 +1,40 @@
 \section{Related Work}\label{sec:related}
 
-\gg~\cite{gg-atc} proposed thunk. But to run applications in gg, you need a custom
-compiler for each application. name{} provides a set of APIs and a compiler
-for the Python programming language.
+\gg~\cite{gg-atc} proposed thunk. Need a custom compiler for each application.
 
-% \name{} should stand without gg. The core contribution is not caching results.
-% It is a higher-level interface that simplies writing FaaS applications. We
-% could use \gg IR to get caching, but result caching is \gg's contribution, not
-% ours. In practice, this means that \gg can appear in the Implementation
-% section but should not appear in Design.
 
-CloudBurst.
+Overall characteristics of orchestrator based engines: The orchestrator
+performs function invocations; functions send results back to correct the
+orchestrator instance.
+
+Triggerflow.
+See Section 4. implementation. Each workflow has its own workflow worker which is really a kubernetes pod. The workflow works process events and trigger actual FaaS functions.
+
+Kappa.
+Tasks communicate with the coordinator through
+the remote procedure calls (RPCs) summarized in Table 2
+
+Cloudburst
+1. Orthogonal: They focus on building a data store with specialized APIs and consistency models for faas workflow
+2. Differennt programming interface (TODO: more details)
+3. Not built on real faas platform; can't run on aws, azure or google cloud
+
+
+
+% Google Cloud Composer uses Airflow.
+% https://github.com/apache/airflow/tree/main/airflow/example_dags
+% https://cloud.google.com/composer/docs/samples
+
+% Azure Durable Functions. https://docs.microsoft.com/en-us/learn/modules/create-long-running-serverless-workflow-with-durable-functions/
+
+% Google Cloud Workflows.
+% Example: https://codelabs.developers.google.com/codelabs/cloud-workflows-intro
+% https://cloud.google.com/workflows
+% Repository: https://cloud.google.com/workflows/docs/samples
+
+ 
+% https://github.com/serverlessworkflow/specification/tree/main/examples
+
+
+
+% https://github.com/kalevalp/hello-retail-baseline
