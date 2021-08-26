@@ -1,23 +1,34 @@
 \section{Introduction}
 
+
+People realized
+
+1. the serverless workflow is necessary
+2. stateless functions itself is not sufficient to enable workflow
+
+Answers so far: some centralized, stateful, orchestrator that usually has a specialized workflow language.
+
+We want to examine thee assumption that we need such an orchestrator to enable serverless workflow.
+
+And in this paper we're going to show you how and tell you that it actually doesn't suck.
+
+Our answer is to represent workflows as continuations, break them down to component functions and then have a runtime on each function that executes the continuation. States are stored in a named data store. The runtime on component functions manage the states and coordinate via those states.
+
 \begin{itemize}
   \item The serverless paradigm simplifies developing and scaling applications
   through the abstraction of stateless functions.
 
-  \item However, building workflows that consist of multiple functions and
-  complex orchestration patterns remains a challenging problem and limits the
-  adoption of serverless for general-purpose cloud computing.
-
-  \item Contrary to stateless functions, workflows are intrinsically
+  \item Recently, people have realized that we need to compose functions into
+  workflows to enable more complex, real-world applications. Different from
+  individual functions that are stateless, workflows are intrinsically
   \emph{stateful} and states need to be shared and synchronized correctly
   across functions.
 
-  \item Existing solutions all take the approach of defining a workflow
-  language/DSL and then building a specialized stateful service/engine (often
-  called a controller, executor, coordinator or orchestrator) that executes
-  the language~\cite{gg-atc, excamera, kappa, triggerflow, pywren,
-  durable-functions, aws-step-functions, google-cloud-composer,
-  google-workflows}.
+  \item Prior attempts have all taken the approach of building a specialized
+  stateful service/engine (often called a controller, executor, coordinator or
+  orchestrator) that ~\cite{gg-atc, excamera, kappa,
+  triggerflow, pywren, durable-functions, aws-step-functions,
+  google-cloud-composer, google-workflows}.
 
   \item In their model, all orchestration actions (e.g., launch a function,
   retry a function) are initiated by the workflow engine and all data (e.g.,
@@ -89,12 +100,12 @@ be distributed to and executed as a \emph{library} on component functions.}
       through the function that requires it, which reduces the amount of
       network communication.
 
-      \item Removes the need of building and maintaining specialized execution
-      engines for workflow languages.
+      \item Removes the need of building and maintaining specialized
+      orchestrators.
 
-      \item Complete separate of compute (serverless) and storage.
-      Workflows can then automatically scale with the serverless system and
-      the storage system.
+      \item Complete separation of compute (serverless) and storage. Workflows
+      can then automatically scale with the serverless system and the storage
+      system.
 
       \item (Run on any environment that has a serverless offering and a named
       storage.) (Easier to support different platforms by writing library than
