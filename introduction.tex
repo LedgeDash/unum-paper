@@ -2,36 +2,78 @@
 
 \begin{itemize}
 
-  \item Serverless computing is getting increasingly popular and is regarded
-by many as the next stage of the cloud computing evolution.
+  \item (Serverless computing is getting increasingly
+  popular~\cite{datadog-state-of-serverless} and is regarded by many as the
+  next stage of the cloud computing evolution~\cite{berkeley}.)
 
-  \item \textbf{Benefits of the serverless paradigm:}
+  \item Serverless is a new cloud computing paradigm where the system is
+  decoupled into a computation component consists of cloud functions that are
+  stateless, event-driven and transcient and other stateful components such as
+  storage, messaging, that are provided by separate cloud services.
 
-  For application developers: Simpler development and management.
-  Fine-grained, pay-as-you-go billing.
+  \item \textbf{Serverless provides many benefits compared with traditional
+  architecture: }
 
-  For cloud providers: More flexible resource management and as a result,
-  better utilization.
+    \begin{itemize}
 
-  \item \textbf{Trend in serverless applications towards more complex,
-  multi-function applications.}
+      \item Decoupled computation and storage can scale and bill
+      independently.
 
-  Most existing serverless applications consist of only a single
-  function~\cite{shahrad-azure}. Recently, there has been multiple efforts to
-  build more complex, multi-function applications on
-  serverless~\cite{excamera, kappa, triggerflow, pywren, google-workflows,
-  durable-functions, gg-atc}.
+      % Compromise: Orchestrator couples computation and storage for workflow
+      % data. Scales and bills together.
 
-  \item \textbf{What do these applications require differently and what is
-  serverless workflow}
+      % If the orchestrator is implemented as stateless computation + data
+      % stores, I'd argue it's pure serverless and therefore unum. But
+      % implementing Step Function over Lambda is awkward because of Lambda
+      % runtime limits.
 
-  Different from the original single-function applications, multi-function
-  applications also require the serverless system to be able to express and
-  manage complex function interactions, such as branching, fan-out, and
-  fan-in. They are not simple "group-togethers" of functions; Instead, they
-  are workflows made up of independent functions that interact with each other
-  in various different patterns~\cite{aws-step-functions, durable-functions,
-  icpe-2020, ieee-fakhfakh, cloudburst}.
+      \item Fast autoscale of functions. Serverless systems can quickly start
+      thousands of functions in a matter of seconds.
+
+      % Compromise: Scalability also depends on the orchestrator service.
+
+      \item Fine-grained billing. Users only pay for the resources used and
+      can avoid paying for resources when idle.
+
+      \item More flexible resource management for service providers that
+      improves multiplexing and resource utilization.
+
+      Serverless provides can reallocate resources immediately after
+      computation completes and scale an application down to zero when idle.
+
+    \end{itemize}
+
+  \item Recently, there have been much interests in building large serverless
+  applications that consists of multiple functions with complex orchestration
+  patterns such as branching on function outputs, aggregating results over
+  many functions, and launch a function on the completion of one or multiple
+  upstream functions~\cite{excamera, kappa, pywren, google-workflows,
+  durable-functions, gg-atc}. While the original serverless offerings provide
+  an API for building single functions and simple mechanisms for routing
+  function results, these applications require a system that has a high-level
+  interface to express function orchestrations (e.g., chaining, branching,
+  fan-out, fan-in) and a backend that can synchronize and aggregate states
+  across functions.
+
+  % \item \textbf{Trend in serverless applications towards more complex,
+  % multi-function applications.}
+
+  % Most existing serverless applications consist of only a single
+  % function~\cite{shahrad-azure}. Recently, there have been multiple efforts to
+  % build more complex, multi-function applications on
+  % serverless~\cite{excamera, kappa, triggerflow, pywren, google-workflows,
+  % durable-functions, gg-atc}.
+
+  % \item \textbf{What do these applications require differently and what is
+  % serverless workflow}
+
+  % Different from the original single-function applications, multi-function
+  % applications also require the serverless system to be able to express and
+  % manage complex function interactions, such as branching, fan-out, and
+  % fan-in. They are not simple "group-togethers" of functions; Instead, they
+  % are workflows made up of independent functions that interact with each other
+  % in various different patterns~\cite{aws-step-functions, durable-functions,
+  % icpe-2020, ieee-fakhfakh, cloudburst}.
 
 
   \item (Many serverless workflow systems have emerged to meet this need.)
@@ -41,7 +83,7 @@ by many as the next stage of the cloud computing evolution.
   paradigm and turn back to the traditional SaaS/PaaS architecture.}
 
   Workflows on these systems are written with a set of \emph{specialized APIs}
-  and executed by \emph{purposely-built, (long-runnging,?) hosted services}
+  and executed by \emph{purpose-built, (long-runnging,?) hosted services}
   (often called controllers, executors, coordinator or
   orchestrators)~\cite{gg-atc, excamera, kappa, triggerflow, pywren,
   durable-functions, aws-step-functions, google-cloud-composer,

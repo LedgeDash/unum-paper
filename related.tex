@@ -1,23 +1,59 @@
 \section{Related Work}\label{sec:related}
 
-\gg~\cite{gg-atc} proposed thunk. Need a custom compiler for each application.
-
-
 Overall characteristics of orchestrator based engines: The orchestrator
 performs function invocations; functions send results back to correct the
 orchestrator instance.
 
-Triggerflow.
+Why does this characterstics matter?
+
+Questions:
+
+\begin{itemize}
+	\item Is it pure serverless? What does pure serverless mean?
+	\item Any performance comparisons necessary?
+\end{itemize}
+
+\paragraph{gg}~\cite{gg-atc}
+
+\begin{itemize}
+	\item Target applications are what they call "everyday tasks", including code compilation, unit testing, video encoding and object recognition
+	\item A thunk = a x86-64 executable and its input data
+
+	A thunk is deterministic. Forcing a thunk multiple times will generate the same object.
+
+	Data objects are named (naming scheme 3.1.1). Reading an object might involve forcing a thunk to generate the object. A thunk's input can be references to other thunk's outputs. gg uses this mechanism to express computation graphs.
+
+	Forcing a thunk multiple time will always produce the same object with the same name. To run the same function with different input needs to define a different thunk (presumably a gg compiler can help simplify the step of defining thunks that have the same executable and different input. But the paper wasn't entirely clear on this and the source code shows application-specific compilation with limited programmability.).
+
+
+	duplicate functionalities that Lambda already provides: job scheduling, retry, timeouts.
+
+
+
+\end{itemize}
+
+
+\paragraph{Triggerflow}~\cite{triggerflow}
 See Section 4. implementation. Each workflow has its own workflow worker which is really a kubernetes pod. The workflow works process events and trigger actual FaaS functions.
 
-Kappa.
+
+\paragraph{Kappa}~\cite{Kappa}
 Tasks communicate with the coordinator through
 the remote procedure calls (RPCs) summarized in Table 2
 
-Cloudburst
+
+\paragraph{Cloudburst}~\cite{cloudburst}
 1. Orthogonal: They focus on building a data store with specialized APIs and consistency models for faas workflow
 2. Differennt programming interface (TODO: more details)
 3. Not built on real faas platform; can't run on aws, azure or google cloud
+
+
+\paragraph{mu and Excamera}~\cite{excamera}
+
+\paragraph{Boki}
+
+
+\paragraph{PyWren}~\cite{pywren}
 
 
 
