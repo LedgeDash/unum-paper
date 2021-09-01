@@ -6,26 +6,15 @@
   popular~\cite{datadog-state-of-serverless} and is regarded by many as the
   next stage of the cloud computing evolution~\cite{berkeley}.)
 
-  \item Serverless is a new cloud computing paradigm where the system is
-  decoupled into a computation component consists of cloud functions that are
-  stateless, event-driven and transcient and other stateful components such as
-  storage, messaging, that are provided by separate cloud services.
+  % \item Serverless is a new cloud computing paradigm where the system is
+  % decoupled into a computation component of stateless cloud functions and
+  % other stateful components such as storage, messaging, that are provided by
+  % separate cloud services.
 
   \item \textbf{Serverless provides many benefits compared with traditional
   architecture: }
 
-    \begin{itemize}
-
-      \item Decoupled computation and storage can scale and bill
-      independently.
-
-      % Compromise: Orchestrator couples computation and storage for workflow
-      % data. Scales and bills together.
-
-      % If the orchestrator is implemented as stateless computation + data
-      % stores, I'd argue it's pure serverless and therefore unum. But
-      % implementing Step Function over Lambda is awkward because of Lambda
-      % runtime limits.
+    \begin{enumerate}
 
       \item Fast autoscale of functions. Serverless systems can quickly start
       thousands of functions in a matter of seconds.
@@ -35,13 +24,23 @@
       \item Fine-grained billing. Users only pay for the resources used and
       can avoid paying for resources when idle.
 
-      \item More flexible resource management for service providers that
-      improves multiplexing and resource utilization.
+      \item More flexible resource management that improves multiplexing and
+      resource utilization. Serverless providers can reallocate resources
+      immediately after computation completes and scale an application down to
+      zero when idle.
 
-      Serverless provides can reallocate resources immediately after
-      computation completes and scale an application down to zero when idle.
+      \item (Decoupled computation and storage can scale and bill
+      independently)
 
-    \end{itemize}
+      % Compromise: Orchestrator couples computation and storage for workflow
+      % data. Scales and bills together.
+
+      % If the orchestrator is implemented as stateless computation + data
+      % stores, I'd argue it's pure serverless and therefore unum. But
+      % implementing Step Function over Lambda is awkward because of Lambda
+      % runtime limits.
+
+    \end{enumerate}
 
   \item Recently, there have been much interests in building large serverless
   applications that consists of multiple functions with complex orchestration
@@ -83,33 +82,74 @@
   paradigm and turn back to the traditional SaaS/PaaS architecture.}
 
   Workflows on these systems are written with a set of \emph{specialized APIs}
-  and executed by \emph{purpose-built, (long-runnging,?) hosted services}
+  and executed by \emph{purpose-built, centralized hosted services}
   (often called controllers, executors, coordinator or
   orchestrators)~\cite{gg-atc, excamera, kappa, triggerflow, pywren,
   durable-functions, aws-step-functions, google-cloud-composer,
   google-workflows}.
 
-  \item \textbf{Downsides of such a design approach}
+  \item \textbf{Downsides of the orchestrator design approach}
 
     \begin{enumerate}
-      \item \textbf{Costs of an additional hosted service} Adding these
-      additional services to the serverless environment takes significant
-      effort and resources in terms of both developement and maintenance.
+      \item \textbf{Costs of an additional hosted service.} Adding additional
+      services to the serverless environment takes significant effort and
+      resources in terms of both developement and maintenance. Long-running
+      orchestrators requires reserved resources and a team of engineers
+      on-call.
 
-      \item \textbf{Cannot benefit from the new serverless model} These
-      services are not architectured on top of their serverless offerings. As
-      a result, they fail to leverage the existing fine-grained billing,
-      flexible management and resource utilization benefits of serverless.
-      (TODO: unum thus should reap those benefits. How to quantify?)
+      \item \textbf{Cannot leverage the benefits of serverless.} Relying on a
+      separate hosted service to drive workflows compromises important
+      benefits of using a serverless system.
+
+        \begin{enumerate}
+
+          \item Scalability of workflows also depends on the performance of
+          the orchestrator service. A slow orchestrator can become the
+          bottleneck and nullify the fast autoscale advantage of serverless.
+          Service providers need to make sure the orchestrator's performance
+          match that of the serverless system.
+
+          \item During execution, needs to run one orchestrator instance
+          \emph{per workflow invocation} and the instance needs to stay around
+          until all functions in the workflow complete, including idle time
+          while waiting for functions to return results. This leads to reduced
+          resource utilization as the service provider has to reserve the
+          orchestrator's resources for the entire duration of the workflow
+          even when the orchestrator is not doing useful work.
+
+          \item Service providers pass the costs to users. Users are not
+          billed in fine granularity solely for the resources used but also
+          pay for orchestrators idle time.
+
+          For examples, Step Functions bills based the number of state
+          transitions (approx. the number of function invocations). Google
+          Cloud Composer bills on orchestrator runtime on 10-min increments.
+          In comparison, Google Cloud Functions are billed in 100ms
+          increments. Azure Durable Functions uses a preempt and restore
+          strategy to alleviate waiting and double billing, but users are
+          billed whenever an orchestrator is restored (essentially you're
+          billed for the occurance of idleness instead of the duration of
+          idleness).
+
+        \end{enumerate}
+
     \end{enumerate}
 
 
-  \item \textbf{In this paper, we examine whether it is possible to build
-  complex multi-function serverless workflows purely within the serverless
-  abstraction.}
+  % \item \textbf{In this paper, we examine whether it is possible to build
+  % complex multi-function serverless workflows purely within the serverless
+  % abstraction.}
 
-  \emph{Is the new paradigm capable of supporting complex applications on its
-  own or does it have to rely on traditionally-architectured services?}
+  % \emph{Is the new paradigm capable of supporting complex applications on its
+  % own or does it have to rely on traditionally-architectured services?}
+  \item \textbf{In this paper, we demonstrate a new approach to enabling
+  serverless workflows that are built purely within the serverless
+  abstraction.} Our approach transforms high-level representations of complex
+  serverless workflows (e.g., Step Functions) into functions that are
+  executable on existing serverless platforms. With a runtime library, each
+  function runs a subset of the workflow such that the collection of all
+  functions execute the entire workflow without relying on any additional
+  services.
 
   \item \textbf{High-level description of \name{}}
 
