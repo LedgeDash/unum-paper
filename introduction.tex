@@ -50,9 +50,8 @@
   durable-functions, gg-atc}. While the original serverless offerings provide
   an API for building single functions and simple mechanisms for routing
   function results, these applications require a system that has a high-level
-  interface to express function orchestrations (e.g., chaining, branching,
-  fan-out, fan-in) and a backend that can synchronize and aggregate states
-  across functions.
+  interface to express workflows of serverless functions and a backend that
+  can synchronize and aggregate states across functions.
 
   % \item \textbf{Trend in serverless applications towards more complex,
   % multi-function applications.}
@@ -98,7 +97,7 @@
       on-call.
 
       \item \textbf{Cannot leverage the benefits of serverless.} Relying on a
-      separate hosted service to drive workflows compromises important
+      centralized hosted service to drive workflows compromises important
       benefits of using a serverless system.
 
         \begin{enumerate}
@@ -119,7 +118,7 @@
 
           \item Service providers pass the costs to users. Users are not
           billed in fine granularity solely for the resources used but also
-          pay for orchestrators idle time.
+          pay for orchestrators idle time (double billing).
 
           For examples, Step Functions bills based the number of state
           transitions (approx. the number of function invocations). Google
