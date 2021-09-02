@@ -91,3 +91,24 @@ workflow restart from the beginning? Only the failed function gets retried?
 	\item Functions idempotency
 	\item \name{} checkpoint knob
 \end{itemize}
+
+\subsection{Example Applications}
+
+Walkthrough a few example applications to demonstrate how \name{} expresses and executes at least the following orchestration patterns:
+\begin{itemize}
+	\item fan-out
+	\item fan-in
+	\item fold
+	\item parallel pipelines
+\end{itemize}
+
+Candidate applications (actually we can just describe excamera because it has most of the patterns):
+
+\begin{itemize}
+	\item Excamera (patterns: 1. fan-out elements in an array to multiple
+	instances of the same function 2. parallel pipelines  3. fold 4. chaining )
+	\item image processing (pattern: fan-out the same data to multiple
+	functions)
+	\item word count (pattern: fan-out elements in an array to multiple
+	instances of the same function)
+\end{itemize}
