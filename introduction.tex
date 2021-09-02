@@ -6,11 +6,6 @@
   popular~\cite{datadog-state-of-serverless} and is regarded by many as the
   next stage of the cloud computing evolution~\cite{berkeley}.)
 
-  % \item Serverless is a new cloud computing paradigm where the system is
-  % decoupled into a computation component of stateless cloud functions and
-  % other stateful components such as storage, messaging, that are provided by
-  % separate cloud services.
-
   \item \textbf{Serverless provides many benefits compared with traditional
   architecture: }
 
@@ -18,8 +13,6 @@
 
       \item Fast autoscale of functions. Serverless systems can quickly start
       thousands of functions in a matter of seconds.
-
-      % Compromise: Scalability also depends on the orchestrator service.
 
       \item Fine-grained billing. Users only pay for the resources used and
       can avoid paying for resources when idle.
@@ -31,14 +24,6 @@
 
       \item (Decoupled computation and storage can scale and bill
       independently)
-
-      % Compromise: Orchestrator couples computation and storage for workflow
-      % data. Scales and bills together.
-
-      % If the orchestrator is implemented as stateless computation + data
-      % stores, I'd argue it's pure serverless and therefore unum. But
-      % implementing Step Function over Lambda is awkward because of Lambda
-      % runtime limits.
 
     \end{enumerate}
 
@@ -53,29 +38,7 @@
   interface to express workflows of serverless functions and a backend that
   can synchronize and aggregate states across functions.
 
-  % \item \textbf{Trend in serverless applications towards more complex,
-  % multi-function applications.}
-
-  % Most existing serverless applications consist of only a single
-  % function~\cite{shahrad-azure}. Recently, there have been multiple efforts to
-  % build more complex, multi-function applications on
-  % serverless~\cite{excamera, kappa, triggerflow, pywren, google-workflows,
-  % durable-functions, gg-atc}.
-
-  % \item \textbf{What do these applications require differently and what is
-  % serverless workflow}
-
-  % Different from the original single-function applications, multi-function
-  % applications also require the serverless system to be able to express and
-  % manage complex function interactions, such as branching, fan-out, and
-  % fan-in. They are not simple "group-togethers" of functions; Instead, they
-  % are workflows made up of independent functions that interact with each other
-  % in various different patterns~\cite{aws-step-functions, durable-functions,
-  % icpe-2020, ieee-fakhfakh, cloudburst}.
-
-
   \item (Many serverless workflow systems have emerged to meet this need.)
-
 
   \item \textbf{Unfortunately, these solutions all break out of the serverless
   paradigm and turn back to the traditional SaaS/PaaS architecture.}
@@ -87,7 +50,9 @@
   durable-functions, aws-step-functions, google-cloud-composer,
   google-workflows}.
 
-  \item \textbf{Downsides of the orchestrator design approach}
+  \item \textbf{Requiring a hosted service outside the serverless environment
+  is not only expensive but also fails to fully leverage the benefits of
+  serverless.}
 
     \begin{enumerate}
       \item \textbf{Costs of an additional hosted service.} Adding additional
@@ -134,21 +99,13 @@
 
     \end{enumerate}
 
-
-  % \item \textbf{In this paper, we examine whether it is possible to build
-  % complex multi-function serverless workflows purely within the serverless
-  % abstraction.}
-
-  % \emph{Is the new paradigm capable of supporting complex applications on its
-  % own or does it have to rely on traditionally-architectured services?}
-  \item \textbf{In this paper, we demonstrate a new approach to enabling
-  serverless workflows that are built purely within the serverless
-  abstraction.} Our approach transforms high-level representations of complex
-  serverless workflows (e.g., Step Functions) into functions that are
-  executable on existing serverless platforms. With a runtime library, each
-  function runs a subset of the workflow such that the collection of all
-  functions execute the entire workflow without relying on any additional
-  services.
+  \item \textbf{In this paper, we demonstrate a new approach to serverless
+  workflows that are built purely within serverless systems.} Our approach
+  transforms high-level representations of complex serverless workflows (e.g.,
+  Step Functions) into functions that are executable on existing serverless
+  platforms. With a runtime library, each function runs a subset of the
+  workflow such that the collection of all functions execute the entire
+  workflow without relying on any additional services.
 
   \item \textbf{High-level description of \name{}}
 
@@ -206,85 +163,5 @@
     \end{enumerate}
 
 
-%   \item \textbf{In this paper, we argue that building cloud workflows with serverless
-% does not require specialized orchestrators. Instead, orchestration logic can
-% be distributed to and executed as a \emph{library} on component functions.}
-
-%   \item We show that given workflow definitions written for existing systems,
-%   a significant portion of the workflow states can be derived statically and
-%   encoded as a \emph{continuation-based intermediary representation}.
-
-%   \item The advantage of the continuation-based IR is that it is
-%   platform-independent and that the continuations can be distributed to
-%   component functions.
-
-%   \item A runtime library is packaged with each function. The library executes
-%   the continuations and makes sure each function's output is uniquely named.
-
-%   \item We show that it is possible to manage runtime states with any storage
-%   as long as function outputs are uniquely named and the storage supports
-%   querying items with names (e.g., databases, KV stores, object stores, etc.).
-
-%   \item Benefits:
-
-%     \begin{enumerate}
-
-%       \item Orchestration is distributed to component functions and
-%       automatically parallelized.
-
-%       \item Each function only processes the data it needs. Data only flow
-%       through the function that requires it, which reduces the amount of
-%       network communication.
-
-%       \item Removes the need of building and maintaining specialized
-%       orchestrators.
-
-%       \item Complete separation of compute (serverless) and storage. Workflows
-%       can then automatically scale with the serverless system and the storage
-%       system.
-
-%       \item (Run on any environment that has a serverless offering and a named
-%       storage.) (Easier to support different platforms by writing library than
-%       building a specialized workflow system)
-
-%       \item IR can express workflows that existing workflow languages
-%       cannot/awkward to express.
-
-%     \end{enumerate}
-
-%   \item We implement a system called \name{} that consists of a suite of
-%   frontend compilers, an IR and runtime libraries.
-
-%   \begin{enumerate}
-%     \item supports workflows written in AWS Step Functions (state machine),
-%   Google Cloud Composer (DAG) and PyWren (procedural code)
-
-%     \item Runtime library that can execute workflows on AWS, Azure (and Google Cloud).
-
-%     \item supports all of the workflow features of Step Functions and GCC.
-%       % chain, branch, catch-and-retry, map, parallel
-
-%     \item Execution guarantee: at-least once, not worse than existing systems.
-%   (Maybe can do exactly-once for internal states with a strongly consistent
-%   storage and checkpointing on)
-
-%     \item Performance highlights: 1. runtime overhead (latency and memory) 2.
-%     latency comparison (improvements) with Step Functions (Durable Functions,
-%     GCC).
-%   \end{enumerate}
-
 \end{itemize}
-
-
-% Distributing coordination via a Continuation-passing style IR and runtime.
-% Contribution: identified the necessary states that needs to be passed around.
-% Identify what states can be generated static at compile-time (and then just
-% save as a configuration file) and what states can only be known at runtime.
-% This step is fundamental for distributing coordination.
-
-% Alternative story lines: 
-% 1. The approach is reminisent of traditional workflow systems
-% 2. Lessons previously from building stateful distributed applications cannot be applied in serverless (CAN WE MAKE THIS ARGUMENT?)
-
-
 
