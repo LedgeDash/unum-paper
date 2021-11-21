@@ -1,9 +1,22 @@
 \section{Evaluation}\label{sec:eval}
 
-In this section, we first use a suite of microbenchmarks that target specific
-operations (e.g., invoking a continuation, checkpointing, etc.) and orchestration
-patterns (e.g., chaining, fan-out and fan-in) to understand unum's performance
-characteristics and cost benefits.
+We evaluate unum along 3 metrics:
+
+\begin{enumerate}
+    
+    \item Expressiveness
+
+    \item Latency
+
+    \item Costs
+
+\end{enumerate}
+
+We evaluate the 3 metrics with a suite of micro- and macro-benchmarks. The
+micro-benchmarks target specific operations (e.g., invoking a continuation,
+checkpointing, etc.) and basic orchestration patterns (e.g., chaining, fan-out
+and fan-in) to understand unum's performance characteristics and cost
+benefits.
 
 We then evaluate unum's expressiveness and end-to-end performance with 5
 real-world applications, taken from serverless application repositories and
@@ -14,6 +27,8 @@ We compare unum with the Step Functions Standard workflows. We do not include
 Step Functions Express workflows in our evaluation because of its poor
 execution guarantee: a single invocation could produce multiple different
 answers.
+
+
 
 We show that [Key results and takeaways in 3 sentences.]
 
@@ -42,8 +57,8 @@ We first look at the performance and costs of the unum runtime. We measure the
 latency of each primitive and the total additional latency for unum to take a
 checkpoint and invoke a continuation. We translate the additional latency to
 dollar costs in Lambda duration and compare it against Step Functions' costs
-for state transitions. Note that unum taking a single checkpoint and invoking a
-single continuation is equivalent to one Step Function state transition.
+for state transitions. Note that unum taking a single checkpoint and invoking
+a single continuation is equivalent to one Step Function state transition.
 
 \begin{figure}[t!]
     \centering
@@ -55,10 +70,10 @@ single continuation is equivalent to one Step Function state transition.
     checkpoint and the input data size of \texttt{G}. We see that even at
     Lambda's payload size limit (256KB), unum's total runtime cost of
     checkpointing and invoking a continuation (50p: \$0.45 per 1M exec., 99p:
-    \$0.53 per 1M exec.) is a mere fraction of Step Functions'
-    cost of state transition (\$27.9 per 1M exec.). A Step Functions state
-    transition is equivalent to unum checkpointing a function and invoking a
-    single continuation.}
+    \$0.53 per 1M exec.) is a mere fraction of Step Functions' cost of state
+    transition (\$27.9 per 1M exec.). A Step Functions state transition is
+    equivalent to unum checkpointing a function and invoking a single
+    continuation.}
     \label{fig:totallatency}
 \end{figure}
 
