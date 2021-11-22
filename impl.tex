@@ -13,8 +13,8 @@ The runtime uses the \texttt{boto3} library to interact with AWS services.
 Lambda functions are invoked asynchronously (\texttt{InvocationType='Event'})
 with the \texttt{invoke()} API. Checkpointing to DynamoDB is a
 \texttt{PutItem} operation with a condition that the item does not already
-exist (\texttt{ConditionExpression='attribute_not_exists(Name)'}). Check
-checkpoint existence (\texttt{get_checkpoint()}) is a consistent read via
+exist (\texttt{ConditionExpression='attribute\_not\_exists(Name)'}). Check
+checkpoint existence (\texttt{get\_checkpoint()}) is a consistent read via
 \texttt{GetItem} operation. For fan-in functions, reading input from DynamoDB
 uses the \texttt{BatchGetItem} operation with consistent reads.
 
@@ -22,4 +22,4 @@ uses the \texttt{BatchGetItem} operation with consistent reads.
 tables where applications are charged by the amount of read and write it
 performs instead of a fixed hourly rate.
 
-The runtime for S3 uses \texttt{}
+% The runtime for S3 uses \texttt{}
