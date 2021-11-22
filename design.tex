@@ -74,6 +74,54 @@ Functions:
     \label{fig:iot-sf}
 \end{figure}
 
+\begin{figure}[]
+    \begin{minted}[
+    frame=single,
+    linenos,
+    fontsize=\footnotesize
+  ]{json}
+{
+    "Name": "string",
+    "Next": {
+        "Name": "FunctionName",
+        "InputType": "Scalar" | "Map" | "Fan-in",
+        "Condtional": "BooleanExpression"
+    },
+    "Next Payload Modifiers" : ["str"],
+    "Checkpoint": "True | False",
+    "Start": "True | False"
+}
+    \end{minted}
+    \caption{}
+    \label{fig:unum-config-lang}
+\end{figure}
+
+\begin{figure}[]
+    \begin{minted}[
+    frame=single,
+    linenos,
+    fontsize=\footnotesize
+  ]{json}
+{
+    "Data": {
+        "Source": "http | <data store type>",
+        "Value": "<JSON object> | [<data store pointers>]"
+    },
+    "Session": "uuid",
+	"Fan-out": {
+        "Index": "int",
+        "Size": "int",
+        "OuterLoop": {
+            "Index": "int",
+            "Size": "int"
+        }
+    }
+}
+    \end{minted}
+    \caption{}
+    \label{fig:input-format}
+\end{figure}
+
 A key feature in \name{}'s approach is that it is designed as a runtime on top
 of the serverless abstraction without requiring any supplemental services
 added to current infrastructures. Workflows built with \name{} can execute in
@@ -90,26 +138,26 @@ code completes and leverages a checkpointing mechanism to ensure strong
 execution guarantees.
 
 We continue this section by first giving an overview of unum's architecture
-and outlining the serverless abstractions and services that \name{} builds
-upon (Sec.~\ref{sec:sys-req}). We then describe the programming interface that
-\name{} supports. Next, we discuss the \name{} IR, \name{}'s internal
-representation of workflows, which expresses serverless workflows using
-continuations. Finally, we describe \name{}'s runtime wrapper and execution
-guarantees.%, how it interposes on user code, what runtime metadata it manages and how it
-% leverage checkpointing to provide a strong execution guarantee that we term
-% \emph{at-least-once execution with exactly-one result}.
+(Sec.~\ref{sec:design-overview}) and outlining the serverless abstractions and
+services that \name{} builds upon (Sec.~\ref{sec:design-req}). We then
+describe the programming interface that \name{} supports
+(Sec.~\ref{sec:design-interface}). Next, we discuss the \name{} IR
+(Sec.~\ref{sec:design-ir}) which expresses serverless workflows using
+continuations. Finally, we describe \name{}'s runtime
+(Sec.~\ref{sec:design-runtime}) and execution guarantees
+(Sec.~\ref{sec:design-exec-gntee}).
 
-\subsection{Overview}
+\subsection{Overview}\label{sec:design-overview}
 
-Figure~\ref{fig:arch} shows \name{}'s high-level architecture. At
+Figure~\ref{fig:arch} illustrates \name{}'s high-level architecture. At
 compile-time, a frontend compiler transforms workflows written for existing
 systems (e.g., an AWS Step Functions state machine that orchestrates Lambdas)
-into a continuation-based, platform-independent intermediary representation
-(Sec.~\ref{sec:unum-ir}). In practice, the IR is a set of configuration files
+into a continuation-based, platform-independent intermediary representation.
+In practice, the IR is a set of configuration files
 (\texttt{unum\_config.json}), one for each function in the workflow, written
 in the \name{} configuration language (Sec.~\ref{sec:design-config-lang}).
 
-Then a backend compiler compiles the IR into platform-specific packages that
+Next, a backend compiler compiles the IR into platform-specific packages that
 are executable in a particular target environment (e.g., AWS Lambda with
 DynamoDB as the data store). Deploying the packages will create a set of FaaS
 functions (e.g., Lambdas) and an intermediary data store (e.g., a DynamoDB
@@ -125,7 +173,7 @@ to provide strong execution guarantee. Every function invocation in unum is
 assigned a unique name and the runtime uses the name for the instance's
 checkpoint in the data store.
 
-\subsection{System Requirements}
+\subsection{System Requirements}\label{sec:design-req}
 
 \name{} utilizes two services that are readily available on all existing
 serverless platforms:
@@ -214,7 +262,7 @@ function is only invoked once. We discuss the details in
 Sec.~\ref{sec:design-runtime}
 
 
-\subsection{Programming Interface}
+\subsection{Programming Interface}\label{sec:design-interface}
 
 \name{} does not introduce a new programming interface for building serverless
 workflows. Developers can use familiar frontend languages from existing
@@ -242,71 +290,239 @@ which we discuss in the next section.
 
 
 
-\subsection{\name{} IR}
+\subsection{\name{} IR}\label{sec:design-ir}
 
 The \name{} intermediary representation expresses FaaS workflows using
 continuations. A continuation defines (1). which function(s) to invoke (2).
 what input to invoke it with.
 
-Every function in a unum workflow has 0, 1 or more continuations. After
-running user code, the unum runtime invokes the continuation with the user
-code's result as the input. The set of continuations from all functions form
-the complete workflow.
+After running user code, the unum runtime invokes the continuation with the
+user code's result as the input. Every function in a unum workflow has 0, 1 or
+more continuations. The set of continuations from all functions form the
+complete workflow.
 
-The purpose of the continuation-based IR is to distribute workflows'
+unum continuations form graphs with functions as vertices. They support common
+orchestration patterns such as chaining, branching, fan-out and fan-in. unum
+also supports \texttt{for} or \texttt{while} loop (fold) with continuation
+graphs that have directed cycles.
+
+A key benefit of the continuation-based IR is to distribute workflows'
 orchestration logic to individual component functions so that it can execute
 without a centralized orchestrator. In an orchestrator-based workflow system,
 functions will need to call back to the orchestrator service to signal
 completion and it is the orchestrator who will then invoke the next function.
 
-In contrast, unum assigns each function a set of continuations at
-compile-time. After user code completes, each function directly invokes its
+In contrast, unum assigns each function a set of continuations \emph{at
+compile-time}. After user code completes, each function directly invokes its
 continuations asynchronously, without involving any supplemental services.
 
-\subsubsection{\name{} configuration language}
+% \subsubsection{Naming scheme}
+
+% \name{} assigns each function instance a unique name. The name consists of the
+% function's name and, if the instance is part of a fan-out, the instance's
+% fan-out index.
+
+
+
+\subsubsection{\name{} configuration language}\label{sec:design-config-lang}
 
 In practice, the \name{} IR is a set of configuration files, one for each
-function in the workflow, written in the \name{} configuration language
-(\ref{sec:design-config-lang}). The configuration language provides constructs
-to define continuations and modify runtime metadata.
+function in the workflow, written in the \name{} configuration language. The
+configuration language provides constructs to define continuations and modify
+runtime metadata.
 
-Figure~\ref{fig:iot-sf} shows a Step Functions state machine for an IoT HVAC
-controller workflow which is a chain of two functions. Figure~\ref{fig:iot-ir}
-shows the generated IR in the form of two \texttt{unum\_config.json} files.
+% Figure~\ref{fig:iot-sf} shows a Step Functions state machine for an IoT HVAC
+% controller workflow which is a chain of two functions. Figure~\ref{fig:iot-ir}
+% shows the generated IR in the form of two \texttt{unum\_config.json} files.
+
+\begin{itemize}
+
+	\item Every function has a \texttt{unum\_config.json} file deployed with
+	it.
+
+	\item Continuations are defined in the \texttt{"Next"} field. The value is
+	either a single JSON object if there is only one continuation or an array
+	of JSON objects if there are multiple continuations.
+
+	\item Each continuation is a JSON object. It specifies the name of the
+	function to invoke next in the \texttt{"Name"} field, what its inputs are
+	in the \texttt{"InputType"} field and an invoke condition in the
+	"Conditional" field.
+
+	\item \texttt{"InputType"} has three possible values: \texttt{"Scalar"},
+	\texttt{"Map"} and \texttt{"Fan-in"}.
+
+	\item \texttt{"Scalar"} is used when the only input to the next function
+	is the output of this function.
+
+	\item \texttt{"Scalar"} supports chaining, where the input to the next
+	function is the output of the previous function, and fan-out, where
+	multiple functions are triggered in parallel with the output of the
+	previous function.
+
+	\item Give example \texttt{unum\_config.json} files of chaining and
+	fan-out with \texttt{"Scalar"}?
+
+	\item \texttt{"Map"} supports a different form of fan-out where the output
+	of this function is an array and for each element of the array, the
+	runtime invokes one instance of the next function with the element as
+	input.
+
+	\item \texttt{"Fan-in"} is used for aggregations when the next function to
+	invoke depends not only on the result of this function but also on those
+	of other functions. (Give a concrete example here?)
+
+	\item Values that the next function depends on are listed in the
+	\texttt{"Values"} field. Each value is identified by the unique name of
+	the function instance that produces it. We discuss \name{}'s naming scheme
+	in the next section.
+
+	\item Value names can include glob patterns to support fan-in of varying
+	size. unum expands glob patterns during runtime.
+
+	\item The "Conditional" field is a boolean expression. Only when the
+	boolean expression evaluate to Ture would the continuation be invoked.
+
+	\item Workflow entry functions have \texttt{"Start: true"}.
+
+	\item "Next Payload Modifiers" is an interface to modify \name{}'s runtime
+	metadata. 
+
+\end{itemize}
+
+
+\subsection{Runtime}\label{sec:design-runtime}
+
+\begin{itemize}
+
+	\item \name{}'s runtime interposes on user code's entry and exit (See
+	Figure~\ref{fig:arch}. On ingress, \name{} runtime reads the input data
+	and then pass it to user code. When user code returns, the egress takes
+	the return value, write it to the data store as a checkpoint and invokes
+	the continuation.
+
+	\item Inputs to unum functions are JSON objects.
+	Figure~\ref{fig:input-format} shows the input format.
+
+	\item \texttt{"Data"} field contains the input data to the user code. If
+	the data is directly sent in the function invocation via HTTP (i.e.,
+	\texttt{"Source": "http"}), the value of the "Value" field is passed to
+	user code unchanged. If the \texttt{"Source"} field shows that the data is
+	in the intermediary data store (e.g., \texttt{"Source": "dynamodb"}),
+	\name{} reads the data from the data store and then pass it to user code.
+
+	\item In practice, \name{} only passes data via the data store in the case
+	of fan-in where results of multiple functions are needed. In that case,
+	the \texttt{"Value"} field is an array of names of function checkpoints.
+	\name{} reads each checkpoint in the array in order and passes the data as
+	an array to user code.
+
+	\item User code is oblivious of the \name{} runtime. \name{} does not
+	change how user code is written or its interface.
+
+	\item \texttt{"Session"} field contains a UUID string that uniquely
+	identifies a workflow invocation. \name{} runtime on the entry function
+	creates the UUID string when the function is invoked. The string
+	propagates to all downstreams function instances that are part of the
+	workflow invocation.
+
+	\item Checkpoint names are prefixed with the \texttt{"Session"} UUID
+	string so that instances of the same function from different invocations
+	do not overwrite each others' results.
+
+	\item "Fan-out" field are part of fan-out functions' input payload.
+	\name{} assigns each fan-out function an index.
+
+	\item \name{} supports nested fan-outs with the \texttt{"OuterLoop"} field
+	that is recursive.
+
+	\item Each function instance is assigned a unique name. The name consists
+	of the function's name and, if the function is part of a fan-out, its
+	fan-out indexes. Example?
+
+	\item Fan-in semantics. Only invoke the continuation once when all inputs
+	are ready. For data stores with atomic data structures, we use them to
+	synchronize. For data stores without atomic data structures, \name{}
+	pre-select that last function in the \texttt{"Value"} array to wait for
+	all other functions to complete.
+
+\end{itemize}
+
+% \subsubsection{Checkpoints?}
+
+
+% check checkpoint existence before running user function
+
+% run user function or read from existing checkpoint
+
+% write checkpoint or pass
+
+% run continuation
+
+% checkpoints are used both for guaranting execution correctness and for
+% aggregation patterns such as fan-in.
+
+
+\subsection{Fault tolerance and execution guarantee}\label{sec:design-exec-gntee}
+
+Challenges to providing strong execution guarantees:
 
 \begin{enumerate}
 
-	\item The meaning and effects of "InputType": Scalar, Map, Fan-in
+	\item Functions in the workflow can fail at any point.
 
-	\item The meaning and effects of "Conditional": branch
-
-	\item "Start"
-
-	\item "Next Payload Modifiers": the interface to manipulate runtime metadata (\$size, \$0)
+	\item FaaS engines only provide at-least-once execution guarantee on
+	individual functions. Triggering a function once might result in duplicate
+	executions.
 
 \end{enumerate}
 
+Given the limitation of the underlying FaaS engines, \name{} cannot guarantee
+exactly-once execution on \emph{individual functions}. However, \name{}
+guarantees:
 
-\subsection{Runtime}
+\begin{enumerate}
 
+	\item At-least-once invocation on individual functions. This ensures that a
+	workflow invocation will not just stuck somewhere and not proceed.
 
-\subsubsection{Payload structure and metadata}
+	\item In a particular workflow invocation, a particular function will
+	always be invoked with the exact same input.
 
+	\item Each workflow invocation will produce exactly one result. Even if
+	there happen to be duplicate executions of functions, and even if the
+	functions are non-deterministic, only a single result is recorded, while
+	any duplicate and potentially diverging results are discarded.
 
-\subsubsection{Checkpoints?}
+\end{enumerate}
 
+From users' perspective, if none of the functions in the workflow have
+external side-effects (e.g., writing to external services), the workflow will
+appear to execute exactly-once.
 
-check checkpoint existence before running user function
+\name{} leverages the at-least-once execution guarantee of FaaS engines to
+ensure that functions run at least once.
 
-run user function or read from existing checkpoint
+When a workflow execution crashes before finishing, \name{} only retries the
+function where the crash happens instead of restarting the entire workflow.
+\name{} leverages the automatic retry feature that most FaaS engines already provide
+for individual functions~\cite{azure-functions-retry,
+google-cloud-functions-retry, aws-lambda-async-invoke}.
 
-write checkpoint or pass
+\name{} uses checkpointing to make sure that even if a function executes more
+than once, whether due to retries or duplicate invocations, only the result of
+one of the executions is taken as the final result, and only the final result
+is propagated downstream to the rest of the workflow.
 
-run continuation
+\name{} checkpointing process is the following:
 
-checkpoints are used both for guaranting execution correctness and for
-aggregation patterns such as fan-in.
+First, before running user code, the ingress checks to see if a checkpoint
+already exists for the invocation. If it does, \name{} skips running user code
+and uses the checkpoint's content as the result. The egress will invoke the
+continuation again in case the prior execution crashed after checkpointing but
+before running the continuation. This makes sure that if a step in the
+workflow has completed and persisted, it will not run again.
 
-
-\subsection{Fault tolerance and execution guarantee}
-
+If a checkpoint doesn't exist, unum runs the user code. After the user
+function completes, unum checkpoints the result into the data store and runs
+the continuation.
