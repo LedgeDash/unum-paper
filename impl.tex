@@ -1,1 +1,25 @@
 \section{Implementation}\label{sec:impl}
+
+We implement a prototype of \name{} that runs Python functions on AWS Lambda
+with DynamoDB or S3 as the intermediary data store. The frontend compiler
+supports workflows written as AWS Step Functions state machines. The compilers
+are written in Python with 1,277 lines of code. The runtime are written in
+Python with 2,957 lines of code. We also integrate our toolchain with AWS SAM
+to build and deploy \name{} workflows as Amazon CloudFormation stacks, which
+automates the development process. Building and deploying an \name{} workflow
+takes only one simple command.
+
+The runtime uses the \texttt{boto3} library to interact with AWS services.
+Lambda functions are invoked asynchronously (\texttt{InvocationType='Event'})
+with the \texttt{invoke()} API. Checkpointing to DynamoDB is a
+\texttt{PutItem} operation with a condition that the item does not already
+exist (\texttt{ConditionExpression='attribute_not_exists(Name)'}). Check
+checkpoint existence (\texttt{get_checkpoint()}) is a consistent read via
+\texttt{GetItem} operation. For fan-in functions, reading input from DynamoDB
+uses the \texttt{BatchGetItem} operation with consistent reads.
+
+\name{} by default uses the on-demand capacity mode when creating DynamoDB
+tables where applications are charged by the amount of read and write it
+performs instead of a fixed hourly rate.
+
+The runtime for S3 uses \texttt{}
