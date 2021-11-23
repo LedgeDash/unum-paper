@@ -80,8 +80,16 @@ a single continuation is equivalent to one Step Function state transition.
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/OpLatency.pdf}
-    \caption{Average latency incured by unum primitives.}
+    \caption{Average latency incured by unum primitives. The bottom right figure shows the total latency of the one Lambda invoke call and two storage accesses as a percentage of total runtime overhead.}
     \label{fig:oplatency}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/OpLatency-pct.pdf}
+    \caption{Latency breakdown of unum runtime. The majority of the latency is
+    from the Lambda invoke call and the two storage accesses.}
+    \label{fig:oplatency-pct}
 \end{figure}
 
 

@@ -326,10 +326,23 @@ continuations asynchronously, without involving any supplemental services.
 
 \subsubsection{\name{} configuration language}\label{sec:design-config-lang}
 
-In practice, the \name{} IR is a set of configuration files, one for each
-function in the workflow, written in the \name{} configuration language. The
-configuration language provides constructs to define continuations and modify
-runtime metadata.
+In practice, the \name{} IR is a set of configuration files (by default named
+\texttt{unum\_config.json}), one for each function in the workflow, written in
+the \name{} configuration language.
+
+Figure~\ref{fig:patterns} shows 2 examples patterns and how to express them in
+the \name{} IR.
+
+The configuration language provides constructs to define continuations. Each
+continuation is a JSON object. It specifies the name of the function to invoke
+(the \texttt{"Name"} field), what its inputs are (the \texttt{"InputType"}
+field) and an invoke condition (the \texttt{"Conditional"} field).
+
+The function name needs to match one of the names in the \name{} template. The 
+
+Continuations are defined in the \texttt{"Next"} field. The value is
+either a single JSON object if there is only one continuation or an array
+of JSON objects if there are multiple continuations.
 
 % Figure~\ref{fig:iot-sf} shows a Step Functions state machine for an IoT HVAC
 % controller workflow which is a chain of two functions. Figure~\ref{fig:iot-ir}
