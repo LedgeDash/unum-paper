@@ -63,24 +63,20 @@ a single continuation is equivalent to one Step Function state transition.
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatency.pdf}
-    \caption{Total latency unum incurs for checkpointing and invoking a single
-    continuation. We use a chain of two functions (\texttt{F->G}) that simply
-    return their input. \texttt{data size} is the output data size of
-    \texttt{F}, which in turn is the amount of data \texttt{F} writes to
-    checkpoint and the input data size of \texttt{G}. We see that even at
-    Lambda's payload size limit (256KB), unum's total runtime cost of
-    checkpointing and invoking a continuation (50p: \$0.45 per 1M exec., 99p:
-    \$0.53 per 1M exec.) is a mere fraction of Step Functions' cost of state
-    transition (\$27.9 per 1M exec.). A Step Functions state transition is
-    equivalent to unum checkpointing a function and invoking a single
-    continuation.}
-    \label{fig:totallatency}
+    \caption{Total latency unum incurs for a single state transition. We use a
+    chain of two functions (\texttt{F->G}) that simply return their input.
+    \texttt{data size} is the output data size of \texttt{F}, which in turn is
+    the amount of data \texttt{F} writes to checkpoint and the input data size
+    of \texttt{G}.}
+        \label{fig:totallatency}
 \end{figure}
 
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/OpLatency.pdf}
-    \caption{Average latency incured by unum primitives. The bottom right figure shows the total latency of the one Lambda invoke call and two storage accesses as a percentage of total runtime overhead.}
+    \caption{Average latency incured by unum primitives. The bottom right
+    figure shows the total latency of the one Lambda invoke call and two
+    storage accesses as a percentage of total runtime overhead.}
     \label{fig:oplatency}
 \end{figure}
 
@@ -93,6 +89,61 @@ a single continuation is equivalent to one Step Function state transition.
 \end{figure}
 
 
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/TotalCost.pdf}
+    \caption{Total costs comparison of 1 million state transitions between
+    Step Functions and \name{}}
+    \label{fig:total-costs}
+\end{figure}
+
+
+\subsection{Cost comparison}
+
+Total cost of a state transition:
+
+\begin{itemize}
+
+    \item For Step Functions, a state transition incurs a fixed cost of \$27.8
+    per 1M state transitions, regardless of the data size.
+
+    \item For unum, there are two parts to the cost:
+
+    \begin{enumerate}
+
+        \item Lambda Duration costs from running the \name{} runtime. That is
+        the additional time it takes to execute \name{} runtime code. This
+        cost depends on the memory size of the Lambda. We'll assume the
+        largest available Lambda size of 3072 MB which costs \$0.05 per 1M ms.
+
+        \item Costs of checkpointing. Here we are mainly concerned with the
+        cost of the read and write operations. We are \emph{not} concerned
+        with the cost of storing checkpoints because the intermediary data can
+        be delete right after workflow execution.
+
+    \end{enumerate}
+
+    \item S3 charges \$5.5 per 1M PUT requests (for checkpoint write) and \$0.44
+    per 1M GET requests (for checkpoint read).
+
+    \item DynamoDB on-demand capcity mode charges reads and writes based on
+    the data size. 1M requests for writing 1KB data costs \$1.3942 and 1M
+    requests for reading 1KB data costs \$0.279. Note that in the case of
+    DynamoDB, if no faults happen during execution, the checkpoint read will
+    return "item not found", which costs the same as returning 1KB of data.
+
+    \item For 1M state transitions, \name{}'s costs for S3:
+
+    \[  r(d)\times0.05 + 5.94 \]
+
+    and for DynamoDB:
+
+    \[  r(d)\times0.05 + d\times1.3942 +0.279\],
+
+    where $r$ is the total additional runtime of \name{}, $d$ is the data
+    size.
+
+\end{itemize}
 
 
 \paragraph{How well does unum perform with orchestration primitives (chaining,
