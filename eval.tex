@@ -1,6 +1,8 @@
 
 \section{Evaluation}\label{sec:eval}
 
+
+
 We evaluate unum along 3 metrics:
 
 \begin{enumerate}
@@ -12,6 +14,10 @@ We evaluate unum along 3 metrics:
     \item Costs
 
 \end{enumerate}
+
+% From application's perspective, the resource limitation is the number of
+% parallel invocations that AWS allows for an account. Therefore, shorter
+% end-to-end latency directly translates to higher throughput.
 
 We evaluate the 3 metrics with a suite of micro- and macro-benchmarks. The
 micro-benchmarks target specific operations (e.g., invoking a continuation,
@@ -48,18 +54,9 @@ functions before experiments. However, because of Lambda's concurrency limit,
 it is difficult to eliminate eviction and cold starts for large-scale
 workloads (e.g., ExCamera).
 
+
+
 \subsection{Microbenchmarks}
-
-
-\paragraph{How much additional latency does unum incur? How much does that
-translate to costs?}
-
-We first look at the performance and costs of the unum runtime. We measure the
-latency of each primitive and the total additional latency for unum to take a
-checkpoint and invoke a continuation. We translate the additional latency to
-dollar costs in Lambda duration and compare it against Step Functions' costs
-for state transitions. Note that unum taking a single checkpoint and invoking
-a single continuation is equivalent to one Step Function state transition.
 
 \begin{figure}[t!]
     \centering
@@ -69,7 +66,7 @@ a single continuation is equivalent to one Step Function state transition.
     \texttt{data size} is the output data size of \texttt{F}, which in turn is
     the amount of data \texttt{F} writes to checkpoint and the input data size
     of \texttt{G}.}
-        \label{fig:totallatency}
+    \label{fig:totallatency}
 \end{figure}
 
 \begin{figure}[t!]
@@ -97,6 +94,51 @@ a single continuation is equivalent to one Step Function state transition.
     Step Functions and \name{}}
     \label{fig:total-costs}
 \end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
+    \caption{End-to-end latency (logscale) of parallel fan-out and fan-in.
+    Lower is better. unum scales much better than the current version of Step
+    Functions (experiments ran on Nov. 15, 2021) for parallel fan-out
+    workloads. The result is not arguing that orchestrator-based workflow
+    systems fundamentally scales worse than unum. In fact, the main cause of
+    high latency in Step Functions is throttling of concurrent iterations when
+    the fan-out size exceeds 40~\cite{aws-step-functions-map-state}. Although
+    Step Functions does not elaborate on the reason for such throttling, there
+    is little reason to believe that the maximum allowable concurrency is
+    fundamentally capped around 40 for parallel workloads. However, this
+    result does demonstrate an important downside of adding supplemental
+    hosted services to support new workloads: any services added must also
+    perform well compared with the highly scalable FaaS substrate and
+    application developers must work with any restrictions that the services
+    impose. unum avoids the additional work of building and maintaining hosted
+    orchestrators and directly leverages the scalability of Lambda to achieve
+    better parallel performance.}
+    \label{fig:mapmicrolatency}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
+    \caption{End-to-end latency of chaining N functions. Lower is
+    better. Each function simply returns the input data without performing any
+    computation. Results in the figure are for 1KB of input data.}
+    \label{fig:chainmicrolatency}
+\end{figure}
+
+
+\paragraph{How much additional latency does unum incur? How much does that
+translate to costs?}
+
+We first look at the performance and costs of the unum runtime. We measure the
+latency of each primitive and the total additional latency for unum to take a
+checkpoint and invoke a continuation. We translate the additional latency to
+dollar costs in Lambda duration and compare it against Step Functions' costs
+for state transitions. Note that unum taking a single checkpoint and invoking
+a single continuation is equivalent to one Step Function state transition.
+
+
 
 
 \subsection{Cost comparison}
@@ -162,35 +204,7 @@ duration to 1ms so that the majority of latency comes from the workflow
 system.
 
 
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
-    \caption{End-to-end latency of parallel fan-out and fan-in. Lower is
-    better. unum scales much better than the current version of Step Functions
-    (experiments ran on Nov. 15, 2021) for parallel fan-out workloads. The
-    result is not arguing that orchestrator-based workflow systems
-    fundamentally scales worse than unum. In fact, the main cause of high
-    latency in Step Functions is throttling of concurrent iterations when the
-    fan-out size exceeds 40~\cite{aws-step-functions-map-state}. Although Step
-    Functions does not elaborate on the reason for such throttling, there is
-    little reason to believe that the maximum allowable concurrency is
-    fundamentally capped around 40 for parallel workloads. However, this
-    result does demonstrate an important downside of adding supplemental
-    hosted services to support new workloads: any services added must also
-    perform well compared with the highly scalable FaaS substrate and
-    application developers must work with any restrictions that the services
-    impose. unum avoids the additional work of building and maintaining hosted
-    orchestrators and directly leverages the scalability of Lambda to achieve
-    better parallel performance.}
-    \label{fig:mapmicrolatency}
-\end{figure}
 
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
-    \caption{End-to-end latency of chaining functions of depth N.}
-    \label{fig:chainmicrolatency}
-\end{figure}
 
 \paragraph{What's the cost of checkpointing? The total cost of the equivalence
 of a single Step Functions state transition.}
