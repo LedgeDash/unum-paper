@@ -1,60 +1,93 @@
 
 \section{Evaluation}\label{sec:eval}
 
-
-
-We evaluate unum along 3 metrics:
+We evaluate \name{} along 3 metrics: (1). cost, (2). latency, and (3).
+expressiveness, to answer the following questions:
 
 \begin{enumerate}
-    
-    \item Expressiveness
 
-    \item Latency
+    \item What is the cost of running applications on \name{} and how does it
+    compare to existing serverless workflow systems? Specifically, how much
+    additional costs does the \name{} runtime incur in Lambda duration
+    billing? And how much does it cost to write and read checkpoints to and
+    from the intermediary data store?
 
-    \item Costs
+    \item What is the latency performance of representative applications on
+    \name{}? And how does it compare to existing serverless workflow systems?
+
+    \item How expressive is \name{}'s representation of serverless workflows
+    (the \name{} IR)? Can one build complex, real-world applications with
+    \name{}?
 
 \end{enumerate}
 
-% From application's perspective, the resource limitation is the number of
-% parallel invocations that AWS allows for an account. Therefore, shorter
-% end-to-end latency directly translates to higher throughput.
 
-We evaluate the 3 metrics with a suite of micro- and macro-benchmarks. The
-micro-benchmarks target specific operations (e.g., invoking a continuation,
-checkpointing, etc.) and basic orchestration patterns (e.g., chaining, fan-out
-and fan-in) to understand unum's performance characteristics and cost
-benefits.
+We use a suite of micro- and macro-benchmarks. The micro-benchmarks target the
+basic operations of \name{} (e.g., invoking a continuation, checkpointing,
+etc.) and building-block orchestration patterns (e.g., chaining, fan-out and
+fan-in) to understand unum's performance characteristics and cost benefits.
 
-We then evaluate unum's expressiveness and end-to-end performance with 5
-real-world applications, taken from serverless application repositories and
-research literature. Each application covers a different use case and
-orchestration pattern.
+The macro-benchmarks consists of 4 real-world applications, taken from
+serverless repositories and prior research work, aiming to
+evaluate unum's expressiveness and end-to-end performance and costs.
 
-We compare unum with the Step Functions Standard workflows. We do not include
-Step Functions Express workflows in our evaluation because of its poor
-execution guarantee: a single invocation could produce multiple different
-answers.
+We show that 
 
+\begin{itemize}
 
+    \item over 97\% of \name{}'s latency overhead comes from API calls to
+    Lambda and data stores, which means the bulk of \name{}'s performance will
+    automatically improve with the underlying platform (e.g., a faster Lambda
+    or data store) without any modification to \name{} itself.
 
-We show that [Key results and takeaways in 3 sentences.]
+    % \item The additional Lambda duration billing for executing \name{} runtime
+    % is negligible across all data sizes
+
+    \item \name{} is slightly faster (11-28\%) in chaining performance and
+    much faster in parallel fan-out and fan-in performance (up to 4.58x),
+    especially at higher level of parallelism, than Step Functions.
+
+    \item \name{} delivers more than one order-of-magnitude cost savings for
+    almost all applications we evaluated, even when using the more expensive
+    DynamoDB as the intermediary data store. The applications we use cover all
+    orchestration patterns that Step Functions currently support.
+
+    \item \name{} is able to express all orchestration patterns that Step
+    Functions currently support. Additionally, with the ExCamera
+    implementation, we demonstrate that \name{} can express fold or for loops
+    and support pipeline parallelism, neither of which is expressible in Step
+    Functions.
+
+\end{itemize}
 
 \subsection{Experimental setup}
 
-Lambda, 128MB memory size unless otherwise specified.
+We run all experiments on AWS, region \texttt{us-west-1} and costs numbers
+reflect \texttt{us-west-1} pricing. We configure lambdas to 128MB memory size
+unless otherwise specified and use on-demand capacity mode for DynamoDB. To
+avoid function cold starts, we pre-warm functions by running the workflow a
+few doze times before collecting measurement.
 
-On-demand DynamoDB as the intermediary data store
+% S3 buckets all have Versioning turned on.
 
-Step Functions Standard
+We compare against Step Functions' \emph{Standard} Workflows as the baseline.
+Similar to \name{}, the Standard Workflows persists execution states on every
+state transition (i.e., completing one function and starting the next
+function), and always returns exactly one response for one workflow
+invocation~\cite{aws-step-functions-exec-gntee}.
 
-All experiments run in the same Region: us-west-1 (cali.)
+We do not consider Step Functions' Express Workflows in our comparison because
+of its weaker execution guarantee, namely the same invocation could result in
+multiple, potentially different results if any part of your workflow logic is
+nonidempotent~\cite{aws-step-functions-exec-gntee}.
 
-We try to avoid function cold starts whenever we can by pre-warming the
-functions before experiments. However, because of Lambda's concurrency limit,
-it is difficult to eliminate eviction and cold starts for large-scale
-workloads (e.g., ExCamera).
-
-
+Note that even though Step Functions claims that the Standard Workflows
+provides "exactly-once workflow
+execution"~\cite{aws-step-functions-exec-gntee}, it is not clear whether it
+implies exactly-once execution for component functions of the workflows. Our
+interpretation is that the internal states of a standard workflow will appear
+to execute exactly once, but component functions might not run exactly-once
+due to failures and retries, which is identical to \name{}.
 
 \subsection{Microbenchmarks}
 
@@ -340,7 +373,10 @@ main metrics are the above three.
     \item How do we evaluate other benefits that stem from a simpler design
      (the fact that unum gets rid of the needs for a separate orchestrator
      service), such as resource management, required staffing and other
-     hosting costs.
+     hosting costs? Further on the resource utilization point, do we want to
+     say that dollar costs of running applications is a reasonable enough
+     proxy to resource consumption and therefore lower price = less resource
+     consumption = better resource utilization?
 
     \item Should we run experiments with S3 and present those numbers?
 

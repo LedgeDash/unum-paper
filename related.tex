@@ -62,7 +62,13 @@ the remote procedure calls (RPCs) summarized in Table 2
 
 \paragraph{PyWren}~\cite{pywren}
 
+\paragraph{Beldi}
 
+not an actual workflow system because there is not interface to write
+workflows. The system is really a library that provides transactions for
+functions if they write their data to DynamoDB. Functions import and use the
+Beldi library directly in their code. Here is an example:
+https://github.com/eniac/Beldi/blob/master/internal/media/core/movieId.go
 
 % Google Cloud Composer uses Airflow.
 % https://github.com/apache/airflow/tree/main/airflow/example_dags
