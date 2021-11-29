@@ -70,6 +70,13 @@ functions if they write their data to DynamoDB. Functions import and use the
 Beldi library directly in their code. Here is an example:
 https://github.com/eniac/Beldi/blob/master/internal/media/core/movieId.go
 
+To chain functions F->G, F's code has to include a invoke call to G. This is
+not too different from triggers and unstructured composition which leads to
+scattered control flow and spagetti code.
+
+Also, it doesn't seem to provide a way to do aggregation. For example, how do
+you do fan-in or fold in Beldi.
+
 % Google Cloud Composer uses Airflow.
 % https://github.com/apache/airflow/tree/main/airflow/example_dags
 % https://cloud.google.com/composer/docs/samples
