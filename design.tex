@@ -8,6 +8,12 @@
 % * The design includes too many implementation specific details, and doesn't really describe the high level operations. If the big question is 'how do you implement fan-out / fan-in
 %   in a distributed way?', the section should answer that directly (same for other interactions which are much simpler).
 % * Similarly, we need to describe the interactions that unum provides and sort of hand-wave argue that these are the right set of interactions (perhaps by pseudo-code example).
+%
+% Terms to use:
+% * 'Gadgets': The interactions that are encoded in unum_config (fan-out, fan-in, chain, etc)
+% * 'Execution graph': where nodes are either user-code (Lambda functions) or gadgets, edges exiting user-code always enter gadgets. Instead of talking about
+%    continuations (I really don't think that Unum has something that looks like continuations), this execution graph is the IR and the runtime reifies the
+%    execution graph by embedding gadgets in lambdas themselves.
 
 \begin{figure*}[t]
     \centering
