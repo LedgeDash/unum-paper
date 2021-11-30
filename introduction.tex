@@ -41,11 +41,11 @@ constituent functions and manage workflow states.
 
 However, designs that rely on long-running hosted orchestrators break out of
 the serverless abstraction and compromise key benefits of serverless
-computing. Besides the costs of building and maintaining a hosted services
+computing. Besides the costs of building and maintaining a hosted service
 which often requires a dedicated engineering team, end-to-end performance now
-also depends on the orchestrator service. A slow orchestrator can become a
+also depends on the orchestrator. A slow orchestrator can become a
 bottleneck and nullify the fast autoscale advantage of serverless (as we
-discovered in \S~\ref{sec:eval-fan-out}).
+discovered and show in \S~\ref{sec:eval-fan-out}).
 
 Furthermore, for every workflow invocation, an orchestrator instance needs to
 stay until all functions in the workflow complete, including idle time waiting
@@ -58,7 +58,7 @@ orchestrator resources that they cannot immediately reclaim.
 
 In this paper, we propose \name{}, a new serverless workflow system design
 that allows developers to write workflows in existing higher-level programming
-interfaces and executes them purely as serverless functions.
+interfaces and executes them purely as event-driven functions.
 
 \name{} uses a two-stage compiler that tackles the complexity of orchestration
 at compile-time and removes the need to use hosted orchestrator services for
@@ -89,10 +89,10 @@ the collection of constituent functions.
 
 Similar to some prior work~\cite{boki, beldi}, \name{} leverages strongly
 consistent data stores to provide strong execution guarantees. \name{}'s
-guarantees are on a per-invocation granularity. Each function invocation
-creates a uniquely named checkpoint when user code returns.
-\name{} checkpointing ensures that re-executions, due to failure-related
-retries or duplicate event delivery, never run user code again.
+guarantees are on a per-function-invocation granularity. Each function
+invocation creates a uniquely named checkpoint when user code completes. The
+checkpoint ensures that re-executions, due to failure-related retries or
+duplicate event delivery, never run user code again.
 
 
 We present and evaluate an implementation of \name{} that can compile Step
@@ -100,9 +100,9 @@ Functions state machines and execute them purely as Lambda functions using
 either S3 or DynamoDB as the data store. The implementation supports all
 orchestration patterns in Step Functions (i.e., chaining, branching,
 \texttt{Map} and \texttt{Parallel} fan-out and fan-in) and can additionally
-express fold or for-loops.
+express fold and pipeline parallelism.
 
-We evaluate the performance and costs benefits of \name{} with a suite of
+We evaluate the performance and cost benefits of \name{} with a suite of
 microbenchmarks and 4 real-world applications. Our experimental results show
 that \name{} is slightly faster (11-28\%) than Step Functions in chaining
 performance, and much faster (up to 4.58x) in fan-out, especially at high
