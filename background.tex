@@ -1,5 +1,40 @@
 \section{Background}\label{sec:bg}
 
+\begin{table*}[]
+\centering
+\resizebox{\textwidth}{!}{
+
+	% \begin{tabular}{|l|l|l|l|l|l|l|l|}
+	% \hline
+	%  & \textbf{Step Functions} & \textbf{Durable Functions} & \textbf{Beldi} & \textbf{Boki} & \textbf{gg} & \textbf{ExCamera} & \textbf{unum} \\ \hline
+	% \textit{High-level workflow interface}                        & Y & Y & N & N & Y & Y & Y \\ \hline
+	% \textit{Do not need supplemental services/ purely serverless} & N & N & Y & N & N & N & Y \\ \hline
+	% \textit{Strong execution guarantee}                           & Y & Y & Y & Y & N & N & Y \\ \hline
+	% \end{tabular}
+
+	\begin{tabular}{|l|l|l|l|l|l|l|l|l|l|}
+	\hline
+	 &
+	  \textbf{Step Functions} &
+	  \textbf{Durable Functions} &
+	  \textbf{Beldi} &
+	  \textbf{Boki} &
+	  \textbf{Cloudburst} &
+	  \textbf{Kappa} &
+	  \textbf{gg} &
+	  \textbf{ExCamera} &
+	  \textbf{unum} \\ \hline
+	\textit{High-level workflow interface}                        & Y & Y & N & N & Y & Y & Y & Y & Y \\ \hline
+	\textit{Do not need supplemental services/ purely serverless} & N & N & Y & N & N & N & N & N & Y \\ \hline
+	\textit{Strong execution guarantee}                           & Y & Y & Y & Y & N & Y & N & N & Y \\ \hline
+	\end{tabular}
+}
+\caption{Comparison with existing work}
+\label{table:positioning}
+\end{table*}
+
+
+
 \begin{itemize}
 
 	\item Benefits of serverless: pay for what you use, event-driven/run only

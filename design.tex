@@ -138,14 +138,14 @@ code completes and leverages a checkpointing mechanism to ensure strong
 execution guarantees.
 
 We continue this section by first giving an overview of unum's architecture
-(Sec.~\ref{sec:design-overview}) and outlining the serverless abstractions and
-services that \name{} builds upon (Sec.~\ref{sec:design-req}). We then
+(\S~\ref{sec:design-overview}) and outlining the serverless abstractions and
+services that \name{} builds upon (\S~\ref{sec:design-req}). We then
 describe the programming interface that \name{} supports
-(Sec.~\ref{sec:design-interface}). Next, we discuss the \name{} IR
-(Sec.~\ref{sec:design-ir}) which expresses serverless workflows using
+(\S~\ref{sec:design-interface}). Next, we discuss the \name{} IR
+(\S~\ref{sec:design-ir}) which expresses serverless workflows using
 continuations. Finally, we describe \name{}'s runtime
-(Sec.~\ref{sec:design-runtime}) and execution guarantees
-(Sec.~\ref{sec:design-exec-gntee}).
+(\S~\ref{sec:design-runtime}) and execution guarantees
+(\S~\ref{sec:design-exec-gntee}).
 
 \subsection{Overview}\label{sec:design-overview}
 
@@ -155,7 +155,7 @@ systems (e.g., an AWS Step Functions state machine that orchestrates Lambdas)
 into a continuation-based, platform-independent intermediary representation.
 In practice, the IR is a set of configuration files
 (\texttt{unum\_config.json}), one for each function in the workflow, written
-in the \name{} configuration language (Sec.~\ref{sec:design-config-lang}).
+in the \name{} configuration language (\S~\ref{sec:design-config-lang}).
 
 Next, a backend compiler compiles the IR into platform-specific packages that
 are executable in a particular target environment (e.g., AWS Lambda with
@@ -226,12 +226,12 @@ workflow.
 unattainable. \name{} uses a checkpointing mechanism to make sure only the
 execution that finishes first is taken as the final result and propagated
 downstream. Duplicates are simply discarded. We discuss the details in
-Sec.~\ref{sec:design-runtime}.
+\S~\ref{sec:design-runtime}.
 
 \subsubsection{Named data store}
 
 Functions in \name{} workflows use a named data store to store checkpoints and
-other intermediary data (Sec.~\ref{sec:design-runtime}) during execution. The
+other intermediary data (\S~\ref{sec:design-runtime}) during execution. The
 data store needs to support creating and later retrieving objects with unique
 names.
 
@@ -259,7 +259,7 @@ aggregation patterns because multiple functions might detect that all fan-out
 branches have completed and thus invoking the fan-in functions more than once.
 \name{} runtime contains additional synchronization logic to make sure the fan-in
 function is only invoked once. We discuss the details in
-Sec.~\ref{sec:design-runtime}
+\S~\ref{sec:design-runtime}
 
 
 \subsection{Programming Interface}\label{sec:design-interface}

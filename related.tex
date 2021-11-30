@@ -77,6 +77,20 @@ scattered control flow and spagetti code.
 Also, it doesn't seem to provide a way to do aggregation. For example, how do
 you do fan-in or fold in Beldi.
 
+Boki is similar. There's no interface to define workflow
+
+https://github.com/ut-osa/boki-benchmarks/tree/main/experiments/workflow
+
+Execution guarantee comparison. Can provide exactly-once guarantee on some of
+the external operations, but not all.
+
+Even though they claim asyn invoke API is exactly-once, that's just not true.
+Lambda doesn't even guarantee exactly-once execution.
+
+\name{} requries fewer features from the data store: don't need scan, filter
+or projection.
+
+
 % Google Cloud Composer uses Airflow.
 % https://github.com/apache/airflow/tree/main/airflow/example_dags
 % https://cloud.google.com/composer/docs/samples

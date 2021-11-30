@@ -12,8 +12,10 @@
 \date{}
 
 % make title bold and 14 pt font (Latex default is non-bold, 16 pt)
-\title{\Large \bf unum: A Library Workflow System for Serverless Applications}
-%unum: Pure Serverless Workflow with Distributed Orchestration
+% \title{\Large \bf unum: A Library Workflow System for Serverless Applications}
+\title{\Large \bf unum: Purely Serverless Workflows with Distributed
+Orchestration}
+
 
 %for single author (just remove % characters)
 \author{
@@ -36,8 +38,35 @@
 
 \maketitle
 \thispagestyle{empty}
+
+\abstract
+Workflow systems have emerged to meet the demands of large serverless
+applications by providing high-level interfaces for workflow definition, rich
+semantics for function composition and strong guarantees for workflow
+execution.
+
+However, current designs rely on supplemental hosted orchestrators to execute
+workflows and thus break out of the serverless abstraction, compromising key
+benefits of serverless such as fast autoscaling, fine-grained billing and
+resource multiplexing.
+
+This paper presents \name{}, a new design for serverless workflow systems that
+supports existing higher-level interfaces while executes purely as serverless
+functions. \name{} uses a two-stage compiler that distributes orchestration
+logic to constituent functions at compile-time and removes the need for
+orchestrators during runtime. \name{} uses checkpoints with strongly
+consistent data stores to prevent re-executions and provide strong execution
+guarantees.
+
+We present and evaluate an implementation of \name{} that can compile Step
+Functions state machines and execute them purely as Lambda functions using
+either S3 or DynamoDB as the data store. Our comparison with Step Functions
+shows that applications scale up to 4.58x faster and costs more than one
+order-of-magnitude less when running with \name{}.
+
 %-------------------------------------------------------------------
 \input{introduction}
+\input{background}
 \input{design}
 \input{impl}
 \input{eval}

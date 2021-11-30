@@ -1,167 +1,130 @@
 \section{Introduction}
 
-\begin{itemize}
+% Serverless computing provides a simple and yet powerful abstraction for
+% building distributed applications. Developers build applications in the form
+% of event-driven functions without the need to provision and manage resources.
+% Serverless platforms execute functions with fast autoscaling that can start
+% thousands of functions in a matter of seconds, fine-grained billing that only
+% charges users for resources used and not for resources allocated but idle, and
+% improved resource multiplexing that can scale functions down to zero after
+% computation completes.
 
-  \item (Serverless computing is getting increasingly
-  popular~\cite{datadog-state-of-serverless} and is regarded by many as the
-  next stage of the cloud computing evolution~\cite{berkeley}.)
+Serverless computing provides a simple and yet powerful abstraction for
+building distributed applications. Developers build event-driven functions
+without the need to provision and manage resources. Serverless platforms
+execute functions with fast autoscaling that can start thousands of instances
+in seconds, fine-grained billing that only charges for resources used, and
+improved utilization that can reclaim resources immediately when they become
+idle.
 
-  \item \textbf{Serverless provides many benefits compared with traditional
-  architecture: }
+There are strong interests in building large serverless applications composed
+of multiple functions with rich patterns of interactions~\cite{excamera,
+pywren, gg-atc, beldi, boki}. These applications call for a \emph{higher-level
+programming interface} to express function interactions and \emph{strong
+end-to-end guarantees} for correct executions.
 
-    \begin{enumerate}
+Several serverless workflow systems have emerged to meet the challenges,
+offering various programming interfaces for workflow definition (e.g., state
+machines and DAG) and varying levels of execution guarantees~\cite{excamera,
+gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
+durable-functions, kappa}. Designs of existing solutions all require adding
+supplemental hosted services to current infrastructures for workflow
+execution. These long-running hosted services, often called controllers,
+coordinators or orchestrators, execute workflow definitions, invoke
+constituent functions and manage workflow states.
 
-      \item Fast autoscale of functions. Serverless systems can quickly start
-      thousands of functions in a matter of seconds.
+% However, designs of existing solutions all
+% break out of the serverless abstraction by requiring supplemental hosted
+% services added to current infrastructures. These long-running hosted services,
+% often called controllers, coordinators or orchestrators, execute workflow
+% definitions, manage workflow states and broker inter-function communication.
 
-      \item Fine-grained billing. Users only pay for the resources used and
-      can avoid paying for resources when idle.
+However, designs that rely on long-running hosted orchestrators break out of
+the serverless abstraction and compromise key benefits of serverless
+computing. Besides the costs of building and maintaining a hosted services
+which often requires a dedicated engineering team, end-to-end performance now
+also depends on the orchestrator service. A slow orchestrator can become a
+bottleneck and nullify the fast autoscale advantage of serverless (as we
+discovered in \S~\ref{sec:eval-fan-out}).
 
-      \item More flexible resource management that improves multiplexing and
-      resource utilization. Serverless providers can reallocate resources
-      immediately after computation completes and scale an application down to
-      zero when idle.
+Furthermore, for every workflow invocation, an orchestrator instance needs to
+stay until all functions in the workflow complete, including idle time waiting
+for functions to return (Figure~\ref{fig:orchestrator-design}). This
+complicates resource multiplexing and reduces utilization. In turn, service
+providers pass the costs of the lost efficiency to users by employing
+separately-designed pricing schemes that are not fine-grained,
+pay-for-what-you-use billing and essentially ``double-charging'' for idle
+orchestrator resources that they cannot immediately reclaim.
 
-      \item (Decoupled computation and storage can scale and bill
-      independently)
+In this paper, we propose \name{}, a new serverless workflow system design
+that allows developers to write workflows in existing higher-level programming
+interfaces and executes them purely as serverless functions.
 
-    \end{enumerate}
+\name{} uses a two-stage compiler that tackles the complexity of orchestration
+at compile-time and removes the need to use hosted orchestrator services for
+workflow execution. The compiler transforms workflow definitions (e.g., Step
+Functions state machines) to a continuation-based intermediary representation
+(the \name{} IR \S\ref{sec:design-ir}) and distributes the continuations to
+constiuent functions such that each function is responsible for invoking its
+immediate downstream functions.
 
-  \item Recently, there have been much interests in building large serverless
-  applications that consists of multiple functions with complex orchestration
-  patterns such as branching on function outputs, aggregating results over
-  many functions, and launch a function on the completion of one or multiple
-  upstream functions~\cite{excamera, kappa, pywren, google-workflows,
-  durable-functions, gg-atc}. While the original serverless offerings provide
-  an API for building single functions and simple mechanisms for routing
-  function results, these applications require a system that has a high-level
-  interface to express workflows of serverless functions and a backend that
-  can synchronize and aggregate states across functions.
+Workflow functions in \name{} are deployed with a runtime wrapper that
+transparently interposes on user code entry and exit. \name{} runtime wrapper
+does not change how users build functions. Developer can still write functions
+exactly the same way as if they are individual functions, and do not need to
+import any additional libraries in order to use \name{}.
 
-  \item (Many serverless workflow systems have emerged to meet this need.)
+During execution, when user code completes, the runtime wrapper executes the
+assigned continuations which triggers its immediate downstream functions in
+the workflow. Each function performs the same action in the order defined in
+the workflow such that the orchestration logic is distributedly executed by
+the collection of constituent functions.
 
-  \item \textbf{Unfortunately, these solutions all break out of the serverless
-  paradigm and turn back to the traditional SaaS/PaaS architecture.}
+%  a runtime wrapper transparently interposes on user code
+% entry and exit and executes the assigned continuations when user code
+% completes. The \name{} runtime wrapper does not change how users build
+% functions. Developer can still write functions exactly the same way as if they
+% are individual functions, and do not need to import any additional libraries
+% in order to use \name{}.
 
-  Workflows on these systems are written with a set of \emph{specialized APIs}
-  and executed by \emph{purpose-built, centralized hosted services}
-  (often called controllers, executors, coordinator or
-  orchestrators)~\cite{gg-atc, excamera, kappa, triggerflow, pywren,
-  durable-functions, aws-step-functions, google-cloud-composer,
-  google-workflows}.
-
-  \item \textbf{Requiring a hosted service outside the serverless environment
-  is not only expensive but also fails to fully leverage the benefits of
-  serverless.}
-
-    \begin{enumerate}
-      \item \textbf{Costs of an additional hosted service.} Adding additional
-      services to the serverless environment takes significant effort and
-      resources in terms of both developement and maintenance. Long-running
-      orchestrators requires reserved resources and a team of engineers
-      on-call.
-
-      \item \textbf{Cannot leverage the benefits of serverless.} Relying on a
-      centralized hosted service to drive workflows compromises important
-      benefits of using a serverless system.
-
-        \begin{enumerate}
-
-          \item Scalability of workflows also depends on the performance of
-          the orchestrator service. A slow orchestrator can become the
-          bottleneck and nullify the fast autoscale advantage of serverless.
-          Service providers need to make sure the orchestrator's performance
-          match that of the serverless system.
-
-          \item During execution, needs to run one orchestrator instance
-          \emph{per workflow invocation} and the instance needs to stay around
-          until all functions in the workflow complete, including idle time
-          while waiting for functions to return results. This leads to reduced
-          resource utilization as the service provider has to reserve the
-          orchestrator's resources for the entire duration of the workflow
-          even when the orchestrator is not doing useful work.
-
-          \item Service providers pass the costs to users. Users are not
-          billed in fine granularity solely for the resources used but also
-          pay for orchestrators idle time (double billing).
-
-          For examples, Step Functions bills based the number of state
-          transitions (approx. the number of function invocations). Google
-          Cloud Composer bills on orchestrator runtime on 10-min increments.
-          In comparison, Google Cloud Functions are billed in 100ms
-          increments. Azure Durable Functions uses a preempt and restore
-          strategy to alleviate waiting and double billing, but users are
-          billed whenever an orchestrator is restored (essentially you're
-          billed for the occurance of idleness instead of the duration of
-          idleness).
-
-        \end{enumerate}
-
-    \end{enumerate}
-
-  \item \textbf{In this paper, we demonstrate a new approach to serverless
-  workflows that are built purely within serverless systems.} Our approach
-  transforms high-level representations of complex serverless workflows (e.g.,
-  Step Functions) into functions that are executable on existing serverless
-  platforms. With a runtime library, each function runs a subset of the
-  workflow such that the collection of all functions execute the entire
-  workflow without relying on any additional services.
-
-  \item \textbf{High-level description of \name{}}
-
-    \begin{enumerate}
-
-      \item We build a system called \name{} that is capable of running
-      complex workflows entirely within a serverless environment.
-
-      \item \name{} consists of a suite of frontend compilers, a
-      continuation-based intermediary representation and a runtime library.
-
-      \item The frontend compilers can transform applications written for
-      existing workflow systems (e.g., AWS Step Functions) into the
-      continuation-based
-      \name{} IR.
-
-      \item We show that with the IR, we can distribute workflow actions onto
-      component functions in an application. And a runtime library packaged
-      with each function can then perform the assigned workflow action.
-
-      \item \name{} supports stateful actions, such as fan-out, fold, with a
-      named data store shared among functions.  We show that it is possible to
-      manage runtime states with any storage \emph{as long as function outputs
-      are uniquely named and the storage supports querying items with names
-      (e.g., databases, KV stores, object stores, etc.)}.
-    \end{enumerate}
-
-  \item \textbf{Benefits}
-    \begin{enumerate}
-      \item Removes the effort to build and maintain specialized hosted
-      workflow services
-      \item Not being part of the underlying system, a library is easier to
-      change, adapt and be portable.
-      \item \emph{Ability to leverage the advantages of serverless:}
-        \begin{itemize}
-          \item Cheaper -> a proxy for resource utilization
-          \item (Not sure about this one) Orchestration is automatically
-          parallelized. Can potentially demonstrate if \name{} consistently
-          outperforms Step Functions on highly-parallel applications.
-          \emph{This is not to claim that Step Functions are fundamentally
-          unscalable, but that because we build on top of a highly-scalable
-          system (Lambda), the application just scales with that one Lambda
-          API, instead of having to rely on an additional system (which is
-          Step Function in this case) for its scalability.}
-        \end{itemize}
-    \end{enumerate}
-
-  \item \textbf{Contribution}
-    \begin{enumerate}
-      \item Show that it is possible to support workflows entirely with
-      serverless. --> \emph{Strengthens the case for serverless in general and
-      explore the boundary of serverless capability}.
-      \item (Result-dependent) Overhead of \name{} library is actually low. So
-      this is not terrible idea from a performance standpoint.
-    \end{enumerate}
+Similar to some prior work~\cite{boki, beldi}, \name{} leverages strongly
+consistent data stores to provide strong execution guarantees. \name{}'s
+guarantees are on a per-invocation granularity. Each function invocation
+creates a uniquely named checkpoint when user code returns.
+\name{} checkpointing ensures that re-executions, due to failure-related
+retries or duplicate event delivery, never run user code again.
 
 
-\end{itemize}
+We present and evaluate an implementation of \name{} that can compile Step
+Functions state machines and execute them purely as Lambda functions using
+either S3 or DynamoDB as the data store. The implementation supports all
+orchestration patterns in Step Functions (i.e., chaining, branching,
+\texttt{Map} and \texttt{Parallel} fan-out and fan-in) and can additionally
+express fold or for-loops.
+
+We evaluate the performance and costs benefits of \name{} with a suite of
+microbenchmarks and 4 real-world applications. Our experimental results show
+that \name{} is slightly faster (11-28\%) than Step Functions in chaining
+performance, and much faster (up to 4.58x) in fan-out, especially at high
+levels of parallelism. Step Functions seems to suffer from throttling at even
+moderate levels with only 20 parallel branches.
+
+Furthermore, even when using the faster but more expensive DynamoDB as the
+data store, for all applications evaluated, running on \name{} is more than
+3.6x cheaper than Step Functions, and for all but one application, running on
+\name{} is more than one order-of-magnitude cheaper than Step Functions.
+
+Last but not least, \name{}'s key design choice to build upon the existing
+serverless abstraction means that the performance of \name{} can automatically
+improve when the underlying services improve. Our results show that over 97\%
+of \name{}'s latency overhead comes from API calls to Lambda and data stores,
+which means the bulk of \name{}'s overhead could quickly diminish with a
+faster Lambda or data store, without any modification to \name{} itself.
+
+% -------
+
+% execution guarantee challenges.
+
+% Removes the effort to build and maintain specialized hosted
+% workflow services
 

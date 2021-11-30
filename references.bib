@@ -378,3 +378,35 @@ series = {ICPE '20}
     Number = {UCB/EECS-2019-3},
     Abstract = {Serverless cloud computing handles virtually all the system administration operations needed to make it easier for programmers to use the cloud. It provides an interface that greatly simplifies cloud programming, and represents an evolution that parallels the transition from assembly language to high-level programming languages. This paper gives a quick history of cloud computing, including an accounting of the predictions of the 2009 Berkeley View of Cloud Computing paper, explains the motivation for serverless computing, describes applications that stretch the current limits of serverless, and then lists obstacles and research opportunities required for serverless computing to fulfill its full potential. Just as the 2009 paper identified challenges for the cloud and predicted they would be addressed and that cloud use would accelerate, we predict these issues are solvable and that serverless computing will grow to dominate the future of cloud computing.}
 }
+
+
+@inproceedings{boki,
+author = {Jia, Zhipeng and Witchel, Emmett},
+title = {Boki: Stateful Serverless Computing with Shared Logs},
+year = {2021},
+isbn = {9781450387095},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3477132.3483541},
+doi = {10.1145/3477132.3483541},
+abstract = {Boki is a new serverless runtime that exports a shared log API to serverless functions. Boki shared logs enable stateful serverless applications to manage their state with durability, consistency, and fault tolerance. Boki shared logs achieve high throughput and low latency. The key enabler is the metalog, a novel mechanism that allows Boki to address ordering, consistency and fault tolerance independently. The metalog orders shared log records with high throughput and it provides read consistency while allowing service providers to optimize the write and read path of the shared log in different ways. To demonstrate the value of shared logs for stateful serverless applications, we build Boki support libraries that implement fault-tolerant workflows, durable object storage, and message queues. Our evaluation shows that shared logs can speed up important serverless workloads by up to 4.7x.},
+booktitle = {Proceedings of the ACM SIGOPS 28th Symposium on Operating Systems Principles},
+pages = {691–707},
+numpages = {17},
+keywords = {shared log, consistency, Serverless computing, function-as-a-service},
+location = {Virtual Event, Germany},
+series = {SOSP '21}
+}
+
+
+@inproceedings {beldi,
+author = {Haoran Zhang and Adney Cardoza and Peter Baile Chen and Sebastian Angel and Vincent Liu},
+title = {Fault-tolerant and transactional stateful serverless workflows},
+booktitle = {14th USENIX Symposium on Operating Systems Design and Implementation (OSDI 20)},
+year = {2020},
+isbn = {978-1-939133-19-9},
+pages = {1187--1204},
+url = {https://www.usenix.org/conference/osdi20/presentation/zhang-haoran},
+publisher = {USENIX Association},
+month = nov,
+}

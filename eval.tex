@@ -73,7 +73,7 @@ We compare against Step Functions as the baseline. All applications in the
 evaluation are written as Step Functions state machines and \name{} versions
 are compiled from the Step Functions definitions, with the only exception of
 ExCamera due to limitations of the AWS State Language which we discuss in
-Sec.~\ref{sec:eval-excamera}.
+\S~\ref{sec:eval-excamera}.
 
 % We compare against Step Functions' \emph{Standard} Workflows as the baseline. 
 
@@ -216,7 +216,7 @@ the same microbenchmark with 5KB and 50KB input size and the results are
 similar. Overall, \name{} is around 11-28\% faster in chaining than Step
 Functions.
 
-\subsubsection{Fan-out and fan-in performance}
+\subsubsection{Fan-out and fan-in performance}\label{sec:eval-fan-out}
 
 Next, we evaluate another critical orchestration primitive: fan-out and
 fan-in. Quickly creating parallel instances is an important operation for
