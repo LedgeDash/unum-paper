@@ -100,35 +100,52 @@ due to failures and retries, which is identical to \name{}.
 
 \subsection{Microbenchmarks}
 
+% \begin{figure}[t!]
+%     \centering
+%     \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatency.pdf}
+%     % \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNCosts.pdf}
+%     \caption{Total latency for a transition}
+%     % \caption{Total latency for a single state transition. We use a
+%     % chain of two functions (\texttt{F->G}) that simply return their input.
+%     % \texttt{data size} is the output data size of \texttt{F}, which in turn is
+%     % the amount of data \texttt{F} writes to checkpoint and the input data size
+%     % of \texttt{G}.}
+%     \label{fig:totallatency}
+% \end{figure}
+
+% \begin{figure}[t!]
+%     \centering
+%     \includegraphics[width=\columnwidth]{figures/OpLatency.pdf}
+%     \caption{Latency of the Lambda \texttt{invoke} API for triggering a single
+%     function, the DynamoDB \texttt{GetItem} API for reading a checkpoint and
+%     the DynamoDB \texttt{PutItem} API for writing a checkpoint}
+%     \label{fig:oplatency}
+% \end{figure}
+
+% \begin{figure}[t!]
+%     \centering
+%     \includegraphics[width=\columnwidth]{figures/OpLatency-pct.pdf}
+%     \caption{Latency breakdown of the \name{} runtime. The majority of the
+%     latency comes from API calls to underlying services: the Lambda
+%     \texttt{invoke}, data store read and write.}
+%     \label{fig:oplatency-pct}
+% \end{figure}
+
 \begin{figure}[t!]
     \centering
-    \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatency.pdf}
-    % \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNCosts.pdf}
-    \caption{Total latency for a transition}
-    % \caption{Total latency for a single state transition. We use a
-    % chain of two functions (\texttt{F->G}) that simply return their input.
-    % \texttt{data size} is the output data size of \texttt{F}, which in turn is
-    % the amount of data \texttt{F} writes to checkpoint and the input data size
-    % of \texttt{G}.}
+    \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
+    \caption{\name{} latency of transitioning from the completion of a funtion
+    to the start of the next function. The transition involves a Lambda
+    invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
+    and a checkpoint read from data store (a DynamoDB GetItem call). Overall
+    latency increases with data size due to more data written in the PutItem
+    call and sent to next function via the Lambda invoke call. Over 97.5\% of
+    the latency is the
+    \name{} runtime waiting for data store accesses and Lambda invoke API
+    calls to return. When the underlying platform improves (e.g., a faster
+    Lambda or data store), the bulk of \name{}'s performance will
+    automatically improve without any modification to \name{} itself.}
     \label{fig:totallatency}
-\end{figure}
-
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/OpLatency.pdf}
-    \caption{Latency of the Lambda \texttt{invoke} API for triggering a single
-    function, the DynamoDB \texttt{GetItem} API for reading a checkpoint and
-    the DynamoDB \texttt{PutItem} API for writing a checkpoint}
-    \label{fig:oplatency}
-\end{figure}
-
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/OpLatency-pct.pdf}
-    \caption{Latency breakdown of the \name{} runtime. The majority of the
-    latency comes from API calls to underlying services: the Lambda
-    \texttt{invoke}, data store read and write.}
-    \label{fig:oplatency-pct}
 \end{figure}
 
 
@@ -188,16 +205,26 @@ without any modification to \name{} itself.
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
-    \caption{End-to-end latency of chaining N functions. Lower is
-    better. Each function simply returns the input data without performing any
-    computation. Results in the figure are for 1KB of input data.}
+    \caption{End-to-end latency of chaining N functions. All constituent
+    functions in the experiment only run for 1-2ms, so the results mostly
+    reflect the latency of the workflow systems. \name{} is marginally
+    (11-28\%) faster than Step Functions on average. The results show that
+    \name{} is basically as fast in the most fundamental orchestration
+    primitive of transitioning from one function to the next.}
     \label{fig:chainmicrolatency}
 \end{figure}
 
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
-    \caption{End-to-end latency (logscale) of parallel fan-out and fan-in}
+    \caption{End-to-end latency of parallel fan-out and fan-in with varying
+    degrees of parallelism. All constituent functions in the experiment only
+    run for 1-2ms, so the results mostly reflect the latency of the workflow
+    systems. \name{} is around 100-200ms slower at lower degrees of
+    parallelism (2-16 parallel branches), but starts to outperform Step
+    Functions (2.37x faster) at even moderate parallelism level of 32 parallel
+    branches. \name{}'s advantage widens as the the degress of parallelism
+    increases, and is up to 4.58x at 512 parallel branches.}
     \label{fig:mapmicrolatency}
 \end{figure}
 
