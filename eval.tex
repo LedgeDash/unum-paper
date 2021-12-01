@@ -374,16 +374,23 @@ more than 3.2x lower with \name{} than Step Functions.
 
 \begin{table*}[t]
 \centering
-\begin{tabular}{ll|cc|cc}
+\begin{tabular}{ll|rr|rr}
 \hline
                      &                        & \multicolumn{2}{c}{\textbf{\name{}}}            & \multicolumn{2}{c}{\textbf{Step Functions}}       \\
 \textbf{Application} & \textbf{Pattern}       & \textit{e2e latency} & \textit{cost (per 1 mil. exec.)}   & \textit{e2e latency} & \textit{cost (per 1 mil. exec.)}            \\ \hline
-IoT Pipeline         & chain                  & 120.9ms              & \$3.4005      & 226.52       & \$111.6    \\
-Text Processing      & fan-out, fan-in        & 562.69ms             & \$12.0168      & 552.46ms             & \$196.3                                                                           \\
-Wordcount            & chain, fan-out, fan-in & 410s                 & \$4904.79   & 898s                 & \$18113 \\
-ExCamera             & chain, fan-out, fold   & 84s                  & \$150.91 & 98s                  & \$1530      \\ \hline
+IoT Pipeline         & chain                  & 0.12s              & \$3.4      & 0.23s       & \$111.6    \\
+Text Processing      & fan-out, fan-in        & 0.56s             & \$12.0      & 0.55s        & \$196.3   \\
+Wordcount            & chain, fan-out, fan-in & 410.64s                 & \$4,904.8   & 898.56s                 & \$18,113.0 \\
+ExCamera             & chain, fan-out, fold   & 84.17s                  & \$150.9 & 98.42s                  & \$1,530.0      \\ \hline
 \end{tabular}
-\caption{Latency and costs comparison between \name{} and Step Functions for the macrobenchmark applications}
+\caption{Latency and costs comparison between \name{} and Step Functions for
+the macrobenchmark applications. Running applications on \name{} is 3.7x to
+32.8x cheaper than on Step Functions. \name{} delivers more than one
+order-of-magnitude cost savings for all but wordcount. Furthermore, \name{} is
+faster than Step Functions especially for workflows with high degrees of
+parallelism. Text Processing is the only workflow which \name{} is marginally
+slower because Step Functions creates parallel branches faster at low fan-out
+degrees as we illustrated in Figure~\ref{fig:mapmicrolatency}.}
 \label{table:macro}
 \end{table*}
 
