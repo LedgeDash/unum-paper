@@ -16,7 +16,7 @@ expressiveness, to answer the following questions:
     \name{}? And how does it compare to existing serverless workflow systems?
 
     \item How expressive is the \name{} IR? Can one build complex, real-world
-    applications with \name{}?
+    applications with \name{}? \shadi{how are you going to test this? maybe this can be a discussion in the design/implementation. }
 
 \end{enumerate}
 
@@ -59,13 +59,15 @@ We show that
 
 \end{itemize}
 
+\shadi{you can remove this itemize list if short on space.}
+
 \subsection{Experimental setup}
 
 We run all experiments on AWS, region \texttt{us-west-1} and costs numbers
 reflect \texttt{us-west-1} pricing. We configure lambdas to 128MB memory size
 unless otherwise specified and use on-demand capacity mode for DynamoDB. To
 avoid function cold starts, we pre-warm functions by running the workflow a
-few doze times before collecting measurement.
+few dozen times before collecting measurement.
 
 % S3 buckets all have Versioning turned on.
 
@@ -96,7 +98,7 @@ execution"~\cite{aws-step-functions-exec-gntee}, it is not clear whether it
 implies exactly-once execution for component functions of the workflows. Our
 interpretation is that the internal states of a standard workflow will appear
 to execute exactly once, but component functions might not run exactly-once
-due to failures and retries, which is identical to \name{}.
+due to failures and retries, which is identical to \name{}. \shadi{this paragraph is a bit confusing... }
 
 \subsection{Microbenchmarks}
 
@@ -188,7 +190,7 @@ transition.
 Figure~\ref{fig:totallatency} shows the total latency of a transition. \name{}
 incurs 73-217ms of latency, depending on the data size. A likely underestimate
 of Step Functions latency notwithstanding, \name{} is 1.09-3.54x slower than
-Step Functions on a single transition.
+Step Functions on a single transition. \shadi{can you show step function latency in  figure 6.  Also, if the number is not representative, why do we mention it? it seems misguiding. being 3.5x slower is not good... maybe just say we cannot measure transitions for step functions, and instead we compare the e2e latency.  }
 
 Figure~\ref{fig:oplatency} shows the latency of the Lambda \texttt{invoke}
 API, the DynamoDB \texttt{GetItem} call to read a checkpoint and the DynamoDB
@@ -202,6 +204,7 @@ overhead. This means the bulk of \name{}'s performance will automatically
 improve with the underlying platform (e.g., a faster Lambda or data store)
 without any modification to \name{} itself.
 
+\shadi{GENERAL COMMENT: the writing of the eval (and some other sections) is very verbose. we should do another pass and shrink it.}
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
@@ -229,7 +232,7 @@ without any modification to \name{} itself.
 \end{figure}
 
 \subsubsection{Chaining performance}
-
+\shadi{this section and previous one can be merged into one.}
 In this section, we discuss how \name{} performs on a basic orchestration
 pattern: chaining. Similarly, we use a function that simply returns its input
 without any computations in this microbenchmark to minimize the runtime of
@@ -258,13 +261,13 @@ branches.
 Similarly, we use a function that simply returns its input without any
 computations in this microbenchmark to minimize the runtime of user code so
 that the end-to-end latency maximally reflects the performance of the workflow
-system.
+system. \shadi{do we have any benchmarks with growing amount of computation in the function itself?  or  a few representative datapoints.}
 
 Figure~\ref{fig:mapmicrolatency} shows the end-to-end latency (logscale) of
 fan-out and fan-in at varying levels of parallelism. At lower level of
 parallelism (2-16 parallel branches), \name{} is around 100-200ms slower than
-Step Functions. \name{} starts to outperform Step Functions at even moderate parallelism level of 32
-parallel branches (2.37x) and up to 4.58x at 512 parallel branches.
+Step Functions. \shadi{what \% is this?} \name{} starts to outperform Step Functions at even moderate parallelism level of 32
+parallel branches (2.37x) and up to 4.58x at 512 parallel branches. \shadi{is it common to have >32 parallelism?}
 
 As we do not have direct access to Step Functions's backend, it is difficult to
 understand why Step Functions's performance becomes worse at higher parallelism. One
@@ -292,7 +295,7 @@ better parallel performance.
     \centering
     \includegraphics[width=\columnwidth]{figures/TotalCost.pdf}
     \caption{Total costs comparison of 1 million state transitions between
-    Step Functions and \name{}. Computation assumes Lambda size of 3GB.}
+    Step Functions and \name{}. Computation assumes Lambda size of 3GB. \shadi{colors are hard to read}}
     \label{fig:total-costs-single}
 \end{figure}
 
@@ -331,8 +334,9 @@ Figure~\ref{fig:total-costs-single} shows the total cost of transitions for
 function data size varying between 0-255KB. The computation assumes Lambda
 memory size of 3GB. We can see that the additional Lambda duration costs from
 running \name{} runtime is a small fraction when compared with the costs of
-DynamoDB writes. In fact, even at 255KB, the additional Lambda
-duration costs is only abour \$10. If using the smallest 128MB lambdas, the
+DynamoDB writes. \shadi{how is the figure showing this? how do you translate lambda duration to cost in the figure? this figure is hard to understand. }
+In fact, even at 255KB, the additional Lambda
+duration costs is only abour \$10. If using the smallest 128MB lambdas \shadi{(instead of 3GB)}, the
 costs diminishes to merely \$0.46.
 
 DynamoDB writes dominates the costs in \name{} because the on-demand mode
@@ -348,7 +352,7 @@ costs of \name{} outpacing that of Step Functions at larger data sizes, our
 macrobenchmark results demonstrate that functions in real-world serverless
 workflows do not output large amount of data. In fact, workflows tend to use
 their own storage and manage application data manually. Checkpoints in the
-\name{} intermediary data store are normally under 1KB.
+\name{} intermediary data store are normally under 1KB. \shadi{currently, the graph look very much not in favor of Unum. it seems like a big part of the time, it just works worse. If our argument is that usually data sizes are small, do we have to show such a big range? maybe use a log scale so at least we can focus on the important part of the range?}
 
 Figure~\ref{fig:total-costs-map} shows the total costs of fan-out and fan-in
 when function checkpoints are under 1KB. In addition to the costs discussed
@@ -386,6 +390,7 @@ more than 3.2x lower with \name{} than Step Functions.
 
 
 \subsection{Macrobenchmarks}
+\shadi{should we have the real-world experiments first, and then the benchmarks? btw, I would call them "real-world" apps instead of macrobenchmarks. }
 
 % \begin{table}[]
 % \begin{tabular}{llllll}
@@ -445,7 +450,7 @@ per batch.
 Table~\ref{table:macro} lists the median end-to-end latency and computed costs
 per 1 million executions. Both latency and costs numbers are based on DynamoDB
 as the intermediary data store. \name{} is slower than Step Functions for Text
-Processing where the workflow fans out to 2 parallel branches. However,
+Processing where the workflow fans out to 2 parallel branches. \shadi{it is only marginally slower. Maybe we don't want to give the impression that we are slow at low parallelism.} However,
 \name{} is faster in the other applications that consists of chaining and
 fan-outs at much higher level of parallelism.
 
