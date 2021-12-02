@@ -1,4 +1,4 @@
-\section{Background and Motivation}\label{sec:bg}
+\section{Background and Objectives}\label{sec:bg}
 
 \begin{table*}[]
 \centering
@@ -33,20 +33,168 @@
 \label{table:positioning}
 \end{table*}
 
+% Large-scale applications composed of many functions~\cite{excamera, gg-atc,
+% deathstar} introduce several new challenges to serverless computing. 
 
+\subsection{Evolution of Serverless Workflows}
 
 \begin{itemize}
 
-	\item Benefits of serverless: pay for what you use, event-driven/run only
-	when there's useful work to do, highly scalable.
+	\item While bringing many economical and operational benefits, the original
+	serverless abstraction is designed around individual functions and
+	provides limited support for building larger applications that are
+	composed of multiple functions. To compose functions, developers have to
+	manually invoke functions and manage application states with low-level
+	APIs, and work with restrictions such timeouts and weak execution guarantee.
 
-	\item Triggers and Destinations. Dispersed workflow logic, difficult to
-	program.
+	\item There are two primary approaches that early adopters use to compose
+	serverless functions.
 
-	\item Orchestration-based workflow systems that require adding supplement
-	hosted services to the serverless abstraction
+	\item The first approach is sometimes called unstructure
+	composition~\cite{netherite}. A key feature is that functions call each
+	other via \emph{asynchronous} invocation (e.g., triggers). For example, to
+	chain three functions, \texttt{F}, \texttt{G}, and \texttt{H}, \texttt{F}
+	asynchronously invokes \texttt{G} with \texttt{F}'s result and \texttt{G}
+	in turn asynchronously invokes \texttt{H}.
+
+	\item However, unstructure composition scatters control flow across
+	constituent functions. As the number of functions increases, development
+	can quickly get unwieldy. Moreover, it does not support important
+	composition patterns such as fan-in, where we want to invoke a function to
+	aggregate the results of multiple upstream functions only after all of
+	them have completed.
+
+	% (It's important that the serverless only options do not use data store
+	% much or cleverly.)
+
+	\item The second approach is often called driver functions~\cite{beldi}.
+	Similar to the \texttt{main} function of a program, a driver function is a
+	single serverless function that invokes other functions in the
+	application. An important characteristic of this approach is that
+	invocations are usually \emph{synchronous}, which allows the driver
+	function to get callees' results for composition.
+
+	\item Using the same chain of three functions example, the driver first
+	synchronously invokes \texttt{F} and after \texttt{F} returns,
+	synchronously invokes \texttt{G} with \texttt{F}'s result, and then
+	similarly invokes \texttt{H} with \texttt{G}'s result.
+
+	\item Compared with unstructured composition, it is easier to develope and
+	maintain applications with the driver functions approach because control
+	flow logic is concentrated. Moreover, driver functions can perform
+	arbitrary compositions, including fan-in.
+
+	\item However, driver functions have two important drawbacks: (1). Users
+	pay for the time when driver functions idly wait for calles to return.
+	This is often called the \emph{double billing} problem. (2). Serverless
+	platforms commonly impose timeouts on function. A driver function instance
+	has to wait until all functions in the application complete, which risks
+	timeouts and limits the application scale.
+
+	\item Moreover, both approaches suffer from weak execution guarantees of
+	the underlying serverless system. Functions can crash mid-execution due to
+	runtime or hardware faults which may leads to automatic retries. Even in
+	the absence of faults, serverless platforms usually only ensure
+	at-least-once execution so a single invocation can trigger multiple,
+	potentially concurrent, instances.
+
+	\item recently, workflow systems have emerged to solve the challenge.
+	at the center of all of them, orchestrator services.
+
+	specialized programming interface.
+	not serverless. separate hosted service.
+
+	gg, excamera, sf, they all rely on hosted
+	orchestrator service separate from FaaS engine. provide a higher-level
+	interface for expressing workflows as directed graphs. varying degree of
+	executon guarantees.
+
+	\item architecturally orchestrators are similar to driver functions.
+	explain how. the main difference: much longer timeout, often an
+	programming interface that express a directed graph with convenient
+	primitive instead of the low level invoke API.
+	However, suffer 3 problems that compromise faas' benefits.
 
 \end{itemize}
+
+
+\subsection{Requirements and objectives}
+
+Can we build a workflow system that allows dev to express workflows
+with higher-level interface, supports rich workflow patterns including
+aggregating over multiple functions, while executes purely within the
+serverless abstraction without external services and avoids double billing
+for idle cycles.
+
+Objective: would such a system be as fast as specially built orchestrators?
+
+\paragraph{Purely serverless} should not rely on hosted services outside the
+serverless abstraction.
+
+\paragraph{Exactly-once semantics}
+
+\paragraph{No double billing/no idle waiting}
+
+\paragraph{Support for fan-in}
+
+\paragraph{Higher-level programming interface}
+
+%------------------------
+
+% While bringing many economical and operational benefits, the original
+% serverless abstraction focuses on building and executing individual functions.
+% Support for constructing larger applications that are composed of multiple
+% functions is minimum. A key missing feature is an interface to program
+% function interactions.
+
+% As a result, early pioneers resort to manually invoking functions and managing
+% shared application-wide states~\cite{hello-retail}. For instance, to chain two
+% functions, say \texttt{F} and \texttt{G}, \texttt{F} needs to explicitly
+% invoke \texttt{G} with \texttt{F}'s result in the source code. Invocations are
+% done via asynchronous HTTP requests or storage triggers to avoid waiting. For
+% example, Python functions can call Lambda's \texttt{invoke} API via HTTP using
+% the AWS \texttt{boto3} sdk. Alternative, developers can configure an S3 bucket
+% to generate events on certain storage operations (e.g., writes) that triggers
+% \texttt{G}~\cite{aws-s3-event-announce}. Then build \texttt{F} such that it
+% writes \texttt{G}'s input data to the pre-configured S3 bucket.
+
+% This approach is often referred to as \emph{unstructured
+% composition}~\cite{netherite} because the control flow is scattered across
+% functions. Each constituent function contains only a part of the workflow
+% logic in its source code.
+
+% There are two main drawbacks of unstructured composition. First, developing
+% and maintaining can quickly become unwieldy as the number of functions
+% increases. Second, because the invoke API only passes the caller's data, it is
+% difficult to support an important composition pattern--fan-in, where we want
+% to invoke a function to aggregate the results of multiple upstream functions
+% only after all of them have completed.
+
+
+
+% Group driver functions and workflow systesm into orchestrators.
+
+% Serverless workflow systems have emerged to solve these
+% challenges~\cite{aws-step-functions, google-cloud-composer, google-workflows,
+% durable-functions}.
+
+
+
+
+% No higher-level interface to express function interactions. To chain two
+% functions, say \texttt{F} and \texttt{G}, \texttt{F} needs to explicitly invoke
+% \texttt{G} in its code (for example, Python Lambda functions can invoke other
+% functions via Lambda's \texttt{invoke} API with AWS \texttt{boto3} sdk).
+
+% Application states shared across functions have to be manually managed.
+
+
+
+% Can we build a system that executes workflows written in with a higher-level
+% interface but without a centralized orchestrator service that the platform has
+% to host? 
+
+%------------------------
 
 % In the case of orchestrators/coordinators, functions call back to the
 % orchestrator when complete and the orchestrator decides what to do next: which
@@ -58,7 +206,7 @@
 % gg: "The main entry-point for executing a thunk is the coordinator program....
 % Upon start, this program [the coordinator] materializes the target thunk's
 % dependency graph... Then, the thunks that are ready to execute are passed to
-% execution engines. ... When the execution of a thunk is done, the program [the
+% execution engines. ... When the execution of a thunk is done, the progra      m [the
 % coordinator] updates the graph by replacing the references to the just-forced
 % thunk ... The thunks that become ready to execute are placed on a queue and
 % passed to the execution engines when their capacity permits."
