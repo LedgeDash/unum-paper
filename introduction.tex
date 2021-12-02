@@ -10,15 +10,17 @@ idle.
 
 There are strong interests in building large serverless applications composed
 of multiple functions with rich patterns of interactions~\cite{excamera,
-pywren, gg-atc, beldi, boki}. \shadi{suggestion: maybe name a few apps to give an intuition of the complexity. } These applications call for a \emph{higher-level
-programming interface} to express function interactions and \emph{strong
-end-to-end guarantees} for correct executions.
+pywren, gg-atc, beldi, boki}. \shadi{suggestion: maybe name a few apps to give
+an intuition of the complexity. } These applications call for a
+\emph{higher-level programming interface} to express function interactions and
+\emph{strong end-to-end guarantees} for correct executions.
 
 Several serverless workflow systems have emerged to meet the challenges,
-offering various programming interfaces for workflow definition \shadi{composed of multiple connected functions} (e.g., state
-machines and DAG) and varying levels of execution guarantees~\cite{excamera,
-gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
-durable-functions, kappa}. Designs of existing solutions all require adding
+offering various programming interfaces for workflow definition
+\shadi{composed of multiple connected functions} (e.g., state machines and
+DAG) and varying levels of execution guarantees~\cite{excamera, gg-atc,
+aws-step-functions, google-cloud-composer, google-workflows,
+durable-functions}. Designs of existing solutions all require adding
 supplemental hosted services to current infrastructures for workflow
 execution. These long-running hosted services, often called controllers,
 coordinators or orchestrators, execute workflow definitions, invoke

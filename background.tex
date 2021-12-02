@@ -125,17 +125,23 @@ expensive.
 
 In this paper, we examine whether we can have the best of all three worlds. Specifically, we want a system that meets the following objectives:
 
-\paragraph{Higher-level programming interface}
+\paragraph{Higher-level programming interface} Developers should express
+function compositions with higher-level primitives similar to exising workflow
+orchestrators (e.g., AWS Step Functions) instead of low-level serverless APIs.
 
-\paragraph{Supports all common interactions}
+\paragraph{Supports all common interactions} The system should support all
+composition patterns commonly used in orchestrators today, including chaining,
+branching, fan-out and fan-in.
 
-\paragraph{Exactly-once semantics}
+\paragraph{Exactly-once semantics} Even if a function executes multiple times,
+due to retries or duplicate invocations, concurrently or non-concurrently, the
+final state should appear that the execution happened only once.
 
-\paragraph{Purely serverless} should not rely on hosted services outside the
-serverless abstraction.
+\paragraph{Purely serverless} The system should work within the current
+serverless environment and not add supplemental hosted services.
 
-\paragraph{Avoids idle waiting} 
-
+\paragraph{Avoids double billing} Users should only pay for the resources
+used. Functions should not synchronously wait for other functions to return.
 
 
 
