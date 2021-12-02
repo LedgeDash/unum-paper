@@ -1,5 +1,32 @@
 \section{System Architecture}\label{sec:architecture}
 
+\begin{figure*}[t]
+    \centering
+    \begin{subfigure}[t]{0.7\textwidth}
+        \includegraphics[width=\columnwidth]{figures/arch-abstract-graph.pdf}
+        \caption{Stateful serverless computations form a directed graph. Nodes
+                are user defined FaaS functions and workflow ``gadgets'' that dictate the
+                communication pattern between user functions.}
+        \label{fig:arch:graph}
+    \end{subfigure}
+    \begin{subfigure}[b]{\columnwidth}
+        \includegraphics[width=\columnwidth]{figures/arch-controller.pdf}
+        \caption{A typical stateful serverless system drives workflow logic
+                 using a centralized controller that manages the computation's state-machine.}
+        \label{fig:arch:centralized}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{\columnwidth}
+        \includegraphics[width=\columnwidth]{figures/arch-system.pdf}
+        \caption{\name{} decentralizes controller logic by running local state
+                 transitions alongside Faas functions inside the \name{} runtime
+                library. There is no centralized controller, instead \name{} relies on existing
+                serverless datastores such as DynamoDB or Cosmos DB.}
+        \label{fig:arch:unum}
+    \end{subfigure}
+    \caption{\name{}'s architecture}
+\end{figure*}
+
 By design, \name{} introduces no new components that run separately from
 existing serverless infrastructure. Instead, \name{} encompasses:
 platform-specific runtime libraries that wraps user-provided FaaS functions and
