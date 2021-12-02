@@ -2,15 +2,17 @@ LATEXRUN ?= ./latexrun
 
 #FIGURES=figures/microbench-speedup-vs-exec.pdf figures/microbench-exec.pdf figures/microbench-boot.pdf figures/microbench-e2e.pdf figures/microbench-role-storage.pdf figures/throughput_simulation.pdf
 
+FIGURES=figures/arch-abstract-graph.pdf figures/arch-system.pdf figures/arch-controller.pdf
+
 all: paper.pdf
 
 .PHONY: FORCE
 #paper.pdf: FORCE $(FIGURES)
-paper.pdf: FORCE
+paper.pdf: FORCE $(FIGURES)
 	$(LATEXRUN) --latex-args="-shell-escape" -Wall paper.tex
 
-figs/%.pdf: figs/%.svg
-	inkscape --export-pdf=$@ $<
+figures/%.pdf: figures/%.svg
+	rsvg-convert -f pdf -o $@ $<
 
 .PHONY: osx
 osx:
