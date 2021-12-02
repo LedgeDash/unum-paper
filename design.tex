@@ -1,3 +1,67 @@
+\section{System Architecture}\label{sec:architecture}
+
+By design, \name{} introduces no new components that run separately from
+existing serverless infrastructure. Instead, \name{} encompasses:
+platform-specific runtime libraries that wraps user-provided FaaS functions and
+implements workflow logic in a decentralized manner; an intermediate
+representation workflow description language that describes how each function's
+control logic should behave, in a platform agnostic manner; and compilers that
+transform high-level expression languages, such as Step Function descriptions or
+Durable Functions, into this intermediate representation.
+
+\begin{enumerate}
+  \item Computations are a directed graph connecting ``simple'' functions. These
+        can be expressed as, e.g., Step Function orchestrations, a DSL, etc.
+  \item Rather than use a centralized controller to track and execute
+        transitions in the graph, unum functions execute control logic in a distributed
+        fashion, embedded \emph{within} the functions themselves.
+  \item At runtime, unum is a library wrapping each function that executions a
+        portion of the controller logic using only basic primitives available in FaaS
+        platforms: invoke and storage operations (read/write/atomic-whatever).
+  \item Controller logic is encoded as a set of ``gadgets''---building blocks
+        that cover a wide range of workflow patterns, such as fan-out, fan-in,
+        and pipelines. Gadgets can be ported to any FaaS platform satisfying the
+        requirements in Section~\label{sec:motivation} but use algorithms that
+        are common across these platforms.
+  \item However, it does not necessarily always make sense to run gadgets where
+        a programmer might want to express them. For example, the unum runtime executes
+        fan-in logic at each of the source functions rather than in the target function,
+        but this might not be an intuitive way for a developer to express that
+        functionality. Thus, unum provides an intermediate representation that
+        represents the directed graph as it should be run while allowing different, more
+        intuitive expression languages to be compiled to this intermediate
+        representation.
+\end{enumerate}
+
+\section{Gadgets}\label{sec:gadgets}
+
+% chain = invoke, fan-out = a bunch of invoke, one for each continuation;
+% Additionally, in the case of Map, one invoke for each element of the array
+% (output of the user function).  fan-in .... well.... let's see. The semantics
+% is: invoke the fan-in function once when all of its inputs are ready. In
+% practice, it is each branch synchronize over the data store to see if all
+% branches have completed. The last branch to complete calls invoke on the fan-in
+% function, and pass it pointers to all branches results/checkpoints in the data
+% store. The fan-in function first reads the branches' results, in order, via the
+% pointers, then pass them as input to the user code.
+
+\begin{enumerate}
+  \item Fan-out
+        Takes a scalar output and invokes a list of different functions
+  \item Map
+        Takes a vector of outputs and invokes a function once for each element
+  \item Chain
+        Takes a scalar output and invokes a single function. Kind of a noop.
+  \item Fan-in
+        Takes an scalar outputs from each fan-in branch and outputs a vector of
+        outputs the the fan-in target function. Each branch stores its output to the
+        datastore and performs an atomic operation on the datastore competing to see if
+        they are the last of the branches to complete. The last branch invokes the
+        fan-in target function passing it a vector of pointers to each of the branches
+        stored output. The fan-in function dereferences each of the pointers by reading
+        from the data store and passes a vector of output values to the target function.
+\end{enumerate}
+
 \section{Design}\label{sec:design}
 
 % Notes(alevy):
