@@ -1,21 +1,21 @@
 \section{Introduction}
 
 Serverless computing provides a simple and yet powerful abstraction for
-building distributed applications. Developers build event-driven functions
+building distributed applications. \shadi{add citations on serverless popularity. maybe even add some numbers in the text, e.g., x\% growth of adoption or how quickly it is becoming increasingly popular. } Developers build event-driven functions
 without the need to provision and manage resources. Serverless platforms
 execute functions with fast autoscaling that can start thousands of instances
-in seconds, fine-grained billing that only charges for resources used, and
-improved utilization that can reclaim resources immediately when they become
+in seconds, provide fine-grained billing that only charges for resources used, and
+enable improved utilization that can reclaim resources immediately when they become
 idle.
 
 There are strong interests in building large serverless applications composed
 of multiple functions with rich patterns of interactions~\cite{excamera,
-pywren, gg-atc, beldi, boki}. These applications call for a \emph{higher-level
+pywren, gg-atc, beldi, boki}. \shadi{suggestion: maybe name a few apps to give an intuition of the complexity. } These applications call for a \emph{higher-level
 programming interface} to express function interactions and \emph{strong
 end-to-end guarantees} for correct executions.
 
 Several serverless workflow systems have emerged to meet the challenges,
-offering various programming interfaces for workflow definition (e.g., state
+offering various programming interfaces for workflow definition \shadi{composed of multiple connected functions} (e.g., state
 machines and DAG) and varying levels of execution guarantees~\cite{excamera,
 gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
 durable-functions, kappa}. Designs of existing solutions all require adding
@@ -33,7 +33,7 @@ constituent functions and manage workflow states.
 However, designs that rely on long-running hosted orchestrators break out of
 the serverless abstraction and compromise key benefits of serverless
 computing. Besides the costs of building and maintaining a hosted service
-which often requires a dedicated engineering team, end-to-end performance now
+which often requires a dedicated engineering team and end-to-end performance now
 also depends on the orchestrator. A slow orchestrator can become a
 bottleneck and nullify the fast autoscale advantage of serverless (as we
 discovered and show in \S~\ref{sec:eval-fan-out}).
@@ -69,7 +69,7 @@ During execution, when user code completes, the runtime wrapper executes the
 assigned continuations which triggers its immediate downstream functions in
 the workflow. Each function performs the same action in the order defined in
 the workflow such that the orchestration logic is distributedly executed by
-the collection of constituent functions.
+the collection of constituent functions.\shadi{this last sentence is a bit vague, reword.}
 
 %  a runtime wrapper transparently interposes on user code
 % entry and exit and executes the assigned continuations when user code
@@ -83,7 +83,7 @@ consistent data stores to provide strong execution guarantees. \name{}'s
 guarantees are on a per-function-invocation granularity. Each function
 invocation creates a uniquely named checkpoint when user code completes. The
 checkpoint ensures that re-executions, due to failure-related retries or
-duplicate event delivery, never run user code again.
+duplicate event delivery, never run user code again. \shadi{suggestion: this might be too much detail for here. you can probably remove this paragraph to design rather than intro.}
 
 
 We present and evaluate an implementation of \name{} that can compile Step
@@ -112,6 +112,9 @@ of \name{}'s latency overhead comes from API calls to Lambda and data stores,
 which means the bulk of \name{}'s overhead could quickly diminish with a
 faster Lambda or data store, without any modification to \name{} itself.
 
+\shadi{I would compress the last 3 paragraphs on the eval. they can each be a single sentence. For example, "Our experimental results show that compared to Step Functions \name{} can improve performance from 11-28\% in case of chaining functions and up to  4.5x in case high-parallelism patterns such as fan-out. At the same time, \name{} significantly reduces the cost from X-Y\%."}
+
+\shadi{have a contributions list, clearly articulating the contributions}
 % -------
 
 % execution guarantee challenges.
