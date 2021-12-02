@@ -443,3 +443,22 @@ series = {ACSAC '20}
   journal={arXiv preprint arXiv:2103.00033},
   year={2021}
 }
+
+
+@inproceedings{double-billing,
+author = {Baldini, Ioana and Cheng, Perry and Fink, Stephen J. and Mitchell, Nick and Muthusamy, Vinod and Rabbah, Rodric and Suter, Philippe and Tardieu, Olivier},
+title = {The Serverless Trilemma: Function Composition for Serverless Computing},
+year = {2017},
+isbn = {9781450355308},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3133850.3133855},
+doi = {10.1145/3133850.3133855},
+abstract = {The field of serverless computing has recently emerged in support of highly scalable, event-driven applications. A serverless application is a set of stateless functions, along with the events that should trigger their activation. A serverless runtime allocates resources as events arrive, avoiding the need for costly pre-allocated or dedicated hardware. While an attractive economic proposition, serverless computing currently lags behind the state of the art when it comes to function composition. This paper addresses the challenge of programming a composition of functions, where the composition is itself a serverless function. We demonstrate that engineering function composition into a serverless application is possible, but requires a careful evaluation of trade-offs. To help in evaluating these trade-offs, we identify three competing constraints: functions should be considered as black boxes; function composition should obey a substitution principle with respect to synchronous invocation; and invocations should not be double-billed. Furthermore, we argue that, if the serverless runtime is limited to a reactive core, i.e. one that deals only with dispatching functions in response to events, then these constraints form the serverless trilemma. Without specific runtime support, compositions-as-functions must violate at least one of the three constraints. Finally, we demonstrate an extension to the reactive core of an open-source serverless runtime that enables the sequential composition of functions in a trilemma-satisfying way. We conjecture that this technique could be generalized to support other combinations of functions.},
+booktitle = {Proceedings of the 2017 ACM SIGPLAN International Symposium on New Ideas, New Paradigms, and Reflections on Programming and Software},
+pages = {89–103},
+numpages = {15},
+keywords = {cloud, serverless, functional, composition},
+location = {Vancouver, BC, Canada},
+series = {Onward! 2017}
+}

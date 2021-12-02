@@ -1,83 +1,84 @@
 \section{Background and Objectives}\label{sec:bg}
 
-\begin{table*}[]
-\centering
-\resizebox{\textwidth}{!}{
+% \begin{table*}[]
+% \centering
+% \resizebox{\textwidth}{!}{
 
-	% \begin{tabular}{|l|l|l|l|l|l|l|l|}
-	% \hline
-	%  & \textbf{Step Functions} & \textbf{Durable Functions} & \textbf{Beldi} & \textbf{Boki} & \textbf{gg} & \textbf{ExCamera} & \textbf{unum} \\ \hline
-	% \textit{High-level workflow interface}                        & Y & Y & N & N & Y & Y & Y \\ \hline
-	% \textit{Do not need supplemental services/ purely serverless} & N & N & Y & N & N & N & Y \\ \hline
-	% \textit{Strong execution guarantee}                           & Y & Y & Y & Y & N & N & Y \\ \hline
-	% \end{tabular}
+% 	% \begin{tabular}{|l|l|l|l|l|l|l|l|}
+% 	% \hline
+% 	%  & \textbf{Step Functions} & \textbf{Durable Functions} & \textbf{Beldi} & \textbf{Boki} & \textbf{gg} & \textbf{ExCamera} & \textbf{unum} \\ \hline
+% 	% \textit{High-level workflow interface}                        & Y & Y & N & N & Y & Y & Y \\ \hline
+% 	% \textit{Do not need supplemental services/ purely serverless} & N & N & Y & N & N & N & Y \\ \hline
+% 	% \textit{Strong execution guarantee}                           & Y & Y & Y & Y & N & N & Y \\ \hline
+% 	% \end{tabular}
 
-	\begin{tabular}{|l|l|l|l|l|l|l|l|l|l|}
-	\hline
-	 &
-	  \textbf{Step Functions} &
-	  \textbf{Durable Functions} &
-	  \textbf{Beldi} &
-	  \textbf{Boki} &
-	  \textbf{Cloudburst} &
-	  \textbf{Kappa} &
-	  \textbf{gg} &
-	  \textbf{ExCamera} &
-	  \textbf{unum} \\ \hline
-	\textit{High-level workflow interface}                        & Y & Y & N & N & Y & Y & Y & Y & Y \\ \hline
-	\textit{Do not need supplemental services/ purely serverless} & N & N & Y & N & N & N & N & N & Y \\ \hline
-	\textit{Strong execution guarantee}                           & Y & Y & Y & Y & N & Y & N & N & Y \\ \hline
-	\end{tabular}
-}
-\caption{Comparison with existing work}
-\label{table:positioning}
-\end{table*}
+% 	\begin{tabular}{|l|l|l|l|l|l|l|l|l|l|}
+% 	\hline
+% 	 &
+% 	  \textbf{Step Functions} &
+% 	  \textbf{Durable Functions} &
+% 	  \textbf{Beldi} &
+% 	  \textbf{Boki} &
+% 	  \textbf{Cloudburst} &
+% 	  \textbf{Kappa} &
+% 	  \textbf{gg} &
+% 	  \textbf{ExCamera} &
+% 	  \textbf{unum} \\ \hline
+% 	\textit{High-level workflow interface}                        & Y & Y & N & N & Y & Y & Y & Y & Y \\ \hline
+% 	\textit{Do not need supplemental services/ purely serverless} & N & N & Y & N & N & N & N & N & Y \\ \hline
+% 	\textit{Strong execution guarantee}                           & Y & Y & Y & Y & N & Y & N & N & Y \\ \hline
+% 	\end{tabular}
+% }
+% \caption{Comparison with existing work}
+% \label{table:positioning}
+% \end{table*}
+
 
 % Large-scale applications composed of many functions~\cite{excamera, gg-atc,
 % deathstar} introduce several new challenges to serverless computing. 
 
 \subsection{Evolution of Serverless Workflows}
 
+\begin{figure}[t!]
+    \centering
+    \scalebox{.4}{\includegraphics[width=\columnwidth]{figures/ChainExample.pdf}}
+    \caption{Chaining two functions with unstructure composition, driver
+    functions and orchestrators. In the unstructured composition approach,
+	\texttt{F} asynchronously invokes \texttt{G} with \texttt{F}'s result. In
+	the driver functions approach, the driver function first synchronously
+	invokes \texttt{F} and after \texttt{F} returns, synchronously invokes
+	\texttt{G} with \texttt{F}'s result. Even though orchestrators'
+	programming interface hides low-level APIs such as \texttt{invoke}, it is
+	architecturally similar to driver functions where the orchestrator invokes
+	\texttt{F}, waits for \texttt{F} to return and then invokes \texttt{G}
+	with \texttt{F}'s result.}
+    \label{fig:chain-example}
+\end{figure}
+
 \begin{itemize}
 
 	\item While bringing many economical and operational benefits, the original
 	serverless abstraction is designed around individual functions and
-	provides limited support for building larger applications that are
-	composed of multiple functions. To compose functions, developers have to
-	manually invoke functions and manage application states with low-level
-	APIs, and work with restrictions such timeouts and weak execution guarantee.
-
-	\item There are two primary approaches that early adopters use to compose
-	serverless functions.
+	provides only basic low-level APIs that can be used to compose functions.
+	There are two primary approaches that early adopters use to compose
+	serverless functions with low-level APIs.
 
 	\item The first approach is sometimes called unstructure
-	composition~\cite{netherite}. A key feature is that functions call each
-	other via \emph{asynchronous} invocation (e.g., triggers). For example, to
-	chain three functions, \texttt{F}, \texttt{G}, and \texttt{H}, \texttt{F}
-	asynchronously invokes \texttt{G} with \texttt{F}'s result and \texttt{G}
-	in turn asynchronously invokes \texttt{H}.
+	composition~\cite{netherite} where functions trigger each other via
+	\emph{asynchronous invocations}. The second is often called driver
+	functions~\cite{beldi} where a single function calls other functions via
+	synchronous invocations. Figure~\ref{fig:chain-example} gives an example
+	of chaining functions with either unstructured composition or driver
+	functions.
 
-	\item However, unstructure composition scatters control flow across
-	constituent functions. As the number of functions increases, development
-	can quickly get unwieldy. Moreover, it does not support important
-	composition patterns such as fan-in, where we want to invoke a function to
-	aggregate the results of multiple upstream functions only after all of
-	them have completed.
+	\item Both approaches have important drawbacks.
 
-	% (It's important that the serverless only options do not use data store
-	% much or cleverly.)
-
-	\item The second approach is often called driver functions~\cite{beldi}.
-	Similar to the \texttt{main} function of a program, a driver function is a
-	single serverless function that invokes other functions in the
-	application. An important characteristic of this approach is that
-	invocations are usually \emph{synchronous}, which allows the driver
-	function to get callees' results for composition.
-
-	\item Using the same chain of three functions example, the driver first
-	synchronously invokes \texttt{F} and after \texttt{F} returns,
-	synchronously invokes \texttt{G} with \texttt{F}'s result, and then
-	similarly invokes \texttt{H} with \texttt{G}'s result.
+	\item Unstructure composition scatters control flow across constituent
+	functions. As the number of functions increases, development can quickly
+	get unwieldy. Moreover, it does not support important composition patterns
+	such as fan-in, where we want to invoke a function to aggregate the
+	results of multiple upstream functions only after all of them have
+	completed.
 
 	\item Compared with unstructured composition, it is easier to develope and
 	maintain applications with the driver functions approach because control
@@ -86,10 +87,11 @@
 
 	\item However, driver functions have two important drawbacks: (1). Users
 	pay for the time when driver functions idly wait for calles to return.
-	This is often called the \emph{double billing} problem. (2). Serverless
-	platforms commonly impose timeouts on function. A driver function instance
-	has to wait until all functions in the application complete, which risks
-	timeouts and limits the application scale.
+	This is often called the \emph{double billing}
+	problem~\cite{double-billing}. (2). Serverless platforms commonly impose
+	timeouts on function. A driver function instance has to wait until all
+	functions in the application complete, which risks timeouts and limits the
+	application scale.
 
 	\item Moreover, both approaches suffer from weak execution guarantees of
 	the underlying serverless system. Functions can crash mid-execution due to
@@ -98,22 +100,64 @@
 	at-least-once execution so a single invocation can trigger multiple,
 	potentially concurrent, instances.
 
-	\item recently, workflow systems have emerged to solve the challenge.
-	at the center of all of them, orchestrator services.
 
-	specialized programming interface.
-	not serverless. separate hosted service.
+	% \item The first approach is sometimes called unstructure
+	% composition~\cite{netherite}. A key feature is that functions call each
+	% other via \emph{asynchronous} invocation (e.g., triggers). For example, to
+	% chain three functions, \texttt{F}, \texttt{G}, and \texttt{H}, \texttt{F}
+	% asynchronously invokes \texttt{G} with \texttt{F}'s result and \texttt{G}
+	% in turn asynchronously invokes \texttt{H}.
 
-	gg, excamera, sf, they all rely on hosted
-	orchestrator service separate from FaaS engine. provide a higher-level
-	interface for expressing workflows as directed graphs. varying degree of
-	executon guarantees.
+	% \item However, unstructure composition scatters control flow across
+	% constituent functions. As the number of functions increases, development
+	% can quickly get unwieldy. Moreover, it does not support important
+	% composition patterns such as fan-in, where we want to invoke a function to
+	% aggregate the results of multiple upstream functions only after all of
+	% them have completed.
 
-	\item architecturally orchestrators are similar to driver functions.
-	explain how. the main difference: much longer timeout, often an
-	programming interface that express a directed graph with convenient
-	primitive instead of the low level invoke API.
-	However, suffer 3 problems that compromise faas' benefits.
+	% (It's important that the serverless only options do not use data store
+	% much or cleverly.)
+
+	% \item The second approach is often called driver functions~\cite{beldi}.
+	% Similar to the \texttt{main} function of a program, a driver function is a
+	% single serverless function that invokes other functions in the
+	% application. An important characteristic of this approach is that
+	% invocations are usually \emph{synchronous}, which allows the driver
+	% function to get callees' results for composition.
+
+	% \item Using the same chain of three functions example, the driver first
+	% synchronously invokes \texttt{F} and after \texttt{F} returns,
+	% synchronously invokes \texttt{G} with \texttt{F}'s result, and then
+	% similarly invokes \texttt{H} with \texttt{G}'s result.
+
+	\item Recently, workflow systems have emerged to tackle the challenges of
+	large serverless applications.~\cite{excamera, gg-atc, aws-step-functions,
+	google-cloud-composer, google-workflows, durable-functions}. They offer
+	(1). higher-level programming interfaces that directly expresses function
+	interactions and hides low-level APIs (2). a rich set of composition
+	primitives, including branching, chaining, fan-out and fan-in. (3).
+	exactly-once semantics for workflow executions. (4). long or no runtime
+	limits.
+
+	\item To provide the above features, workflow systems use orchestrators
+	to execute workflow definitions, invoke constituent functions and manage
+	workflow states. These orchestrators are hosted services separate from the
+	serverless system.
+
+	\item Unfortunately, there are several important drawbacks of the
+	orchestrator design. (1). building and maintaining a hosted service often
+	requires a dedicated engineering team which is expensive (2). End-to-end
+	performance now also depends on the orchestrator. A slow orchestrator can
+	become a bottleneck and nullify the fast autoscale advantage of serverless
+	(3). Architecturally, orchestrators are similar to driver functions. An
+	orchestrator instance invokes functions, wait for function results and
+	therefore needs to stay until all functions in the workflow complete.
+	Service provider cannot immediately reclaim idle resources from
+	orchestrators which leads to reduced utilization. (4). In turn, service
+	providers pass the costs of the lost efficiency to users by employing
+	separately-designed pricing schemes that are coarse-grained and not
+	pay-for-what-you-use, essentially ``double-charging'' for idle
+	orchestrator resources that they cannot immediately reclaim.
 
 \end{itemize}
 
