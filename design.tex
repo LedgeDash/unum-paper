@@ -24,43 +24,89 @@
                 serverless datastores such as DynamoDB or Cosmos DB.}
         \label{fig:arch:unum}
     \end{subfigure}
-    \caption{\name{}'s architecture}
+    \caption{\name{} System Overview. Serverless computations form a directed
+            graph that encode sequential and data dependencies between functions. Workflow
+            orchestrators drive these graphs by centralizing control flow logic and
+            interposing on all communication between functions. \name{},
+            instead, decentralizes control flow logic among the functions with
+            no need for a separate orchestration system.}
+    \label{fig:arch}
 \end{figure*}
 
-By design, \name{} introduces no new components that run separately from
-existing serverless infrastructure. Instead, \name{} encompasses:
-platform-specific runtime libraries that wraps user-provided FaaS functions and
-implements workflow logic in a decentralized manner; an intermediate
-representation workflow description language that describes how each function's
-control logic should behave, in a platform agnostic manner; and compilers that
-transform high-level expression languages, such as Step Function descriptions or
-Durable Functions, into this intermediate representation.
+Computations are a directed graph connecting ``simple'' stateless functions
+using, potentially, stateful workflow patterns, such as chaining, map, fan-out,
+and fan-in. Existing systems implement stateful patterns by centralizing
+control-flow state in an orchestrator. Figure~\ref{fig:arch} contrasts this with
+\name{}'s decentralized approach.
 
-\begin{enumerate}
-  \item Computations are a directed graph connecting ``simple'' functions. These
-        can be expressed as, e.g., Step Function orchestrations, a DSL, etc.
-  \item Rather than use a centralized controller to track and execute
-        transitions in the graph, unum functions execute control logic in a distributed
-        fashion, embedded \emph{within} the functions themselves.
-  \item At runtime, unum is a library wrapping each function that executions a
-        portion of the controller logic using only basic primitives available in FaaS
-        platforms: invoke and storage operations (read/write/atomic-whatever).
-  \item Controller logic is encoded as a set of ``gadgets''---building blocks
-        that cover a wide range of workflow patterns, such as fan-out, fan-in,
-        and pipelines. Gadgets can be ported to any FaaS platform satisfying the
-        requirements in Section~\label{sec:motivation} but use algorithms that
-        are common across these platforms.
-  \item However, it does not necessarily always make sense to run gadgets where
-        a programmer might want to express them. For example, the unum runtime executes
-        fan-in logic at each of the source functions rather than in the target function,
-        but this might not be an intuitive way for a developer to express that
-        functionality. Thus, unum provides an intermediate representation that
-        represents the directed graph as it should be run while allowing different, more
-        intuitive expression languages to be compiled to this intermediate
-        representation.
-\end{enumerate}
+\name{} introduces no new components that run separately from basic serverless
+infrastructure.  Instead, \name{} encompasses a runtime library that implements
+decentralized workflow logic, an intermediate representation to describe
+workflow control logic, and front-end compilers to transform high-level workflow
+representations written by developers to the intermediate representation.
+
+TODO: gadgets are the secret sauce, in particular noticing that fan-in needs to
+be split between the source and target functions \emph{and} that source
+functions must coordinate.
+
+Developers write workflows using high-level description languages, such as AWS
+Step Functions or Google Workflows. An \name{} front-end compiler transforms
+this high-level description to \name{}'s intermediate representation (IR), and
+embeds portions of the control-flow logic to appropriate functions. Control-flow
+in the IR is encoded as ``gadgets''---platform-independent control-flow patterns
+that can be implemented efficiently in a decentralized manner. Finally, the
+developer combines their functions with a platform-specific \name{} runtime
+which implements gadgets using platform-specific APIs and datastores.
+
+TODO: gadgets don't run where programmers express them. Example with fan-in. This is kind of the ``magic'' of the front-end compiler.
 
 \section{Gadgets}\label{sec:gadgets}
+
+A key challenge in designing a decentralized workflow orchestrator is
+determining where to store control-flow state and where to execute
+state-transitions. \name{} uses the notion of a gadget---a special kind node in
+the control-flow graph that can implement complex interaction patterns using any
+datastore and FaaS API that adheres to the requirements in
+Section~\ref{sec:motivation}.
+
+Logically, every user-defined function in \name{} has exactly one input and one
+output edge---it is invoked once with a single value and outputs its result to
+at most one node. This makes user functions simple to program and allows \name{}
+to embed complex platform-specific orchestration logic in gadgets implemented by
+the runtime.
+
+\name{} provides four gadgets that map can express a rich variety of workflows
+efficiently, including a superset of workflows expressible in Step Functions.
+Each user function outputs has an outgoing edge to a gadget and fan-in targets,
+with multiple incoming edges, are combined into a single edge by a fan-in
+specific gadget which outputs a single edge to the target user function.
+
+At compile-time, \name{} injects these gadgets into the nearest function and
+executes them in the \name{} runtime that wraps the function. Thus there is no
+system overhead for running the gadgets---they are, effectively, embedded in the
+functions themselves.
+
+\subsection{Chain}
+
+Takes a scalar output and invokes a single function. Kind of a noop.
+
+\subsection{Fan-out}
+
+Takes a scalar output and invokes a list of different functions
+
+\subsection{Map}
+
+Takes a vector of outputs and invokes a function once for each element
+
+\subsection{Fain-in}
+
+Takes an scalar outputs from each fan-in branch and outputs a vector of
+outputs the the fan-in target function. Each branch stores its output to the
+datastore and performs an atomic operation on the datastore competing to see if
+they are the last of the branches to complete. The last branch invokes the
+fan-in target function passing it a vector of pointers to each of the branches
+stored output. The fan-in function dereferences each of the pointers by reading
+from the data store and passes a vector of output values to the target function.
 
 % chain = invoke, fan-out = a bunch of invoke, one for each continuation;
 % Additionally, in the case of Map, one invoke for each element of the array
@@ -71,23 +117,6 @@ Durable Functions, into this intermediate representation.
 % function, and pass it pointers to all branches results/checkpoints in the data
 % store. The fan-in function first reads the branches' results, in order, via the
 % pointers, then pass them as input to the user code.
-
-\begin{enumerate}
-  \item Fan-out
-        Takes a scalar output and invokes a list of different functions
-  \item Map
-        Takes a vector of outputs and invokes a function once for each element
-  \item Chain
-        Takes a scalar output and invokes a single function. Kind of a noop.
-  \item Fan-in
-        Takes an scalar outputs from each fan-in branch and outputs a vector of
-        outputs the the fan-in target function. Each branch stores its output to the
-        datastore and performs an atomic operation on the datastore competing to see if
-        they are the last of the branches to complete. The last branch invokes the
-        fan-in target function passing it a vector of pointers to each of the branches
-        stored output. The fan-in function dereferences each of the pointers by reading
-        from the data store and passes a vector of output values to the target function.
-\end{enumerate}
 
 \section{Design}\label{sec:design}
 
@@ -106,12 +135,12 @@ Durable Functions, into this intermediate representation.
 %    continuations (I really don't think that Unum has something that looks like continuations), this execution graph is the IR and the runtime reifies the
 %    execution graph by embedding gadgets in lambdas themselves.
 
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=\textwidth]{figures/unum-arch.pdf}
-    \caption{\name{}'s architecture}
-    \label{fig:arch}
-\end{figure*}
+%\begin{figure*}[t]
+%    \centering
+%    \includegraphics[width=\textwidth]{figures/unum-arch.pdf}
+%    \caption{\name{}'s architecture}
+%    \label{fig:arch}
+%\end{figure*}
 
 \begin{figure}[]
     \begin{minted}[
