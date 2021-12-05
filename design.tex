@@ -58,7 +58,8 @@ that can be implemented efficiently in a decentralized manner. Finally, the
 developer combines their functions with a platform-specific \name{} runtime
 which implements gadgets using platform-specific APIs and datastores.
 
-TODO: gadgets don't run where programmers express them. Example with fan-in. This is kind of the ``magic'' of the front-end compiler.
+TODO: gadgets don't run where programmers express them. Example with fan-in.
+This is kind of the ``magic'' of the front-end compiler.
 
 \section{Gadgets}\label{sec:gadgets}
 
@@ -81,25 +82,66 @@ Each user function outputs has an outgoing edge to a gadget and fan-in targets,
 with multiple incoming edges, are combined into a single edge by a fan-in
 specific gadget which outputs a single edge to the target user function.
 
-At compile-time, \name{} injects these gadgets into the nearest function and
+Table~\ref{tab:gadgets} lists the gadgets available in \name{}.  At
+compile-time, \name{} injects these gadgets into the nearest function and
 executes them in the \name{} runtime that wraps the function. Thus there is no
-system overhead for running the gadgets---they are, effectively, embedded in the
-functions themselves.
+system overhead for running the gadgets---they are, effectively, embedded in
+the functions themselves.
 
-\subsection{Chain}
+\begin{table}[t!]
+  \centering
+  \begin{tabular}{ |m{8em}| m{13em} | }
+    \hline
+      \texttt{chain(a,b) }& Invokes function \texttt{b} with the output of \texttt{a} \\
+    \hline
+      \texttt{fanOut(a, [b])} & Invokes each element of \texttt{[b]} with the output from \texttt{a} \\
+    \hline
+      \texttt{map(a, b)} & Invokes \texttt{b} once for each element in the vector output of \texttt{a} \\
+    \hline
+      \texttt{fanIn([a], b)} & Invokes \texttt{b} once with the vector of outputs from each of \texttt{[a]} \\
+    \hline
+\end{tabular}
+  \caption{\name{} workflows express complex interactions using a small set of gadgets.} 
+  \label{tab:gadgets}
+\end{table}
 
-Takes a scalar output and invokes a single function. Kind of a noop.
+\paragraph{Chain}
+Chaining is a simple but common interaction. For example, an application might
+include a function that processes input data from a sensor followed by another
+function that makes a control decision based on the processed input. The
+\texttt{chain} gadget connects two user functions together by invoking one
+function with the result of another. At runtime, \name{} uses the platform's
+asynchronous function invocation API to call the target function directly from
+the source, without requiring any additional storage interactions.
 
-\subsection{Fan-out}
 
-Takes a scalar output and invokes a list of different functions
+\paragraph{Fan-out}
+Another common interaction processes the output of a function in different ways
+in parallel. For example, an application might perform several independent
+functions given a new user post, such as URL shortening and resolving other
+users mentioned in th post. The \texttt{fanOut} gadget invokes the a vector of
+functions each with the output from a previous function. Similar to chaining,
+\name{} uses the function invocation API to simply invoke each of the target
+functions from the source function directly. \amit{TODO: Are there special
+considerations for exactly-once semantics? i.e. is checkpointing different than
+it is in chaining?}
 
-\subsection{Map}
+\paragraph{Map}
+An application may also perform the same function on multiple outputs of a
+source function. For example, a photo management application might unpack an
+archive of high-resolution images in one function and perform compression or
+down-scaling on each of the resulting images. The \texttt{map} gadget invokes
+the same function once for each element in a vector of outputs from the
+previous function. \amit{TODO: Are there special considerations for
+exactly-once semantics? i.e. is checkpointing different than it is in
+chaining?}
 
-Takes a vector of outputs and invokes a function once for each element
+\amit{TODO: I feel like there is a bunch of complexity, particularly with
+fan-in, do with assigning indexes to branches, etc, that is part of the
+platform-agnostic design of unum, so should be here. But I don't recall the
+specifics. Are there also similar things for the other gadgets?}
 
-\subsection{Fain-in}
-
+\paragraph{Fain-in}
 Takes an scalar outputs from each fan-in branch and outputs a vector of
 outputs the the fan-in target function. Each branch stores its output to the
 datastore and performs an atomic operation on the datastore competing to see if
