@@ -3,27 +3,26 @@
 Serverless computing provides a simple and yet powerful abstraction that
 consists of a stateless compute component (FaaS) and autoscaling,
 pay-for-what-you-use data stores (BaaS)~\cite{berkeley}. Developers build
-applications in the form of event-driven functions without the need to
+applications using event-driven functions without the need to
 provision and manage resources. Serverless platforms execute functions with
-fast autoscaling that can start thousands of instances in seconds,
-fine-grained billing that only charges for resources used, and improved
-utilization that reclaim resources immediately when they become idle.
+fast autoscaling that can start thousands of instances in seconds and
+fine-grained billing that only charges for resources used.
 
 There are strong interests in building large serverless applications composed
 of multiple functions with rich patterns of interactions~\cite{excamera,
-pywren, gg-atc, beldi, boki}. In addition to building and executing individual
+pywren, gg-atc, beldi, boki}. In addition to self-contained individual
 functions, these workloads call for a \emph{higher-level programming
 interface} that expresses interactions between functions and \emph{strong
-end-to-end guarantees} for correct executions.
+end-to-end executions guarantees}.
 
 Several serverless workflow systems have emerged to meet the demand, offering
 higher-level programming interfaces for expressing function interactions, a
-rich set of composition primitives that supports chaning, branching, fan-out
+rich set of composition primitives that supports chaining, branching, fan-out
 and fan-in and exactly-once semantics for workflow execution~\cite{excamera,
 gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
 durable-functions}. Designs of existing solutions all require adding an
 additional stateful component, often called an orchestrator or controller, to
-the current serverless infrastructure. An orchestrator is a stateful hosted
+current serverless infrastructures. An orchestrator is a stateful hosted
 service, separate from FaaS and BaaS. For each workflow invocation, an
 orchestrator instance interprets the workflow definition and drives execution
 by invoking constituent functions, waits for their results and pass them to
@@ -42,7 +41,8 @@ orchestrator. A slow orchestrator can become a bottleneck and nullify the fast
 autoscale advantage of serverless. Lastly, orchestrators expose specialized
 proprietary APIs. Applications written for an orchestrator have to work with
 the propensities and limitations of the APIs and is locked in to a particular
-provider.
+provider. \dhl{The drawbacks of orchestrators. Ideas are here. But need better
+wording.}
 
 In this paper, we propose \name{}, a new serverless workflow system design
 that preserves all the advantages of orchestrators but execute in a purely
@@ -50,9 +50,9 @@ serverless environment, without adding any supplemental components to current
 infrastructures. We show that by building on top of the existing serverless
 components that are already highly performant and scalable, \name{} removes
 the expensive process of building and maintaining a separate hosted service
-for serverless providers, and significantly improves application end-to-end
-latency by up to 4.5x, especially at high degrees of parallelism, and saves
-3.7x to 32.8x on costs for serverless users.
+for serverless providers, significantly reduces costs by up to 32.8x for
+serverless users, and improves application end-to-end latency by up to 4.5x,
+especially applications with high degrees of parallelism.
 
 \dhl{Design insights, highlights and overview}
 
