@@ -30,36 +30,34 @@ The macro-benchmarks consists of 4 real-world applications, taken from
 serverless repositories and prior research work, and assesses \name{}'s
 expressiveness and end-to-end performance and costs.
 
-We show that 
+% We show that 
 
-\begin{itemize}
+% \begin{itemize}
 
-    \item over 97\% of \name{}'s latency overhead comes from API calls to
-    Lambda and data stores, which means the bulk of \name{}'s performance will
-    automatically improve with the underlying platform (e.g., a faster Lambda
-    or data store) without any modification to \name{} itself.
+%     \item over 97\% of \name{}'s latency overhead comes from API calls to
+%     Lambda and data stores, which means the bulk of \name{}'s performance will
+%     automatically improve with the underlying platform (e.g., a faster Lambda
+%     or data store) without any modification to \name{} itself.
 
-    % \item The additional Lambda duration billing for executing \name{} runtime
-    % is negligible across all data sizes
+%     % \item The additional Lambda duration billing for executing \name{} runtime
+%     % is negligible across all data sizes
 
-    \item \name{} is slightly faster (11-28\%) in chaining performance and
-    much faster in parallel fan-out and fan-in performance (up to 4.58x),
-    especially at higher level of parallelism, than Step Functions.
+%     \item \name{} is slightly faster (11-28\%) in chaining performance and
+%     much faster in parallel fan-out and fan-in performance (up to 4.58x),
+%     especially at higher level of parallelism, than Step Functions.
 
-    \item \name{} delivers more than one order-of-magnitude cost savings for
-    almost all applications we evaluated, even when using the more expensive
-    DynamoDB as the intermediary data store. The applications we use cover all
-    orchestration patterns that Step Functions currently support.
+%     \item \name{} delivers more than one order-of-magnitude cost savings for
+%     almost all applications we evaluated, even when using the more expensive
+%     DynamoDB as the intermediary data store. The applications we use cover all
+%     orchestration patterns that Step Functions currently support.
 
-    \item \name{} is able to express all orchestration patterns that Step
-    Functions currently support. Additionally, with the ExCamera
-    implementation, we demonstrate that \name{} can express fold or for loops
-    and support pipeline parallelism, neither of which is expressible in Step
-    Functions.
+%     \item \name{} is able to express all orchestration patterns that Step
+%     Functions currently support. Additionally, with the ExCamera
+%     implementation, we demonstrate that \name{} can express fold or for loops
+%     and support pipeline parallelism, neither of which is expressible in Step
+%     Functions.
 
-\end{itemize}
-
-\shadi{you can remove this itemize list if short on space.}
+% \end{itemize}
 
 \subsection{Experimental setup}
 
@@ -480,32 +478,32 @@ than 1KB for all 4 workflows.
 
 \end{itemize}
 
-\subsubsection{Questions}
+% \subsubsection{Questions}
 
-\begin{enumerate}
+% \begin{enumerate}
 
-    \item How do we evaluate and present execution guarantee? Anything to show
-     to convince our reader that it's correct?
+%     \item How do we evaluate and present execution guarantee? Anything to show
+%      to convince our reader that it's correct?
 
-    \item How do we evaluate other benefits that stem from a simpler design
-     (the fact that unum gets rid of the needs for a separate orchestrator
-     service), such as resource management, required staffing and other
-     hosting costs? Further on the resource utilization point, do we want to
-     say that dollar costs of running applications is a reasonable enough
-     proxy to resource consumption and therefore lower price = less resource
-     consumption = better resource utilization?
+%     \item How do we evaluate other benefits that stem from a simpler design
+%      (the fact that unum gets rid of the needs for a separate orchestrator
+%      service), such as resource management, required staffing and other
+%      hosting costs? Further on the resource utilization point, do we want to
+%      say that dollar costs of running applications is a reasonable enough
+%      proxy to resource consumption and therefore lower price = less resource
+%      consumption = better resource utilization?
 
-    \item Should we run experiments with S3 and present those numbers?
+%     \item Should we run experiments with S3 and present those numbers?
 
-    \item How to discuss the expressiveness advantage? Specifically,
+%     \item How to discuss the expressiveness advantage? Specifically,
 
-        Step Functions has no way to express a for loop or fold.
+%         Step Functions has no way to express a for loop or fold.
 
-        Step Functions has no way to express pipeline parallelism.
+%         Step Functions has no way to express pipeline parallelism.
 
-        Step Functions fan-in needs to make sure the aggregate data doesn't exceed a
-        limit, unum automatically passes data in using pointers to the intermediary
-        data store.
+%         Step Functions fan-in needs to make sure the aggregate data doesn't exceed a
+%         limit, unum automatically passes data in using pointers to the intermediary
+%         data store.
 
-\end{enumerate}
+% \end{enumerate}
 
