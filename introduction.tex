@@ -16,9 +16,9 @@ an intuition of the complexity. } These applications call for a
 \emph{strong end-to-end guarantees} for correct executions.
 
 Several serverless workflow systems have emerged to meet the challenges,
-offering various programming interfaces for workflow definition
-\shadi{composed of multiple connected functions} (e.g., state machines and
-DAG) and varying levels of execution guarantees~\cite{excamera, gg-atc,
+offering various programming interfaces (e.g., state machines and DAG) for
+defining workflows that are composed of multiple connected functions and
+varying levels of execution guarantees~\cite{excamera, gg-atc,
 aws-step-functions, google-cloud-composer, google-workflows,
 durable-functions}. Designs of existing solutions all require adding
 supplemental hosted services to current infrastructures for workflow
@@ -80,13 +80,7 @@ the collection of constituent functions.\shadi{this last sentence is a bit vague
 % are individual functions, and do not need to import any additional libraries
 % in order to use \name{}.
 
-Similar to some prior work~\cite{boki, beldi}, \name{} leverages strongly
-consistent data stores to provide strong execution guarantees. \name{}'s
-guarantees are on a per-function-invocation granularity. Each function
-invocation creates a uniquely named checkpoint when user code completes. The
-checkpoint ensures that re-executions, due to failure-related retries or
-duplicate event delivery, never run user code again. \shadi{suggestion: this might be too much detail for here. you can probably remove this paragraph to design rather than intro.}
-
+\dhl{State the execution guarantees without details on how.}
 
 We present and evaluate an implementation of \name{} that can compile Step
 Functions state machines and execute them purely as Lambda functions using
@@ -97,26 +91,28 @@ express fold and pipeline parallelism.
 
 We evaluate the performance and cost benefits of \name{} with a suite of
 microbenchmarks and 4 real-world applications. Our experimental results show
-that \name{} is slightly faster (11-28\%) than Step Functions in chaining
-performance, and much faster (up to 4.58x) in fan-out, especially at high
-levels of parallelism. Step Functions seems to suffer from throttling at even
-moderate levels with only 20 parallel branches.
+that, compared with Step Functions, \name{} improves performance by 11-28\% in
+the case of chaining functions and up to 4.5x in high-parallelism patterns
+such as fan-out. At the same time, \name{} significantly reduces the cost of
+running applications by 3.7x to 32.8x.
 
-Furthermore, even when using the faster but more expensive DynamoDB as the
-data store, for all applications evaluated, running on \name{} is more than
-3.6x cheaper than Step Functions, and for all but one application, running on
-\name{} is more than one order-of-magnitude cheaper than Step Functions.
+This paper makes the following contributions:
 
-Last but not least, \name{}'s key design choice to build upon the existing
-serverless abstraction means that the performance of \name{} can automatically
-improve when the underlying services improve. Our results show that over 97\%
-of \name{}'s latency overhead comes from API calls to Lambda and data stores,
-which means the bulk of \name{}'s overhead could quickly diminish with a
-faster Lambda or data store, without any modification to \name{} itself.
+\begin{itemize}
 
-\shadi{I would compress the last 3 paragraphs on the eval. they can each be a single sentence. For example, "Our experimental results show that compared to Step Functions \name{} can improve performance from 11-28\% in case of chaining functions and up to  4.5x in case high-parallelism patterns such as fan-out. At the same time, \name{} significantly reduces the cost from X-Y\%."}
+  \item A set of general algorithms, called gadgets, that implement all common
+  orchestration patterns (e.g., chaining, branching, fan-out, fan-in) with
+  serverless functions and serverless storage.
 
-\shadi{have a contributions list, clearly articulating the contributions}
+  \item An intermediate representation language that can express complex
+  workloads using these gadgets in a platform agnostic way, and a front-end
+  compiler that transforms Step Functions state machines to the IR.
+
+  \item An implementation of the \name{} runtime that execute workflows purely
+  as Lambda functions using either S3 or DynamoDB as the data store for enable
+  fan-in and provide exactly-once semantics.
+
+\end{itemize}
 % -------
 
 % execution guarantee challenges.

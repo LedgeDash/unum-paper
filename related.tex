@@ -108,3 +108,72 @@ or projection.
 
 
 % https://github.com/kalevalp/hello-retail-baseline
+
+
+% ExCamera or mu:
+
+% all workers in mu use the same generic Lambda function that is capable of
+% executing the work of any thread in the computation. (change the programming
+% interface: developers not writing individual functions anymore. :"To design a
+% computation, a user specifies each worker’s sequence of RPC re- quests and
+% responses in the form of a finite-state machine (FSM), which the coordinator
+% executes.")
+
+% mu uses a long-lived coordinator that commands and controls a fleet of
+% workers. The coordinator steps workers through their tasks by issuing RPC
+% requests and processing responses. As examples, the coordinator can instruct
+% the worker to re- trieve from or upload to AWS S3; establish connections to
+% other workers via a rendezvous server; send data to workers over such
+% connections; or run an executable.
+
+% Do the output of one worker go through the coordinator to be sent to and
+% consumed by another worker? No, there's a separate rendezvous server for
+% worker communication. Like the coordinator, the rendezvous server is long
+% lived. mu’s rendezvous is a simple relay server that stores messages from
+% workers and forwards them to their destination.
+
+
+% gg's Restrictions on user code: "gg thunks are designed to be deterministic."
+% "it is not allowed to use the network or access unlisted objects or files." So
+% functions are basically pure so that gg doesn't need to reason about
+% exactly-once semantics.
+
+
+% "In a long chain
+% of rebasing, later threads spend much of their time waiting
+% on predecessors (Figure 4). A more-sophisticated launch-
+% ing strategy could save money, without compromising
+% completion time, by delaying launching these threads."
+
+% [This is another point about many of these frameworks, (I think cloudburst has
+% this problem as well) that they need to launch custom-built containers *ahead
+% of time*, not on-demand, not event-driven. Double billing becomes an issue.
+% Utilization becomes an issue.]
+
+
+%------------------------
+
+% In the case of orchestrators/coordinators, functions call back to the
+% orchestrator when complete and the orchestrator decides what to do next: which
+% downstream function to invoke:
+
+% mu: "mu uses a long-lived coordinator that commands and controls a fleet of
+% workers."
+
+% gg: "The main entry-point for executing a thunk is the coordinator program....
+% Upon start, this program [the coordinator] materializes the target thunk's
+% dependency graph... Then, the thunks that are ready to execute are passed to
+% execution engines. ... When the execution of a thunk is done, the progra      m [the
+% coordinator] updates the graph by replacing the references to the just-forced
+% thunk ... The thunks that become ready to execute are placed on a queue and
+% passed to the execution engines when their capacity permits."
+
+% Step Functions: TBA
+
+
+% unum's different: orchestration logic is distributed to each function. When a
+% function complete, instead of calling back to a long-lived coordinator, the
+% unum runtime on the Lambda decides what to do next. This design eliminates the
+% need for a separate long-running service that executes workflows. Saves a
+% communication trip back to the orchestrator.
+

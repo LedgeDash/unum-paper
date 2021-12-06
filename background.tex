@@ -2,34 +2,15 @@
 
 \begin{table*}[]
 \centering
-\resizebox{\textwidth}{!}{
-
-	% \begin{tabular}{|l|l|l|l|l|l|l|l|}
-	% \hline
-	%  & \textbf{Step Functions} & \textbf{Durable Functions} & \textbf{Beldi} & \textbf{Boki} & \textbf{gg} & \textbf{ExCamera} & \textbf{unum} \\ \hline
-	% \textit{High-level workflow interface}                        & Y & Y & N & N & Y & Y & Y \\ \hline
-	% \textit{Do not need supplemental services/ purely serverless} & N & N & Y & N & N & N & Y \\ \hline
-	% \textit{Strong execution guarantee}                           & Y & Y & Y & Y & N & N & Y \\ \hline
-	% \end{tabular}
-
-	\begin{tabular}{|l|l|l|l|l|l|l|l|l|l|}
-	\hline
-	 &
-	  \textbf{Step Functions} &
-	  \textbf{Durable Functions} &
-	  \textbf{Beldi} &
-	  \textbf{Boki} &
-	  \textbf{Cloudburst} &
-	  \textbf{Kappa} &
-	  \textbf{gg} &
-	  \textbf{ExCamera} &
-	  \textbf{unum} \\ \hline
-	\textit{High-level workflow interface}                        & Y & Y & N & N & Y & Y & Y & Y & Y \\ \hline
-	\textit{Do not need supplemental services/ purely serverless} & N & N & Y & N & N & N & N & N & Y \\ \hline
-	\textit{Strong execution guarantee}                           & Y & Y & Y & Y & N & Y & N & N & Y \\ \hline
-	\end{tabular}
-}
-\caption{Comparison with existing work}
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+ & \textbf{Trigger-based} & \textbf{Driver functions} & \textbf{Orchestrator} & \textbf{unum} \\ \hline
+\textit{Purely Serverless}          & \cmark & \cmark & \xmark & \cmark \\ \hline
+\textit{Higher-level interface}     & \xmark & \xmark & \cmark & \cmark \\ \hline
+\textit{Exactly-once semantics} & \xmark & \xmark & \cmark & \cmark \\ \hline
+\textit{Avoid double billing}       & \cmark & \xmark & \cmark & \cmark \\ \hline
+\end{tabular}
+\caption{Comparison with existing approaches}
 \label{table:positioning}
 \end{table*}
 
@@ -39,46 +20,53 @@
 
 In this section, we describe why it is hard to compose large serverless
 workflows, why a purely serverless architecture is interesting and what our
-objective are.
+objectives are.
 
 \subsection{Evolution of Serverless Workflows}
 
 \begin{figure}[t!]
     \centering
-    \scalebox{.4}{\includegraphics[width=\columnwidth]{figures/ChainExample.pdf}}
-    \caption{Chaining two functions with triggers, driver
-    functions and orchestrators. In the trigger-based approach, \texttt{F}
-	asynchronously invokes \texttt{G} with \texttt{F}'s result. In the driver
-	functions approach, the driver function first synchronously invokes
-	\texttt{F} and after \texttt{F} returns, synchronously invokes \texttt{G}
-	with \texttt{F}'s result. Even though orchestrators' programming interface
-	hides low-level APIs such as \texttt{invoke}, it is architecturally
-	similar to driver functions where the orchestrator invokes \texttt{F},
-	waits for \texttt{F} to return and then invokes \texttt{G} with
-	\texttt{F}'s result.}
+    \scalebox{.7}{\includegraphics[width=\columnwidth]{figures/ChainExample.pdf}}
+    \caption{Chaining two functions with triggers, driver functions and
+    orchestrators. In the trigger-based approach, \texttt{F} asynchronously
+    invokes \texttt{G} with \texttt{F}'s result. In the driver functions
+    approach, a driver function first synchronously invokes \texttt{F},
+    usually via HTTP, and after \texttt{F} returns, synchronously invokes
+    \texttt{G} with \texttt{F}'s result. Workflow orchestrators is
+    architecturally similar to driver functions. An orchestrator instance
+    invokes \texttt{F}, waits for \texttt{F} to return and then invokes
+    \texttt{G} with \texttt{F}'s result.}
     \label{fig:chain-example}
 \end{figure}
 
-\subsubsection{Unstructured composition and driver functions}
+\subsubsection{Ad-hoc composition: triggers and driver functions}
 
-While bringing many economical and operational benefits, the original
-serverless abstraction is designed around individual functions and only
-provides low-level APIs that can be used to compose functions.
+The original serverless abstraction is designed around individual functions
+and does not provide an interface for programming larger applications with
+many functions. As a result, early adopters use low-level function invocation
+APIs to compose functions in an ad-hoc manner, and there are two primary
+approaches.
 
-There are two primary approaches that early adopters use to build larger
-applications. The first approach is sometimes called trigger-baseds or
-unstructure composition~\cite{netherite} where functions invoke each other
-\emph{asynchronously}. The second is often called driver
+The first approach is called trigger-based or unstructure
+composition~\cite{netherite} where functions invoke each other
+\emph{asynchronously} via storage triggers. The second is called driver
 functions~\cite{beldi} where a single function invokes other functions
 \emph{synchronously}. Figure~\ref{fig:chain-example} depicts an example of
 chaining functions with the two approaches.
 
-Both approaches have important drawbacks. Unstructure composition scatters
-control flow across constituent functions. As the number of functions
-increases, development can quickly get unwieldy. Moreover, it does not support
-important composition patterns such as fan-in, where we want to invoke a
-function to aggregate the results of multiple upstream functions only after
-all of them are complete.
+Although both approaches are purely serverless and do not require adding
+additional components to the serverless infrastructure, they each has
+important drawbacks. Unstructured composition scatters control flow across
+constituent functions. As the number of functions increases, development can
+quickly get unwieldy. Moreover, it does not support important composition
+patterns such as fan-in, where we want to invoke a function to aggregate the
+results of multiple upstream functions only after all of them are complete.
+
+\dhl{Maybe explain why fan-in is not supported as a contrast to \name{}. But
+tricky because there's nothing fundamentally stopping unstructured composition
+from achieving fan-in as \name{} also demonstrated. Maybe the main difference
+is ad-hoc vs ..not. Or maybe the main difference is the addition of strongly
+consistent data stores and how we use them.}
 
 Compared with unstructured composition, driver functions concentrate control
 flow in a single function and supports aggregation. However, users pay for the
@@ -90,49 +78,67 @@ application scale.
 
 Moreover, both approaches suffer from weak execution guarantees of the
 underlying serverless system. Functions can crash mid-execution due to runtime
-or hardware faults which may lead to automatic retries~\cite{}. Even in the
-absence of faults, most serverless platforms only ensure at-least-once
-execution~\cite{} so a single invocation can trigger multiple, potentially
-concurrent, instances.
+or hardware faults which may lead to automatic retries~\cite{aws-lambda-retry,
+azure-functions-retry}. Even in the absence of faults, most serverless
+platforms only ensure at-least-once execution~\cite{aws-lambda-async-invoke,
+azure-functions-exec-guarantee} so a single invocation can trigger multiple,
+potentially concurrent, instances.
 
 \subsubsection{Workflow orchestrators}
 
 Recently, workflow orchestrators have emerged to tackle the challenges of
 large serverless applications~\cite{excamera, gg-atc, aws-step-functions,
 google-cloud-composer, google-workflows, durable-functions}. Orchestrators are
-designed as separate hosted services that execute workflow definitions, invoke
-constituent functions and manage workflow states. They offer (1). higher-level
+separate hosted services that execute workflow definitions, invoke constituent
+functions and manage workflow states. Architecturally, they are similar to
+driver functions (Figure~\ref{fig:chain-example}). For every workflow
+invocation, an orchestrator instance invokes a constituent function, waits for
+its result and passes it to downstream functions via invocation. All functions
+invocation are initiated by the orchestrator and all states (e.g., function
+results) pass through the orchestrator.
+
+Different from ad-hoc composition, orchestrators offer (1). higher-level
 programming interfaces that directly express function interactions and hide
 low-level APIs, (2). a rich set of composition primitives, including
 branching, chaining, fan-out and fan-in, (3). exactly-once semantics for
 workflow execution, and (4). long or no runtime limits.
 
-Unfortunately, there are several important drawbacks of the orchestrator
-design that compromise key benefits of the serverless abstraction: (1).
-End-to-end performance now also depends on the orchestrator service that is
-separate from the FaaS engine. A slow orchestrator can become a bottleneck and
-nullify the fast autoscale advantage of serverless (2). Architecturally,
-orchestrators are similar to driver functions. Service provider cannot
-immediately reclaim idle resources from orchestrators which limits
-multiplexing and reduces utilization. (3). As a result of (2), service
-providers pass the costs of the lost efficiency to users by employing
-separately-designed pricing schemes that are coarse-grained and not
-pay-for-what-you-use, essentially ``double-charging'' for idle orchestrator
-resources that they cannot immediately reclaim. (4). Building and maintaining
-a hosted service often requires a dedicated engineering team which is
-expensive.
+While fixing the flaws of ad-hoc composition, the orchestrator design creates
+several important drawbacks that neglect or even compromise key benefits of
+the serverless abstraction: (1). End-to-end performance now also depends on
+the orchestrator service that is separate from the FaaS engine. A slow
+orchestrator can become a bottleneck and nullify the fast autoscale advantage
+of serverless. (2). Serverless computing already offers compute and storage
+building blocks that are highly performant and scalable. Adding yet another
+separate service that is a mixture of compute and storage is repeating the
+difficult and expensive task of developing and maintaining a large-scale system,
+which often requires a dedicated engineering team.(3). Platform-specific
+orchestrators force developers to write with proprietary APIs and locks them
+in a particular cloud provider.\dhl{I'm hesitant to include the 3rd point
+because 1. we can't demonstrate that \name{} solves this problem. 2. while
+it's a benefit, it feels more an engineering problem than a research problem.
+3. FaaS functions are already platform-specific. Lambda, Azure functions, etc.
+all have different propritary APIs.}
 
 \subsection{Research question and objectives}
 
-In this paper, we examine whether we can have the best of all three worlds.
-Specifically, we want a system that meets the following objectives:
+In this paper, we examine whether we can have the best of both worlds. We
+argue that it is possible to preserve the advantages of workflow orchestrators
+while building entirely on top of the existing serverless computing
+abstraction without adding any supplemental components.
 
-\paragraph{Purely serverless} The system should work within the current
-serverless environment and not add supplemental hosted services.
+Specifically, we aim for a system with the following objectives:
+
+\paragraph{\emph{Purely serverless}} The system should work within the current
+serverless environment and not require adding any new services.
+
+The system should execute workflows solely as event-driven serverless
+functions, and use serverless storage, when necessary, to enable stateful
+operations (e.g., fan-in).
 
 \paragraph{Higher-level programming interface} Developers should express
 function compositions with higher-level primitives similar to exising workflow
-orchestrators (e.g., AWS Step Functions) instead of low-level serverless APIs.
+orchestrators (e.g., AWS Step Functions) instead of ad-hoc mechanisms.
 
 \paragraph{Supports all common interactions} The system should support all
 composition patterns commonly used in orchestrators today, including chaining,
@@ -148,103 +154,3 @@ used. Functions should not synchronously wait for other functions to return.
 \paragraph{Comparable performance and costs} The system should at least have
 comparable costs and performance as the state-of-the-art workflow
 orchestrators.
-
-
-% Objective: would such a system be as fast as specially built orchestrators?
-
-
-
-
-
-
-
-% No higher-level interface to express function interactions. To chain two
-% functions, say \texttt{F} and \texttt{G}, \texttt{F} needs to explicitly invoke
-% \texttt{G} in its code (for example, Python Lambda functions can invoke other
-% functions via Lambda's \texttt{invoke} API with AWS \texttt{boto3} sdk).
-
-% Application states shared across functions have to be manually managed.
-
-
-
-% Can we build a system that executes workflows written in with a higher-level
-% interface but without a centralized orchestrator service that the platform has
-% to host? 
-
-%------------------------
-
-% In the case of orchestrators/coordinators, functions call back to the
-% orchestrator when complete and the orchestrator decides what to do next: which
-% downstream function to invoke:
-
-% mu: "mu uses a long-lived coordinator that commands and controls a fleet of
-% workers."
-
-% gg: "The main entry-point for executing a thunk is the coordinator program....
-% Upon start, this program [the coordinator] materializes the target thunk's
-% dependency graph... Then, the thunks that are ready to execute are passed to
-% execution engines. ... When the execution of a thunk is done, the progra      m [the
-% coordinator] updates the graph by replacing the references to the just-forced
-% thunk ... The thunks that become ready to execute are placed on a queue and
-% passed to the execution engines when their capacity permits."
-
-% Step Functions: TBA
-
-
-% unum's different: orchestration logic is distributed to each function. When a
-% function complete, instead of calling back to a long-lived coordinator, the
-% unum runtime on the Lambda decides what to do next. This design eliminates the
-% need for a separate long-running service that executes workflows. Saves a
-% communication trip back to the orchestrator.
-
-
-
-% ----
-
-% ExCamera or mu:
-
-% all workers in mu use the same generic Lambda function that is capable of
-% executing the work of any thread in the computation. (change the programming
-% interface: developers not writing individual functions anymore. :"To design a
-% computation, a user specifies each worker’s sequence of RPC re- quests and
-% responses in the form of a finite-state machine (FSM), which the coordinator
-% executes.")
-
-% mu uses a long-lived coordinator that commands and controls a fleet of
-% workers. The coordinator steps workers through their tasks by issuing RPC
-% requests and processing responses. As examples, the coordinator can instruct
-% the worker to re- trieve from or upload to AWS S3; establish connections to
-% other workers via a rendezvous server; send data to workers over such
-% connections; or run an executable.
-
-% Do the output of one worker go through the coordinator to be sent to and
-% consumed by another worker? No, there's a separate rendezvous server for
-% worker communication. Like the coordinator, the rendezvous server is long
-% lived. mu’s rendezvous is a simple relay server that stores messages from
-% workers and forwards them to their destination.
-
-
-% gg's Restrictions on user code: "gg thunks are designed to be deterministic."
-% "it is not allowed to use the network or access unlisted objects or files." So
-% functions are basically pure so that gg doesn't need to reason about
-% exactly-once semantics.
-
-
-% "In a long chain
-% of rebasing, later threads spend much of their time waiting
-% on predecessors (Figure 4). A more-sophisticated launch-
-% ing strategy could save money, without compromising
-% completion time, by delaying launching these threads."
-
-% [This is another point about many of these frameworks, (I think cloudburst has
-% this problem as well) that they need to launch custom-built containers *ahead
-% of time*, not on-demand, not event-driven. Double billing becomes an issue.
-% Utilization becomes an issue.]
-
-% --- 
-% Beldi and Boki.
-
-% --- 
-% Cloudburst
-
-% ---
