@@ -64,6 +64,8 @@ the remote procedure calls (RPCs) summarized in Table 2
 
 \paragraph{Beldi}
 
+Target applications whose \emph{constituent} functions are stateful, basically meaning that they write to DynamoDB, and Beldi wrappers around those DynamoDB writes to provide transactional semantics.
+
 not an actual workflow system because there is not interface to write
 workflows. The system is really a library that provides transactions for
 functions if they write their data to DynamoDB. Functions import and use the
