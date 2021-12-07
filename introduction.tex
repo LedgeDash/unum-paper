@@ -29,6 +29,19 @@ this implies that the main thing we're contributing is going to be a
 higher-level interface and execution guarantees. But I think we've moved away
 from that as the key contribution. Instead, I think the thing that these
 workloads call for is ``stateful''ness (needs to be defined still)}
+\dhl{I thought about using the term "statefulness", but decided
+against it because (1). Beldi (OSDI '20) and Boki (SOSP '21) both specify
+"statefulness" as the key differentiator \emph{but their definition is
+different}. In their definition, "statefulness" mainly refers to the behavior
+of individual functions that explicitly persists application data in DynamoDB.
+Specifically, Beldi defines "stateful serverless functions (SSFs)" as
+functions that "maintains their own state (e.g., modify a data structure that
+persists across invocations)" (top of right column on page 1). It's a
+definition that works well for their problem because they want consistent
+write results in face of faults and retries (2). Not all our gadgets are
+straight-forwardly stateful. Chaining for example doesn't "appear" stateful,
+and \name{} runtime doesn't explicitly manage states for chaining. The only
+pattern that requires \name{} to explicit manage states is fan-in.}
 
 To meet this need, several workflow systems have emerged offering
 higher-level programming interfaces for expressing function interactions, a
