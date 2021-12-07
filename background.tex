@@ -40,49 +40,82 @@ objectives are.
 \end{figure}
 
 \subsubsection{Ad-hoc composition: triggers and driver functions}
+\shadi{@David: please read and see what I have written is correct and does not change the message. If anything is colored, it means I am not sure about it.}
+The original serverless abstraction is designed around developing individual functions-- a \textit{single} unit of work that can be done independently on any machine. In this design, building an application that  is composed from more than one function is done in an ad-hoc manner in one of the following two ways:  \textit{ i. trigger-based} composition~\cite{netherite} where functions invoke each other
+\emph{asynchronously} via storage triggers, (i.e., a function writes its result to a intermediate storage which in turn triggers the following function), and  \textit{ii.driver
+	functions}~\cite{beldi} where a single intermediary driver function invokes other functions
+	\emph{synchronously}.   Figure~\ref{fig:chain-example} depicts an example of
+	chaining functions with the two approaches. 
+	
+	\shadi{shouldn't the first figure (a) have a storage in the middle?} \shadi{from the figure and text it is not clear what is the diff between driver and coordinator. }
+\shadi {let's just use trigger based throughout the paper}
 
-The original serverless abstraction is designed around individual functions
-and does not provide an interface for programming larger applications with
-many functions. As a result, early adopters use low-level function invocation
-APIs to compose functions in an ad-hoc manner, and there are two primary
-approaches.
 
-The first approach is called trigger-based or unstructure
-composition~\cite{netherite} where functions invoke each other
-\emph{asynchronously} via storage triggers. The second is called driver
-functions~\cite{beldi} where a single function invokes other functions
-\emph{synchronously}. Figure~\ref{fig:chain-example} depicts an example of
-chaining functions with the two approaches.
 
-Although both approaches are purely serverless and do not require adding
-additional components to the serverless infrastructure, they each has
-important drawbacks. Unstructured composition scatters control flow across
-constituent functions. As the number of functions increases, development can
-quickly get unwieldy. Moreover, it does not support important composition
-patterns such as fan-in, where we want to invoke a function to aggregate the
-results of multiple upstream functions only after all of them are complete.
 
-\dhl{Maybe explain why fan-in is not supported as a contrast to \name{}. But
-tricky because there's nothing fundamentally stopping unstructured composition
-from achieving fan-in as \name{} also demonstrated. Maybe the main difference
-is ad-hoc vs ..not. Or maybe the main difference is the addition of strongly
-consistent data stores and how we use them.}
 
-Compared with unstructured composition, driver functions concentrate control
-flow in a single function and supports aggregation. However, users pay for the
-time when driver functions idly wait for callees to return. This causes
-\emph{double billing}~\cite{double-billing}. Also, serverless platforms
-commonly impose timeouts. A driver function instance has to wait until all
-functions in the application are complete, which risks timeouts and limits
-application scale.
+%The original serverless abstraction is designed around individual functions
+%and does not provide an interface for programming larger applications with
+%many functions. As a result, early adopters use low-level function invocation
+%APIs to compose functions in an ad-hoc manner, and there are two primary
+%approaches.
 
-Moreover, both approaches suffer from weak execution guarantees of the
-underlying serverless system. Functions can crash mid-execution due to runtime
+%The first approach is called trigger-based or unstructure
+%composition~\cite{netherite} where functions invoke each other
+%\emph{asynchronously} via storage triggers. The second is called driver
+%functions~\cite{beldi} where a single \shadi{driver} function invokes other functions
+%\emph{synchronously}. Figure~\ref{fig:chain-example} depicts an example of
+%chaining functions with the two approaches. \shadi{shouldn't the first figure (a) have a storage in the middle?} \shadi{from the figure and text it is not clear what is the diff between driver and coordinator. }
+
+
+Although both approaches are ``purely serverless'', i.e., they do not require adding
+additional components to the serverless infrastructure and carry all the cost/scale/simplicity benefits of the serverless design, neither is well-suited for the  complexities of the currently emerging serverless applications which consists of \shadi{10s and 100s} of serverless functions \shadi{cite}. 
+Trigger-based compositions don't support a global view and management of functions in an application.  They scatter control flow across constituent functions and have no support for complex, yet important, patterns such as fan-in (aggregating results from multiple functions after \textit{all} are complete). 
+On the other hand, driver functions concentrate control
+flow in a single function and support complex patterns, however, they can  create ``double billing'' by the driver function idly 
+waiting for callees to return. Also, the driver function has to wait until all
+functions in the application complete, which risks hitting the commonly imposed timeouts of serverless platforms (e.g., \shadi{X sec in AWS[cite]}) and limits scalability. 
+ \shadi{how about the fact that it is sync? doesn't that add delay, e.g., in a fan-out} 
+
+
+Moreover, neither approach provides the commonly sought after strong  ``exactly once'' execution guarantee \shadi{citations on why this is required}.  Functions can crash mid-execution due to runtime
 or hardware faults which may lead to automatic retries~\cite{aws-lambda-retry,
-azure-functions-retry}. Even in the absence of faults, most serverless
-platforms only ensure at-least-once execution~\cite{aws-lambda-async-invoke,
-azure-functions-exec-guarantee} so a single invocation can trigger multiple,
-potentially concurrent, instances.
+	azure-functions-retry} and potentially concurrent instances given the at-least-once execution currently provided~\cite{aws-lambda-async-invoke,
+	azure-functions-exec-guarantee}. 
+
+\shadi{if no failures, why would there be multiple invokes?}
+\dhl{Maybe explain why fan-in is not supported as a contrast to \name{}. But
+	tricky because there's nothing fundamentally stopping unstructured composition
+	from achieving fan-in as \name{} also demonstrated. Maybe the main difference
+	is ad-hoc vs ..not. Or maybe the main difference is the addition of strongly
+	consistent data stores and how we use them.} \shadi{Iagree that you should say why fan-in is not supported. does the current text handle that?}
+
+
+
+%Although both approaches are purely serverless and do not require adding
+%additional components to the serverless infrastructure, they each have
+%important drawbacks. Unstructured composition scatters control flow across
+%constituent functions. As the number of functions increases, development can
+%quickly get unwieldy. Moreover, it does not support important composition
+%patterns such as fan-in, where we want to invoke a function to aggregate the
+%results of multiple upstream functions only after all of them are complete.
+
+
+%Compared with unstructured composition, driver functions concentrate control
+%flow in a single function and supports \shadi{complex patterns such as}aggregation. However, users pay for the
+%time when driver functions idly wait for callees to return. This causes
+%\emph{double billing}~\cite{double-billing}. \shadi{how about the fact that it is sync? doesn't that add delay, e.g., in a fan-out} Also, serverless platforms
+%commonly impose timeouts. A driver function instance has to wait until all
+%functions in the application are complete, which risks timeouts and limits
+%application scale.
+
+%Moreover, both approaches suffer from weak execution guarantees of the
+%underlying serverless system. Functions can crash mid-execution due to runtime
+%or hardware faults which may lead to automatic retries~\cite{aws-lambda-retry,
+%azure-functions-retry}. Even in the absence of faults, most serverless
+%platforms only ensure at-least-once execution~\cite{aws-lambda-async-invoke,
+%azure-functions-exec-guarantee} so a single invocation can trigger multiple,
+%potentially concurrent, instances. \shadi{if no failures, why would there be multiple invokes?}
 
 \subsubsection{Workflow orchestrators}
 
@@ -118,7 +151,7 @@ in a particular cloud provider.\dhl{I'm hesitant to include the 3rd point
 because 1. we can't demonstrate that \name{} solves this problem. 2. while
 it's a benefit, it feels more an engineering problem than a research problem.
 3. FaaS functions are already platform-specific. Lambda, Azure functions, etc.
-all have different propritary APIs.}
+all have different propritary APIs.} \shadi{I thought the point here was to be a design goal of "interoperability".}
 
 \subsection{Research question and objectives}
 
