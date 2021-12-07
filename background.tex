@@ -102,10 +102,13 @@ adding additional components to the serverless infrastructure, neither is
 well-suited for the complexities of emerging serverless applications that
 consists of 10s or 100s of functions~\cite{excamera, hello-retail}.
 Trigger-based composition scatters control-flow logic across constituent
-functions. Development quickly gets unwieldy as the number of functions in
-the application increases. More importantly, it does not support all forms of
-composition such as fan-in (aggregating results from multiple functions after
-\textit{all} are complete).
+functions. Development quickly gets unwieldy as the number of functions in the
+application increases. More importantly, it does not support all forms of
+composition such as fan-in (aggregating results from multiple, potentially
+\emph{concurrent} functions after \textit{all} are complete), \dhl{as
+asynchronous invocation alone do not support synchronizing across concurrent
+instances and can only pass the caller's data, and not other functions' data,
+to the callee.}
 
 On the other hand, driver functions concentrate control flow in a single
 function and support arbitrary composition. However, they can  create ``double
@@ -119,12 +122,13 @@ fan-out}\dhl{No, because you can wrap synchronous invocations with async
 langugage features locally and batch them. But the driver function still have
 to wait for callees to return before proceeding.}
 
-Moreover, neither approach provides the commonly sought after ``exactly once''
+Moreover, neither approach provides the commonly sought-after ``exactly once''
 semantics~\cite{netherite, beldi, boki, formal-foundation-exec-gtnee}.
 Functions can crash mid-execution due to runtime or hardware faults which may
-lead to automatic retries~\cite{aws-lambda-retry, azure-functions-retry} and
-potentially concurrent instances given the at-least-once execution currently
-provided~\cite{aws-lambda-async-invoke, azure-functions-exec-guarantee}.
+lead to automatic retries~\cite{aws-lambda-retry, azure-functions-retry}. Even
+in the absence of faults, most FaaS systems only ensure at-least-once
+execution~\cite{aws-lambda-async-invoke, azure-functions-exec-guarantee}, so a
+single invocation can trigger multiple, potentially concurrent, instances.
 
 \shadi{if no failures, why would there be multiple invokes?}
 \dhl{Because FaaS engines (e.g., Lambda, Azure Functions) only guarantee
@@ -135,7 +139,9 @@ tricky because there's nothing fundamentally stopping unstructured composition
 from achieving fan-in as \name{} also demonstrated. Maybe the main difference
 is ad-hoc vs ..not. Or maybe the main difference is the addition of strongly
 consistent data stores and how we use them.} \shadi{I agree that you should
-say why fan-in is not supported. does the current text handle that?}
+say why fan-in is not supported. does the current text handle that?}\dhl{Yes
+but I'm not confident with the current explanation. Please take a look at the
+end of the 3rd to last paragraph. I wrote it in red text.}
 
 
 
