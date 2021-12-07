@@ -22,8 +22,10 @@ and fan-in and exactly-once semantics for workflow execution~\cite{excamera,
 gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
 durable-functions}. Designs of existing solutions all require adding an
 additional stateful component, often called an orchestrator or controller, to
-current serverless infrastructures. An orchestrator is a stateful hosted
-service, separate from FaaS and BaaS. For each workflow invocation, an
+current serverless infrastructures.
+
+An orchestrator is a stateful hosted service, separate from FaaS and BaaS,
+that centralizes states and control-flow. For each workflow invocation, an
 orchestrator instance interprets the workflow definition and drives execution
 by invoking constituent functions, waits for their results and pass them to
 downstream functions. All function invocations are initiated by the
@@ -104,6 +106,9 @@ executes once.
 This paper makes the following contributions:
 
 \begin{itemize}
+
+  \item An end-to-end system that can take workflows written in higher-level
+  language and execute them purely as FaaS functions.
 
   \item A set of general algorithms, called gadgets, that implement all common
   orchestration patterns (e.g., chaining, branching, fan-out, fan-in) with
