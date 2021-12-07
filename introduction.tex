@@ -13,20 +13,24 @@ BaaS acronym. Berkeley used it, but it's confusing. It means
 ``Backend-as-a-Service'' and in practice is used to refer to a wide variety of
 non-storage-only services}
 
-Originally, serverless platforms were well suited to simple applications with
-one or a few functions and simple interaction patters. Recently, though, there
-has been emerging interest using serverless platforms to build complex
-serverless applications composed of many functions with rich interaction
-patterns~\cite{excamera, pywren, gg-atc, beldi, boki}. In addition to
-self-contained individual functions, these workloads call for a
-\emph{higher-level programming interface} that expresses interactions between
-functions and \emph{strong end-to-end executions guarantees}.\amit{As the
-second paragraph, this implies that the main thing we're contributing is going
-to be a higher-level interface and execution guarantees. But I think we've
-moved away from that as the key contribution. Instead, I think the thing that
-these workloads call for is ``stateful''ness (needs to be defined still)}
+Originally, serverless platforms targeted simple applications with one or a few
+functions and simple interaction patters. Recently, though, there has been
+emerging interest using serverless platforms to build complex serverless
+applications composed of many functions with rich interaction
+patterns~\cite{excamera, pywren, gg-atc, beldi, boki}. Unforunately, building
+such applications using basic serverless building blocks is challenging. FaaS
+invocation semantics require applications to handle individual function
+failures and retries gracefully, and drives complex control flows in a
+decentralized manner is both difficult to implement correctly and difficult to
+express.
 
-Several serverless workflow systems have emerged to meet the demand, offering
+\amit{Note from previous version of 2nd paragraph: As the second paragraph,
+this implies that the main thing we're contributing is going to be a
+higher-level interface and execution guarantees. But I think we've moved away
+from that as the key contribution. Instead, I think the thing that these
+workloads call for is ``stateful''ness (needs to be defined still)}
+
+To meet this need, several workflow systems have emerged offering
 higher-level programming interfaces for expressing function interactions, a
 rich set of composition primitives that supports chaining, branching, fan-out
 and fan-in and exactly-once semantics for workflow execution~\cite{excamera,
