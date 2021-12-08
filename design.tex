@@ -1,3 +1,134 @@
+% DHL's Design notes:
+
+
+% Motifs:
+
+% gadgets are a set of general algorithms that implement control-flow patterns
+% in a decentralized manner and can execute on constituent functions alongside
+% user code.
+
+% gadgets are platform-independent control-flow patterns that can be implemented
+% efficiently in a decentralized manner.
+
+% Control-flow patterns.
+
+% IR describes control-flow "logic"
+
+
+
+% %%%%% Notes
+
+
+% Graphs:
+
+% A graph that constrasts application \emph{execution} with \name{} and
+% centralized orchestrator. It's ok for the application to be artificial but it
+% should sufficient complex with chain, fan-out and fan-in. The orchestrator
+% figure should show the orchestrator centralizing control flow and driving the
+% execution. The \name{} graph should show functions with gadgets and zoom in,
+% similar to Figure 2(c), to show the runtime wrapper and interactions with the
+% data store. The centralized orhcestrator should have the same color with the
+% gadgets. Different from the current (a), ingress should show gadgets too.
+
+% A graph that show the compilation stage. It's important to show what we gain
+% at compile time: assigning gadgets to nodes in the directed graph.
+
+% Architecture%%%%%%%%%%%%%%%
+
+% no new component. Instead, 
+
+% a set of general algorithms, called ``gadgets'', that  implements control-flow
+% patterns in a decentralized way using basic serverless APIs, 
+
+% Similar to existing systems, \name{} takes the user write workflows in the
+% form of a directed graph. Instead of an centralized orchestrator executing the
+% graph, \name{} ... Figure~\ref{fig:arch:centralized} and \ref{fig:arch} constrasts.
+
+
+
+% Computations are a direct graph.
+
+
+% Describe the abstract machine (the serverless abstraction with async invoke +
+% strongly consistent data store with conditional updates) and here in this
+% section.
+
+% "strongly consistent data store with conditional updates". Is this going to
+% raise eyebrows when we mention S3? Because technically, S3 does not have a
+% conditional update API. We implement it with its object versions feature,
+% which has to be turned on when creating the bucket.
+
+
+
+% Gadgets%%%%%%%%%%%%%%%%%
+
+% Gadgets are the general algorithms that implements control-flow patterns in a
+% decentralized way against a basic serverless abstraction that is universially
+% supported by all serverless providers.
+
+% A set of general algorithms that implements control-flow patterns in a
+% decentralized way using basic serverless APIs.
+
+
+% Different from ad-hoc compositions: 1. use of data store 2.
+% Control flow logic not only on the caller but also on the callee 3. standard,
+% off-the-shelf primitives that's not application specific that developers build
+% from scratch.
+
+
+% Then use the gadget section to describe the algorithm for each pattern.
+
+% State that "\name{} provides four gadgets that map can express a rich variety
+% of workflows efficiently, including a superset of workflows expressible in
+% Step Functions". Keep the example applications for each pattern that's
+% currently in the text to show the usefulness and necessity for each pattern.
+
+% supports all commonly found patterns. In SF, and in DAGs.
+
+% unum IR%%%%%%%%%%%%%
+
+% intermediate representation language that encodes control-flow 
+
+% The IR language primary encodes gadgets but also provides other programmable
+% constructs that enables dynamic behavior at runtime. Have a table of
+% programmable constructs? (Conditional, \$ret, \$0, \$size)
+
+% In pratice the IR is a set of JSON file, one for each edge in the control flow
+% graph transition from a function to the next in the control-flow.
+
+% Each function node has a unique name.
+
+% Scalar, Map, Parallel are pretty straightforward because it dosen't have data
+% dependency on other functions in the workflow.
+
+% Fan-in expresses data dependencies. More flexible than Step Functions because
+% SF only supports dependencies within a state. unum fan-in can specify any
+% function in the workflow.
+
+% Programmable constructs: 
+
+% Conditional: branch, termination condition for a loop, foward condition for a
+% selective set of parallel branches
+
+
+
+% Frontend compiler%%%%%%%%%%%%%%%%
+
+% how to assign gadgets
+
+% Runtime%%%%%%%%%%%%
+
+% XXX: Transparently wraps around user code and interposes on entry and exit -> keep user code unchanged
+
+
+
+% Show the runtime input payload structure
+
+
+% Execution guarantees%%%%%%%%%%%%%%%%%%
+
+% XXX: All unum runtime code needs to be idempotent
+
 \section{System Architecture}\label{sec:architecture}
 
 \begin{figure*}[t]
@@ -33,120 +164,6 @@
     \label{fig:arch}
 \end{figure*}
 
-%%%%% Notes
-
-
-
-Graphs:
-
-A graph that constrasts application \emph{execution} with \name{} and
-centralized orchestrator. It's ok for the application to be artificial but it
-should sufficient complex with chain, fan-out and fan-in. The orchestrator
-figure should show the orchestrator centralizing control flow and driving the
-execution. The \name{} graph should show functions with gadgets and zoom in,
-similar to Figure 2(c), to show the runtime wrapper and interactions with the
-data store. The centralized orhcestrator should have the same color with the
-gadgets. Different from the current (a), ingress should show gadgets too.
-
-A graph that show the compilation stage. It's important to show what we gain
-at compile time: assigning gadgets to nodes in the directed graph.
-
-Architecture%%%%%%%%%%%%%%%
-
-no new component. Instead, 
-
-a set of general algorithms, called ``gadgets'', that  implements control-flow
-patterns in a decentralized way using basic serverless APIs, 
-
-Similar to existing systems, \name{} takes the user write workflows in the
-form of a directed graph. Instead of an centralized orchestrator executing the
-graph, \name{} ... Figure~\ref{fig:arch:centralized} and \ref{fig:arch} constrasts.
-
-
-
-Computations are a direct graph.
-
-
-Describe the abstract machine (the serverless abstraction with async invoke +
-strongly consistent data store with conditional updates) and here in this
-section.
-
-"strongly consistent data store with conditional updates". Is this going to
-raise eyebrows when we mention S3? Because technically, S3 does not have a
-conditional update API. We implement it with its object versions feature,
-which has to be turned on when creating the bucket.
-
-
-
-Gadgets%%%%%%%%%%%%%%%%%
-
-Gadgets are the general algorithms that implements control-flow patterns in a
-decentralized way against a basic serverless abstraction that is universially
-supported by all serverless providers.
-
-A set of general algorithms that implements control-flow patterns in a
-decentralized way using basic serverless APIs.
-
-
-Different from ad-hoc compositions: 1. use of data store 2.
-Control flow logic not only on the caller but also on the callee 3. standard,
-off-the-shelf primitives that's not application specific that developers build
-from scratch.
-
-
-Then use the gadget section to describe the algorithm for each pattern.
-
-State that "\name{} provides four gadgets that map can express a rich variety
-of workflows efficiently, including a superset of workflows expressible in
-Step Functions". Keep the example applications for each pattern that's
-currently in the text to show the usefulness and necessity for each pattern.
-
-supports all commonly found patterns. In SF, and in DAGs.
-
-unum IR%%%%%%%%%%%%%
-
-intermediate representation language that encodes control-flow 
-
-The IR language primary encodes gadgets but also provides other programmable
-constructs that enables dynamic behavior at runtime. Have a table of
-programmable constructs? (Conditional, \$ret, \$0, \$size)
-
-In pratice the IR is a set of JSON file, one for each edge in the control flow
-graph transition from a function to the next in the control-flow.
-
-Each function node has a unique name.
-
-Scalar, Map, Parallel are pretty straightforward because it dosen't have data
-dependency on other functions in the workflow.
-
-Fan-in expresses data dependencies. More flexible than Step Functions because
-SF only supports dependencies within a state. unum fan-in can specify any
-function in the workflow.
-
-Programmable constructs: 
-
-Conditional: branch, termination condition for a loop, foward condition for a
-selective set of parallel branches
-
-
-
-Frontend compiler%%%%%%%%%%%%%%%%
-
-how to assign gadgets
-
-Runtime%%%%%%%%%%%%
-
-Transparently wraps around user code and interposes on entry and exit
-
-Show the runtime input payload structure
-
-
-
-
-%----------- Old text
-
-
-
 
 A key design feature of \name{} is to not introduce new components to the
 basic serverless infrastructure. Instead, \name{} invents a set of general
@@ -161,19 +178,19 @@ implements the gadgets with platform-specific APIs.
 Similar to existing systems~\cite{aws-step-functions, google-workflows,
 google-cloud-composer, gg-atc}, \name{} users define workflows using
 high-level description languages, such as AWS Step Functions, that express the
-control-flow in the form of directed graphs, where nodes are serverless
+control-flow in the form of directed graphs where nodes are serverless
 functions and edges are control-flow transitions between functions. A
 transition from function \texttt{F} to \texttt{G} involves (1). invoking an
 instance of \texttt{G} and (2). passing \texttt{F}'s result to the \texttt{G}
 instance.
-\dhl{Describing the directed graph abstraction helps to clarify and set the
+\dhl{Describing the directed graph abstraction helps clarify and set the
 mental model. Should also explain from the directed graph perspective in the
 background:workflow orchestrators section so that this is not the first time
 we say this. State machines (i.e., Step Functions) and DAGs (i.e., Google
 Workflows, Apache Airflow, Dask) all fit into direct graphs.}
 
 But different from existing systems where a centralized orchestrator executes
-the user-defined graph by invoking every function and receiving their results
+control-flow graphs by invoking every function and receiving their results
 (Figure~\ref{fig:arch:centralized}), \name{} transforms this high-level
 description to \name{}'s intermediate representation (IR) and embeds portions
 of the control-flow logic to appropriate functions, \emph{at compile time}
@@ -183,55 +200,79 @@ implemented efficiently in a decentralized manner. Finally, developers combine
 their functions with a platform-specific \name{} runtime which implements
 gadgets using platform-specific APIs and datastores.
 
-During execution, the \name{} runtime performs control-flow transition by
-running its assigned gadget~\ref{fig:arch:runtime}. The runtime transparently
-interposes on user code entry and exit. On entry, the runtime reads data sent
-by its caller. On exit, the runtime gets the result of the user code and
-invokes the next function with it.
+During execution, the \name{} runtime performs control-flow transitions by
+running its assigned gadget (Figure~\ref{fig:arch:runtime}). The runtime
+transparently interposes on user code entry and exit. On entry, the runtime
+reads data sent by the caller and passes it to user code. On exit, the runtime
+gets user code result and invokes the next function with it. Additionally, the
+runtime implements a checkpointing mechanism that ensures exactly-once
+semantics.
+
+\dhl{say more about exactly-once semantics here?}
 
 
-TODO: gadgets are the secret sauce, in particular noticing that fan-in needs to
+\amit{TODO: gadgets are the secret sauce, in particular noticing that fan-in needs to
 be split between the source and target functions \emph{and} that source
-functions must coordinate.
+functions must coordinate.}
+\amit{TODO: gadgets don't run where programmers express them. Example with
+fan-in. This is kind of the ``magic'' of the front-end compiler.}
+\dhl{I'm not sure the above 2 statements are true. Maybe because I didn't
+understand your "move" gadgets mental model and it can work. Let's chat.}
 
-% Developers write workflows using high-level description languages, such as AWS
-% Step Functions or Google Workflows. An \name{} front-end compiler transforms
-% this high-level description to \name{}'s intermediate representation (IR), and
-% embeds portions of the control-flow logic to appropriate functions. Control-flow
-% in the IR is encoded as ``gadgets''---platform-independent control-flow patterns
-% that can be implemented efficiently in a decentralized manner. Finally, the
-% developer combines their functions with a platform-specific \name{} runtime
-% which implements gadgets using platform-specific APIs and datastores.
 
-TODO: gadgets don't run where programmers express them. Example with fan-in.
-This is kind of the ``magic'' of the front-end compiler.
 
 \section{Gadgets}\label{sec:gadgets}
 
-A key challenge in designing a decentralized workflow orchestrator is
-determining where to store control-flow state and where to execute
-state-transitions. \name{} uses the notion of a gadget---a special kind node in
-the control-flow graph that can implement complex interaction patterns using any
-datastore and FaaS API that adheres to the requirements in
-Section~\ref{sec:motivation}.
+A key challenge in decentralizing control-flow logic is determining where to
+store control-flow state and where to execute transitions. \name{} uses the
+notion of gadgets---a set of general algorithms for control-flow patterns that
+can be implemented efficiently in a decentralized manner. At compile-time,
+\name{} attach these gadgets into the approprite user functions and executes
+them in the \name{} runtime that wraps the function.
 
-Logically, every user-defined function in \name{} has exactly one input and one
-output edge---it is invoked once with a single value and outputs its result to
-at most one node. This makes user functions simple to program and allows \name{}
-to embed complex platform-specific orchestration logic in gadgets implemented by
-the runtime.
+Logically, gadgets are treated as a special kind of node in the control-flow
+graph and placed alongside user function nodes. Each gadget is implemented as
+a pair of nodes: an ingress node and an egress node. Every user function in
+\name{} has exactly one input edge coming from an ingress node and one output
+edge going to an egress node, i.e., the user function is invoked once with a
+single value by an ingress node and outputs its result to a single egress
+node. When placing a gadget in the graph, the egress node is attached to the
+upstream function node and the matching ingress node is prepended to the
+immediate downstream node along an existing edge.
 
-\name{} provides four gadgets that map can express a rich variety of workflows
-efficiently, including a superset of workflows expressible in Step Functions.
-Each user function outputs has an outgoing edge to a gadget and fan-in targets,
-with multiple incoming edges, are combined into a single edge by a fan-in
-specific gadget which outputs a single edge to the target user function.
+\name{} provides four gadgets that can express a rich variety of workflows
+efficiently, including a superset of workflows expressible in AWS Step
+Functions. Table~\ref{tab:gadgets} lists the gadgets available in \name{} and
+we explain each in detail in this section.
 
-Table~\ref{tab:gadgets} lists the gadgets available in \name{}.  At
-compile-time, \name{} injects these gadgets into the nearest function and
-executes them in the \name{} runtime that wraps the function. Thus there is no
-system overhead for running the gadgets---they are, effectively, embedded in
-the functions themselves.
+\name{} gadgets are designed against a basic serverless abstraction that is
+universally supported by current platforms. The algorithms themselves are
+platform-agnostic and use only basic serverless APIs. Specifically, they rely
+on an asynchronous invocation API for FaaS functions and a strongly consistent
+data store that supports conditional writes.
+
+\dhl{"strongly consistent data store with conditional writes". Is this going
+to raise eyebrows when we later mention S3? Because technically, S3 does not
+have a conditional write API. We implement it with its object versions
+feature, which has to be turned on when creating the bucket. Maybe better to
+call it something else.}
+
+% \dhl{I'm not sure it makes sense to treate fan-in specially on the directed
+% graph level. In the previous version, the ingress gadget node on the fan-in
+% doesn't really perform any \emph{control-flow logic}. It just reads the input
+% data. And this is the same behavior across all gadgets. The ingress just read
+% data, whether from a HTTP packet or from DynamoDB. You can pass a vector of
+% pointers via a chain gadget and the ingress will do the same thing. But I
+% guess more importantly, the ingress is simply and uniform enough that treating
+% fan-in specially in our explanation doesn't add much value.}
+
+\dhl{From previous version: "At compile-time, \name{} injects these gadgets
+into the nearest function and executes them in the \name{} runtime that wraps
+the function. Thus there is no system overhead for running the gadgets---they
+are, effectively, embedded in the functions themselves."The last sentence is
+unclear to me. Running gadgets incur latency and additional Lambda billing.}
+
+
 
 \begin{table}[t!]
   \centering
@@ -246,54 +287,173 @@ the functions themselves.
       \texttt{fanIn([a], b)} & Invokes \texttt{b} once with the vector of outputs from each of \texttt{[a]} \\
     \hline
 \end{tabular}
-  \caption{\name{} workflows express complex interactions using a small set of gadgets.} 
+  \caption{\name{} workflows express complex interactions using a small set of
+  gadgets. \texttt{a} and \texttt{b} are names that identify specific function
+  instances in the control flow graph.}
   \label{tab:gadgets}
 \end{table}
 
+\dhl{pseudocode for each gadget? or a simple schematics showing the pattern
+graphically?}
+
 \paragraph{Chain}
-Chaining is a simple but common interaction. For example, an application might
-include a function that processes input data from a sensor followed by another
-function that makes a control decision based on the processed input. The
-\texttt{chain} gadget connects two user functions together by invoking one
-function with the result of another. At runtime, \name{} uses the platform's
-asynchronous function invocation API to call the target function directly from
-the source, without requiring any additional storage interactions.
+Chaining is a simple but common control-flow pattern. For example, an
+application might include a function (the source) that processes input data
+from a sensor followed by another function (the target) that adjusts an
+actuator based on the processed input. The \texttt{chain} gadget connects two
+user functions together by invoking the target with the result of the source.
+At runtime, the egress node of a \texttt{chain} runs on the same FaaS function
+as the source and ingress as the target. The egress gets the output of the
+source function and uses the platform's asynchronous function invocation API
+to call the target function directly from the source. The ingress on the
+target reads the data sent from source and passes it to its user function.
+Depending on the platform's implementation of asynchronous invoke API, the
+ingress might read the input data from a data store or the received HTTP
+message.
 
 
 \paragraph{Fan-out}
-Another common interaction processes the output of a function in different ways
-in parallel. For example, an application might perform several independent
-functions given a new user post, such as URL shortening and resolving other
-users mentioned in th post. The \texttt{fanOut} gadget invokes the a vector of
-functions each with the output from a previous function. Similar to chaining,
-\name{} uses the function invocation API to simply invoke each of the target
-functions from the source function directly. \amit{TODO: Are there special
-considerations for exactly-once semantics? i.e. is checkpointing different than
-it is in chaining?}
+Another common interaction processes the output of a function in different
+ways in parallel. For example, an social network application might perform
+several independent functions given a new user post, such as URL shortening
+and resolving other users mentioned in the post. The \texttt{fanOut} gadget
+invokes a vector of functions (branches) each with the output from the same
+source function. Similar to chaining, the egress node runs with the source and
+uses the asynchronous invocation API to invoke each branch. But in this case,
+each branch has a \texttt{fanOut} ingress node that reads the input data sent
+from the source and passes it to its user function.
 
 \paragraph{Map}
 An application may also perform the same function on multiple outputs of a
 source function. For example, a photo management application might unpack an
-archive of high-resolution images in one function and perform compression or
-down-scaling on each of the resulting images. The \texttt{map} gadget invokes
-the same function once for each element in a vector of outputs from the
-previous function. \amit{TODO: Are there special considerations for
-exactly-once semantics? i.e. is checkpointing different than it is in
-chaining?}
+archive of high-resolution images in one function and perform compression on
+each of the resulting images. The \texttt{map} gadget invokes the same
+function once for each element in a vector of outputs from the source
+function. The algorithm and placement of \texttt{map} ingress and egress nodes
+are identical to \texttt{fanOut}.
+
+\amit{TODO: Are there special considerations for exactly-once
+semantics? i.e. is checkpointing different than it is in chaining?}
+\dhl{No. In fact checkpoint works independently from the control-flow
+patterns. The algorithm for exactly-once semantics is the same across all
+gadgets.
+
+Now specifically for fan-out it works like this: the fan-out initiator node
+will checkpoint right after user code returns which saves the data that is
+about to be fanned out. After checkpointing completes, the fan-out initiator
+node invokes the branches. If it crashes at any point during the series of
+invocations, unum retries the fan-out initiator lambda. The unum runtime on
+the lambda will see that a checkpoint with its name already exists, and
+therefore skips running the user function. But it will not skip retrying the
+fan-out, and it restarts the fan-out \emph{from the beginning}, which will
+result in duplicate instances for some or even all of the branches. But that
+is OK. Because the unum runtime protects against duplicates and still ensures
+exactly-once semantics. If the duplicates are concurrent (i.e., the original
+branch instances are still running), we protects that with a conditional write
+when checkpointing the results so only one instance of the duplicates will
+win. If the duplicates are nonconcurrent (i.e., the original branch instances
+already completed), the duplicates will skip running the user functions
+altogether.
+
+The fan-out initiator will keep retrying until a full fan-out is performed to
+make sure at-least-once invocation.
+
+% (explaining this makes me appreciate the consistency papers even more, 'cuz
+% this stuff is hard to explain.)
+
+So the patterns do not change the algorithms with which we provide exactly
+once. They work independently from each other. The only real gotcha we need to
+be careful with in \emph{implementing} exactly-once is nonidempotent
+operations, as pointed out by you. Specifically, the synchronizations across
+branches have to be idempotent. The purpose is prevent pre-mature fan-in.
+
+Given the complexity of the exactly-once algorithm and the fact that it works
+independently from gadgets, I think it works better if we have separate
+section just for the execution guarantee and do not explain the details in
+this section.}
 
 \amit{TODO: I feel like there is a bunch of complexity, particularly with
 fan-in, do with assigning indexes to branches, etc, that is part of the
 platform-agnostic design of unum, so should be here. But I don't recall the
 specifics. Are there also similar things for the other gadgets?}
+\dhl{I'm not sure what you mean by "similar things". But the branch indexes
+are assigned by the fan-\emph{out} node. The purpose is to give each node in
+the graph a unique name. I really don't think we should discuss the naming
+aspect in this section. I think this structure of writing the design works
+very well if we keep the gadgets to be general algorithms for control-flow
+patterns that are designed against an abstract serverless machine. We can talk
+about what we require from the serverless abstraction, but we shouldn't talk
+about the naming scheme. The gadget just cares that each function has a name,
+that you can identify them. It does not care how. Then in the IR section, we
+can talk about how the IR actually encodes the gadgets, and that's where we
+can explain that (1). we need each function to have a unique name for fan-in
+to work because we need to clearly identify which node's result to fan-in
+from, and we can have multiple instances of the same function in the graph
+because of fan-in and map. (2). our naming scheme is to assign an integer,
+starting with 0 and incrementing monotonically by 1, to each branch. And
+that's it. That's all the information we need at the IR level. And finally in
+the runtime section, we show the input payload which has a field for the
+branch index, and that's how we actually implement this piece of information.
+And we explain that the fan-out node adds this field to the payload when
+invoking each branch. It's like the storage layers where each layer adds a bit
+more information to enable specific additional functionalities.}
 
-\paragraph{Fain-in}
-Takes an scalar outputs from each fan-in branch and outputs a vector of
-outputs the the fan-in target function. Each branch stores its output to the
-datastore and performs an atomic operation on the datastore competing to see if
-they are the last of the branches to complete. The last branch invokes the
-fan-in target function passing it a vector of pointers to each of the branches
-stored output. The fan-in function dereferences each of the pointers by reading
-from the data store and passes a vector of output values to the target function.
+\paragraph{Fan-in}
+
+After processing data with many parallel branches, applications commonly want
+to aggregate the results. For example, a video encoder might break down a
+large video into chunks, encode each in parallel and then concatenant all the
+encoded vidoes together. The \texttt{fanIn} gadget takes the outputs from a
+vector of functions and invokes a single ``sink'' function. Each function in
+the vector is assigned a \texttt{fanIn} egress node and the sink function the
+only \texttt{fanIn} ingress node.
+
+The \texttt{fanIn} gadget ensures that the control-flow transition is
+\emph{wait-free}. That is the sink function is invoked only when all upstream
+functions in the vector have completed so that the sink function does have to
+be spun up ahead of time and waste CPU cycles (and therefore extra billing)
+idly waiting for upstream functions to finish. Moreover, the upstream
+functions in \texttt{fanIn} simply terminates when done and do not wait for
+each other either.
+
+To achieve this, the \texttt{fanIn} egress always writes the output of its
+user function to a data store. This serves two purposes: (1). it allows any of
+the upstream functions to access the output of other upstream functions (2).
+it signals the completion of a function. This way, each egress can simply
+writes its output and terminate. Other egress nodes can still access completed
+egress' data after they terminate. Any one of the egress can invoke the sink
+function. And any one of the egress can see if other egress has completed or
+not. \dhl{definitely needs better phrasing but hopeful the point makes sense}
+
+Strongly consistent data store is important here because it prevents the
+scenarios where all egress have written outputs but none of them sees that all
+have completed, which results in the sink function never invoked.
+
+Additionally, \texttt{fanIn} makes sure that when the sink function is
+invoked, it is invoked only once. \name{} achieves this by having the egress
+nodes synchronize with each other via the same data store such that only the
+last-to-finish egress invokes the sink function. Synchronization is done with
+atomic read-after-write over a single object. Specific implementation depends
+on the data store and we discuss the details in \S\ref{sec:impl}. But all we
+need is strong consistency with conditional writes.
+
+The last-to-finish egress invokes the sink function with a vector of pointers
+to each upstream function's stored output. The pointers are the in same order
+as the vector of upstream function names. The ingress on the sink function
+dereferences each point by reading from the data store and passes a vector of
+output values to its user function.
+
+Fan-in is a critical control-flow pattern to support and distinguishes \name{}
+from ad-hoc trigger-based composition. \dhl{Do we want to constrast here? and
+what should we say? Different from ad-hoc compositions: 1. use of data store
+2. Control flow logic not only on the caller but also on the callee 3.
+standard, off-the-shelf primitives that's not application specific that
+developers build from scratch.}
+
+
+
+
+\dhl{Propose name change for gadget -> nexus}
 
 % chain = invoke, fan-out = a bunch of invoke, one for each continuation;
 % Additionally, in the case of Map, one invoke for each element of the array
@@ -305,7 +465,150 @@ from the data store and passes a vector of output values to the target function.
 % store. The fan-in function first reads the branches' results, in order, via the
 % pointers, then pass them as input to the user code.
 
-\section{Design}\label{sec:design}
+\section{\name~IR}\label{sec:ir}
+
+\begin{itemize}
+
+    \item intermediate representation language that primarily encodes gadgets
+
+    \item In practice, the \name{} IR is a set of configuration files (by default named
+    \texttt{unum\_config.json}), one for each function node in the workflow.
+    Every function has a \texttt{unum\_config.json} file deployed with it.
+
+    \item Gadgets are encoded in the \texttt{"Next"} field. Give example for
+    each gadget with code snippets. Explain the \texttt{"Name"} and
+    \texttt{"InputType"} field.
+
+    \item With the fan-in gadget, and the \texttt{"Values"} field, explain the
+    need for IR to give each function node a unique name. The naming scheme
+    works for dynamic patterns such as \texttt{map} where the number of
+    branches is unknown at compile time. Explain the naming scheme.
+
+    \item Fan-in expresses data dependencies. More flexible/expressive than
+    Step Functions because SF only supports dependencies within a state. unum
+    fan-in can specify any function in the workflow.
+
+    \item The IR language primarily encodes gadgets but also provides other programmable
+    constructs that enables dynamic behavior at runtime. For example
+    Conditional: branch, termination condition for a loop, foward condition
+    for a selective set of parallel branches. Value names in fan-in can
+    include glob patterns to support fan-in of varying size. unum expands glob
+    patterns during runtime. "Next Payload Modifiers" with runtime variables.
+    Have a table of programmable constructs? (Conditional, \$ret, \$0, \$size)
+
+\end{itemize}
+
+
+
+
+\section{Runtime}
+
+\begin{itemize}
+
+    \item (focus on how gadgets are implemented and leave execution guarantee
+    to its own section)
+
+    \item \name{}'s runtime transparently interposes on user code's entry and
+    exit such that developers do not change how they write application code at all.
+
+    \item \name{} runtime implements all gadgets. And execute the assigned
+    gadgets and control-flow logics based on the assigned IR file.
+
+    \item Runtime has a particular input format in JSON.
+    Figure~\ref{fig:input-format} shows the input format.
+
+    \item \texttt{"Data"} field contains the input data to the user code. If
+    the data is directly sent in the function invocation via HTTP (i.e.,
+    \texttt{"Source": "http"}), the value of the "Value" field is passed to
+    user code unchanged. If the \texttt{"Source"} field shows that the data is
+    in the intermediary data store (e.g., \texttt{"Source": "dynamodb"}),
+    \name{} reads the data from the data store and then pass it to user code.
+
+    \item In practice, \name{} only passes data via the data store in the case
+    of fan-in where results of multiple functions are needed. In that case,
+    the \texttt{"Value"} field is an array of names of function checkpoints.
+    \name{} reads each checkpoint in the array in order and passes the data as
+    an array to user code.
+
+    \item \texttt{"Session"} field contains a UUID string that uniquely
+    identifies a workflow invocation. \name{} runtime on the entry function
+    creates the UUID string when the function is invoked. The string
+    propagates to all downstreams function instances that are part of the
+    workflow invocation. Entry function can be any function on the graph. You
+    can start with any function on the graph and invoke only a subsection. As
+    long as the \texttt{"Session"} does not exist, \name{} runtime will create
+    one.
+
+    \item Checkpoint names are prefixed with the \texttt{"Session"} UUID
+    string so that instances of the same function from different invocations
+    do not overwrite each others' results.
+
+    \item "Fan-out" field are part of fan-out functions' input payload.
+    \name{} assigns each fan-out function an index.
+
+    \item \name{} supports nested fan-outs with the \texttt{"OuterLoop"} field
+    that is recursive.
+
+    \item The "Index" in the "Fan-out" implements the branch name of the
+    naming scheme in
+    \S\ref{sec:ir}.
+
+\end{itemize}
+
+\section{Execution Guarantees}
+
+Challenges to providing strong execution guarantees:
+
+\begin{enumerate}
+
+    \item Functions in the workflow can fail at any point.
+
+    \item FaaS engines only provide at-least-once execution guarantee on
+    individual functions. Triggering a function once might result in duplicate
+    executions.
+
+\end{enumerate}
+
+Given the limitation of the underlying FaaS engines, \name{} cannot guarantee
+exactly-once execution on \emph{individual functions}. However, \name{}
+guarantees:
+
+\begin{enumerate}
+
+    \item At-least-once invocation on individual functions. This ensures that a
+    workflow invocation will not just stuck somewhere and not proceed.
+
+    \item In a particular workflow invocation, a particular function will
+    always be invoked with the exact same input.
+
+    \item Each workflow invocation will produce exactly one result. Even if
+    there happen to be duplicate executions of functions, and even if the
+    functions are non-deterministic, only a single result is recorded, while
+    any duplicate and potentially diverging results are discarded.
+
+\end{enumerate}
+
+When a workflow execution crashes before finishing, \name{} only retries the
+function where the crash happens instead of restarting the entire workflow.
+\name{} leverages the automatic retry feature that most FaaS engines already provide
+for individual functions~\cite{azure-functions-retry,
+google-cloud-functions-retry, aws-lambda-async-invoke}.
+
+\name{} checkpointing process is the following:
+
+First, before running user code, the ingress checks to see if a checkpoint
+already exists for the invocation. If it does, \name{} skips running user code
+and uses the checkpoint's content as the result. The egress will invoke the
+continuation again in case the prior execution crashed after checkpointing but
+before running the continuation. This makes sure that if a step in the
+workflow has completed and persisted, it will not run again.
+
+If a checkpoint doesn't exist, unum runs the user code. After the user
+function completes, unum checkpoints the result into the data store and runs
+the continuation.
+
+
+\section{Old Design}\label{sec:design}
 
 % Notes(alevy):
 %
