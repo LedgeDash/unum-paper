@@ -133,27 +133,33 @@
 
 \begin{figure*}[t]
     \centering
-    \begin{subfigure}[t]{0.7\textwidth}
-        \includegraphics[width=\columnwidth]{figures/arch-abstract-graph.pdf}
+    \begin{subfigure}[t]{0.8\textwidth}
+        \includegraphics[width=\columnwidth]{figures/unum-arch-compile-time.pdf}
         \caption{Stateful serverless computations form a directed graph. Nodes
                 are user defined FaaS functions and workflow ``gadgets'' that dictate the
                 communication pattern between user functions.}
-        \label{fig:arch:graph}
+        \label{fig:arch:unum-compile-time}
+        % unum injects gadgets to functions at compile time. But more
+        % specifically, unum injects an encoding of gadgets at compile time.
+        % The encoding expresses control-flow transitions just like what the
+        % high-level workflow definition.
     \end{subfigure}
     \begin{subfigure}[b]{\columnwidth}
-        \includegraphics[width=\columnwidth]{figures/arch-controller.pdf}
+    \centering
+        \includegraphics[width=0.8\columnwidth]{figures/unum-arch-centralized.pdf}
         \caption{A typical stateful serverless system drives workflow logic
                  using a centralized controller that manages the computation's state-machine.}
         \label{fig:arch:centralized}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{\columnwidth}
-        \includegraphics[width=\columnwidth]{figures/arch-system.pdf}
+    \centering
+        \includegraphics[width=0.5\columnwidth]{figures/unum-arch-runtime.pdf}
         \caption{\name{} decentralizes controller logic by running local state
                  transitions alongside Faas functions inside the \name{} runtime
                 library. There is no centralized controller, instead \name{} relies on existing
                 serverless datastores such as DynamoDB or Cosmos DB.}
-        \label{fig:arch:unum}
+        \label{fig:arch:unum-runtime}
     \end{subfigure}
     \caption{\name{} System Overview. Serverless computations form a directed
             graph that encode sequential and data dependencies between functions. Workflow
@@ -194,14 +200,14 @@ control-flow graphs by invoking every function and receiving their results
 (Figure~\ref{fig:arch:centralized}), \name{} transforms this high-level
 description to \name{}'s intermediate representation (IR) and embeds portions
 of the control-flow logic to appropriate functions, \emph{at compile time}
-(Figure~\ref{fig:arch:compile}). Control-flow in the IR is encoded as
-``gadgets''---platform-independent control-flow patterns that can be
+(Figure~\ref{fig:arch:unum-compile-time}). Control-flow in the IR is encoded
+as ``gadgets''---platform-independent control-flow patterns that can be
 implemented efficiently in a decentralized manner. Finally, developers combine
 their functions with a platform-specific \name{} runtime which implements
 gadgets using platform-specific APIs and datastores.
 
 During execution, the \name{} runtime performs control-flow transitions by
-running its assigned gadget (Figure~\ref{fig:arch:runtime}). The runtime
+running its assigned gadget (Figure~\ref{fig:arch:unum-runtime}). The runtime
 transparently interposes on user code entry and exit. On entry, the runtime
 reads data sent by the caller and passes it to user code. On exit, the runtime
 gets user code result and invokes the next function with it. Additionally, the
@@ -466,6 +472,11 @@ developers build from scratch.}
 % pointers, then pass them as input to the user code.
 
 \section{\name~IR}\label{sec:ir}
+
+exporess control-flow logic. To express control-flow logic the IR first given
+each function instance a unique name.
+
+The naming scheme needs to encompass dynamic patterns such a map.
 
 \begin{itemize}
 
