@@ -33,17 +33,143 @@
     \label{fig:arch}
 \end{figure*}
 
+%%%%% Notes
+
+
+
+Graphs:
+
+A graph that constrasts application \emph{execution} with \name{} and
+centralized orchestrator. It's ok for the application to be artificial but it
+should sufficient complex with chain, fan-out and fan-in. The orchestrator
+figure should show the orchestrator centralizing control flow and driving the
+execution. The \name{} graph should show functions with gadgets and zoom in,
+similar to Figure 2(c), to show the runtime wrapper and interactions with the
+data store. The centralized orhcestrator should have the same color with the
+gadgets. Different from the current (a), ingress should show gadgets too.
+
+A graph that show the compilation stage. It's important to show what we gain
+at compile time: assigning gadgets to nodes in the directed graph.
+
+Architecture%%%%%%%%%%%%%%%
+
+no new component. Instead, 
+
+a set of general algorithms, called ``gadgets'', that  implements control-flow
+patterns in a decentralized way using basic serverless APIs, 
+
+Similar to existing systems, \name{} takes the user write workflows in the
+form of a directed graph. Instead of an centralized orchestrator executing the
+graph, \name{} ... Figure~\ref{fig:arch:centralized} and \ref{fig:arch} constrasts.
+
+
+
+Computations are a direct graph.
+
+
+Describe the abstract machine (the serverless abstraction with async invoke +
+strongly consistent data store with conditional updates) and here in this
+section.
+
+"strongly consistent data store with conditional updates". Is this going to
+raise eyebrows when we mention S3? Because technically, S3 does not have a
+conditional update API. We implement it with its object versions feature,
+which has to be turned on when creating the bucket.
+
+
+
+Gadgets%%%%%%%%%%%%%%%%%
+
+Gadgets are the general algorithms that implements control-flow patterns in a
+decentralized way against a basic serverless abstraction that is universially
+supported by all serverless providers.
+
+A set of general algorithms that implements control-flow patterns in a
+decentralized way using basic serverless APIs.
+
+
+Different from ad-hoc compositions: 1. use of data store 2.
+Control flow logic not only on the caller but also on the callee 3. standard,
+off-the-shelf primitives that's not application specific that developers build
+from scratch.
+
+
+Then use the gadget section to describe the algorithm for each pattern.
+
+State that "\name{} provides four gadgets that map can express a rich variety
+of workflows efficiently, including a superset of workflows expressible in
+Step Functions". Keep the example applications for each pattern that's
+currently in the text to show the usefulness and necessity for each pattern.
+
+supports all commonly found patterns. In SF, and in DAGs.
+
+unum IR%%%%%%%%%%%%%
+
+intermediate representation language that encodes control-flow 
+
+The IR language primary encodes gadgets but also provides other programmable
+constructs that enables dynamic behavior at runtime. Have a table of
+programmable constructs? (Conditional, \$ret, \$0, \$size)
+
+In pratice the IR is a set of JSON file, one for each edge in the control flow
+graph transition from a function to the next in the control-flow.
+
+Each function node has a unique name.
+
+Scalar, Map, Parallel are pretty straightforward because it dosen't have data
+dependency on other functions in the workflow.
+
+Fan-in expresses data dependencies. More flexible than Step Functions because
+SF only supports dependencies within a state. unum fan-in can specify any
+function in the workflow.
+
+Programmable constructs: 
+
+Conditional: branch, termination condition for a loop, foward condition for a
+selective set of parallel branches
+
+
+
+Frontend compiler%%%%%%%%%%%%%%%%
+
+how to assign gadgets
+
+Runtime%%%%%%%%%%%%
+
+Transparently wraps around user code and interposes on entry and exit
+
+Show the runtime input payload structure
+
+
+
+
+%----------- Old text
+
+
+
+
+A key design feature of \name{} is to not introduce new components to the
+basic serverless infrastructure. Instead, \name{} invents a set of general
+algorithms, called ``gadgets'', that implement control-flow patterns in a
+decentralized way and can execute on constituent functions alongside user
+code. Additionally, \name{} encompasses an intermediate representation
+language that encodes gadgets and describes control-flow logic, a frontend
+compiler that transforms higher-level workflow representations written by
+developers to the intermediate representation, and a runtime library that
+implements the gadgets with platform-specific APIs.
+
+Similar to existing systems~\cite{aws-step-functions, google-workflows,
+google-cloud-composer, gg}, \name{} users write workflows definitions in the
+form of directed graphs. But instead of an centralized orchestrator executing
+the graph (Figure~\ref{fig:arch:centralized}), \name{} ...
+
+
+
 Computations are a directed graph connecting ``simple'' stateless functions
 using, potentially, stateful workflow patterns, such as chaining, map, fan-out,
 and fan-in. Existing systems implement stateful patterns by centralizing
 control-flow state in an orchestrator. Figure~\ref{fig:arch} contrasts this with
 \name{}'s decentralized approach.
-
-\name{} introduces no new components that run separately from basic serverless
-infrastructure.  Instead, \name{} encompasses a runtime library that implements
-decentralized workflow logic, an intermediate representation to describe
-workflow control logic, and front-end compilers to transform high-level workflow
-representations written by developers to the intermediate representation.
 
 TODO: gadgets are the secret sauce, in particular noticing that fan-in needs to
 be split between the source and target functions \emph{and} that source
