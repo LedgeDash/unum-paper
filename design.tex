@@ -151,7 +151,7 @@ Show the runtime input payload structure
 A key design feature of \name{} is to not introduce new components to the
 basic serverless infrastructure. Instead, \name{} invents a set of general
 algorithms, called ``gadgets'', that implement control-flow patterns in a
-decentralized way and can execute on constituent functions alongside user
+decentralized manner and can execute on constituent functions alongside user
 code. Additionally, \name{} encompasses an intermediate representation
 language that encodes gadgets and describes control-flow logic, a frontend
 compiler that transforms higher-level workflow representations written by
@@ -159,30 +159,49 @@ developers to the intermediate representation, and a runtime library that
 implements the gadgets with platform-specific APIs.
 
 Similar to existing systems~\cite{aws-step-functions, google-workflows,
-google-cloud-composer, gg}, \name{} users write workflows definitions in the
-form of directed graphs. But instead of an centralized orchestrator executing
-the graph (Figure~\ref{fig:arch:centralized}), \name{} ...
+google-cloud-composer, gg-atc}, \name{} users define workflows using
+high-level description languages, such as AWS Step Functions, that express the
+control-flow in the form of directed graphs, where nodes are serverless
+functions and edges are control-flow transitions between functions. A
+transition from function \texttt{F} to \texttt{G} involves (1). invoking an
+instance of \texttt{G} and (2). passing \texttt{F}'s result to the \texttt{G}
+instance.
+\dhl{Describing the directed graph abstraction helps to clarify and set the
+mental model. Should also explain from the directed graph perspective in the
+background:workflow orchestrators section so that this is not the first time
+we say this. State machines (i.e., Step Functions) and DAGs (i.e., Google
+Workflows, Apache Airflow, Dask) all fit into direct graphs.}
 
+But different from existing systems where a centralized orchestrator executes
+the user-defined graph by invoking every function and receiving their results
+(Figure~\ref{fig:arch:centralized}), \name{} transforms this high-level
+description to \name{}'s intermediate representation (IR) and embeds portions
+of the control-flow logic to appropriate functions, \emph{at compile time}
+(Figure~\ref{fig:arch:compile}). Control-flow in the IR is encoded as
+``gadgets''---platform-independent control-flow patterns that can be
+implemented efficiently in a decentralized manner. Finally, developers combine
+their functions with a platform-specific \name{} runtime which implements
+gadgets using platform-specific APIs and datastores.
 
+During execution, the \name{} runtime performs control-flow transition by
+running its assigned gadget~\ref{fig:arch:runtime}. The runtime transparently
+interposes on user code entry and exit. On entry, the runtime reads data sent
+by its caller. On exit, the runtime gets the result of the user code and
+invokes the next function with it.
 
-Computations are a directed graph connecting ``simple'' stateless functions
-using, potentially, stateful workflow patterns, such as chaining, map, fan-out,
-and fan-in. Existing systems implement stateful patterns by centralizing
-control-flow state in an orchestrator. Figure~\ref{fig:arch} contrasts this with
-\name{}'s decentralized approach.
 
 TODO: gadgets are the secret sauce, in particular noticing that fan-in needs to
 be split between the source and target functions \emph{and} that source
 functions must coordinate.
 
-Developers write workflows using high-level description languages, such as AWS
-Step Functions or Google Workflows. An \name{} front-end compiler transforms
-this high-level description to \name{}'s intermediate representation (IR), and
-embeds portions of the control-flow logic to appropriate functions. Control-flow
-in the IR is encoded as ``gadgets''---platform-independent control-flow patterns
-that can be implemented efficiently in a decentralized manner. Finally, the
-developer combines their functions with a platform-specific \name{} runtime
-which implements gadgets using platform-specific APIs and datastores.
+% Developers write workflows using high-level description languages, such as AWS
+% Step Functions or Google Workflows. An \name{} front-end compiler transforms
+% this high-level description to \name{}'s intermediate representation (IR), and
+% embeds portions of the control-flow logic to appropriate functions. Control-flow
+% in the IR is encoded as ``gadgets''---platform-independent control-flow patterns
+% that can be implemented efficiently in a decentralized manner. Finally, the
+% developer combines their functions with a platform-specific \name{} runtime
+% which implements gadgets using platform-specific APIs and datastores.
 
 TODO: gadgets don't run where programmers express them. Example with fan-in.
 This is kind of the ``magic'' of the front-end compiler.
