@@ -611,12 +611,14 @@ graph and iii. exposes a set of programmable constructs that layer on top of
 gadgets and enable dynamic runtime behaviors.
 
 In practice, the IR of a particular workflow is a set of static configuration
-files written in JSON. The frontend compiler derives the files from the
+files written in JSON. Developers can directly write the configuration file
+for each constituent function in their workflow. Alternatively, they can use
+the frontend compiler that \name{} provides to derive the configurations from
 workflow definition written in a high-level description language (e.g., AWS
-Step Functions). The compiler generates one file for each gadget and places it
-in the function to which the gadget's egress node appends. During execution,
-the \name{} runtime reads the file and performs control-flow transitions based
-on the configuration.
+Step Functions). There should be one configuration file for each gadget and it
+is placed in the function to which the gadget's egress node appends. During
+execution, the \name{} runtime reads the file and performs control-flow
+transitions based on the configuration.
 
 \dhl{We give an overview of how the \name{} IR language works in this section, but
 the full language features and design rationales are beyond the scope of this
