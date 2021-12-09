@@ -170,6 +170,10 @@
     \label{fig:arch}
 \end{figure*}
 
+\dhl{TODO: Explain the purpose and use of the data store early on in the
+design portion of the paper. Probably also a good idea to motivate the use of
+data store in the background section.}
+
 
 A key design feature of \name{} is to not introduce new components to the
 basic serverless infrastructure. Instead, \name{} invents a set of general
@@ -229,12 +233,15 @@ understand your "move" gadgets mental model and it can work. Let's chat.}
 
 \section{Gadgets}\label{sec:gadgets}
 
-A key challenge in decentralizing control-flow logic is determining where to
-store control-flow state and where to execute transitions. \name{} uses the
-notion of gadgets---a set of general algorithms for control-flow patterns that
-can be implemented efficiently in a decentralized manner. At compile-time,
-\name{} attach these gadgets into the approprite user functions and executes
-them in the \name{} runtime that wraps the function.
+A key challenge in decentralizing control-flow is determining where to store
+control-flow state and where to execute transitions. \name{} uses the notion
+of gadgets---a set of general algorithms for control-flow patterns that can be
+implemented efficiently in a decentralized manner. At compile-time,
+\name{} derives the necessary gadgets from a workflow definition written in
+high-level description language and attaches them to the approprite user
+functions. The \name{} runtime that wraps the user function implements the
+gadgets with platform-specific APIs and executes its assigned gadget during
+execution.
 
 Logically, gadgets are treated as a special kind of node in the control-flow
 graph and placed alongside user function nodes. Each gadget is implemented as
@@ -242,9 +249,9 @@ a pair of nodes: an ingress node and an egress node. Every user function in
 \name{} has exactly one input edge coming from an ingress node and one output
 edge going to an egress node, i.e., the user function is invoked once with a
 single value by an ingress node and outputs its result to a single egress
-node. When placing a gadget in the graph, the egress node is attached to the
-upstream function node and the matching ingress node is prepended to the
-immediate downstream node along an existing edge.
+node. When placing a gadget in the graph, the egress node is appended to the
+upstream function and the matching ingress node is prepended to the immediate
+downstream node along an existing edge.
 
 \name{} provides four gadgets that can express a rich variety of workflows
 efficiently, including a superset of workflows expressible in AWS Step
@@ -308,14 +315,16 @@ application might include a function (the source) that processes input data
 from a sensor followed by another function (the target) that adjusts an
 actuator based on the processed input. The \texttt{chain} gadget connects two
 user functions together by invoking the target with the result of the source.
-At runtime, the egress node of a \texttt{chain} runs on the same FaaS function
-as the source and ingress as the target. The egress gets the output of the
-source function and uses the platform's asynchronous function invocation API
-to call the target function directly from the source. The ingress on the
-target reads the data sent from source and passes it to its user function.
-Depending on the platform's implementation of asynchronous invoke API, the
-ingress might read the input data from a data store or the received HTTP
-message.
+It consists of one egress node and one ingress node. The egress node is
+appended to the source function while the ingress is prepended to the target.
+
+At runtime, the egress node runs on the same FaaS function as the source and
+ingress as the target. The egress gets the output of the source user function
+and uses the platform's asynchronous function invocation API to call the
+target function directly from the source. The ingress on the target reads the
+data sent from source and passes it to the target user function. Depending on
+the platform's implementation of asynchronous invoke API, the ingress might
+read the input data from a data store or the received HTTP message.
 
 
 \paragraph{Fan-out}
@@ -323,11 +332,12 @@ Another common interaction processes the output of a function in different
 ways in parallel. For example, an social network application might perform
 several independent functions given a new user post, such as URL shortening
 and resolving other users mentioned in the post. The \texttt{fanOut} gadget
-invokes a vector of functions (branches) each with the output from the same
-source function. Similar to chaining, the egress node runs with the source and
-uses the asynchronous invocation API to invoke each branch. But in this case,
-each branch has a \texttt{fanOut} ingress node that reads the input data sent
-from the source and passes it to its user function.
+invokes a vector of functions (branches) each with the output of the same
+source function. The gadget consists of one egress node and many ingress
+nodes. Similar to chaining, the egress node is appended to and runs with the
+source function and it uses the asynchronous invocation API to invoke each
+branch. But in this case, an ingress node is prepended to each branch and
+reads the input data sent from the source and passes it to its user function.
 
 \paragraph{Map}
 An application may also perform the same function on multiple outputs of a
@@ -407,12 +417,23 @@ more information to enable specific additional functionalities.}
 \paragraph{Fan-in}
 
 After processing data with many parallel branches, applications commonly want
-to aggregate the results. For example, a video encoder might break down a
-large video into chunks, encode each in parallel and then concatenant all the
-encoded vidoes together. The \texttt{fanIn} gadget takes the outputs from a
-vector of functions and invokes a single ``sink'' function. Each function in
-the vector is assigned a \texttt{fanIn} egress node and the sink function the
-only \texttt{fanIn} ingress node.
+to aggregate results. For example, a video encoder might divide a large video
+into chunks, encode each in parallel and then concatenant all the encoded
+chunks together. The \texttt{fanIn} gadget takes the outputs from a vector of
+functions (the fan-in branches) and invokes a single ``sink'' function. The
+\texttt{fanIn} gadget consists of one ingress node and many egress nodes. Each
+fan-in branch is appended an egress node and the sink function is prepended
+the only ingress node.
+
+% TBD
+%
+% The \texttt{fanIn} gadget gadget ensures that the control-flow transition is
+% \emph{wait-free} and that the sink function is invoked only once.
+% Specifically, its semantics is that the sink function is invoked only once
+% when all upstream functions in the vector have completed.
+
+% To realize the semantics, the \texttt{fanIn} gadget has to solve several
+% challenges. Access to branches data. wait-free. and synchronize.
 
 The \texttt{fanIn} gadget ensures that the control-flow transition is
 \emph{wait-free}. That is the sink function is invoked only when all upstream
@@ -455,8 +476,6 @@ what should we say? Different from ad-hoc compositions: 1. use of data store
 2. Control flow logic not only on the caller but also on the callee 3.
 standard, off-the-shelf primitives that's not application specific that
 developers build from scratch.}
-
-
 
 
 \dhl{Propose name change for gadget -> nexus}
