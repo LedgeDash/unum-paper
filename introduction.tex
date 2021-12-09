@@ -42,22 +42,20 @@ straight-forwardly stateful. Chaining for example doesn't "appear" stateful,
 and \name{} runtime doesn't explicitly manage states for chaining. The only
 pattern that requires \name{} to explicit manage states is fan-in.}
 
-To meet this need, several workflow systems have emerged offering
-higher-level programming interfaces for expressing function interactions, a
-rich set of composition primitives that supports chaining, branching, fan-out
-and fan-in and exactly-once semantics for workflow execution~\cite{excamera,
-gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
-durable-functions}. Designs of existing solutions all require adding an
-additional stateful component, often called an orchestrator or controller, to
-current serverless infrastructures.
+To meet this need, several workflow systems have emerged offering higher-level
+programming interfaces to express function interactions, a rich set of
+composition primitives that support chaining, branching, fan-out and fan-in, and
+exactly-once semantics for workflow execution~\cite{excamera, gg-atc,
+aws-step-functions, google-cloud-composer, google-workflows, durable-functions}.
+These systems require the addition of an orchestrator to existing serverless
+infrastructure: yet-another scalable, multi-tenant, centralized service.
 
-An orchestrator is a stateful hosted service, separate from FaaS and BaaS,
-that centralizes states and control-flow. For each workflow invocation, an
-orchestrator instance interprets the workflow definition and drives execution
-by invoking constituent functions, waits for their results and pass them to
-downstream functions. All function invocations are initiated by the
-orchestrator and all workflow states (e.g., function results) flow through the
-orchestrator.
+An orchestrator is a stateful hosted service that centralizes states and
+control-flow. For each workflow transition, an orchestrator instance interprets
+the workflow definition and drives execution by invoking constituent functions,
+waiting for their results and passing those results to downstream functions. All
+function invocations are initiated by the orchestrator and all workflow states
+(e.g., function results) flow through the orchestrator.
 
 While a solution that meets application requirements, orchestrators break out
 of the serverless abstraction, neglecting and even compromising key serverless
