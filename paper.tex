@@ -52,13 +52,14 @@ supplemental hosted orchestrators to execute workflows and thus break out of
 the serverless abstraction, compromising key serverless benefits such as fast
 autoscaling, fine-grained billing and efficient resource multiplexing. \shadi{what is a "workflow" system? I am not sure it is a universaly well-know term...}
 
-This paper presents \name{}, a new design for serverless workflow systems that
-supports existing higher-level interfaces while executes purely as serverless
-functions. \name{} uses a two-stage compiler that distributes orchestration
-logic to constituent functions at compile-time and removes the need for
-orchestrators during runtime. \name{} uses checkpoints with strongly
-consistent data stores to prevent re-executions and provide strong execution
-guarantees.
+This paper presents \name{}, a new design for serverless workflow systems. 
+In \name{}, a two-stage compiler distributes high-level orchestration
+logic to constituent functions at compile-time. 
+This removes the need for orchestrators at runtime, which allows workflows to 
+execute purely as serverless functions. 
+By checkpointing progress to a strongly consistent data store 
+of choice, \name{} provides strong execution guarantees 
+and minimizes re-executions under faults. \seb{re-execution is never completely avoidable.}
 
 We present and evaluate an implementation of \name{} that can compile Step
 Functions state machines and execute them purely as Lambda functions with
