@@ -506,9 +506,10 @@ by a fanIn.}
 
 \section{\name{}~Intermediate Representation}\label{sec:ir}
 
-\begin{figure*}[t]
-
-    \begin{subfigure}[t]{0.3\textwidth}
+\begin{figure*}[t!]
+    \centering
+    \begin{subfigure}[t]{\columnwidth}
+    \centering
         \begin{minted}[
     frame=single,
     fontsize=\footnotesize
@@ -521,12 +522,12 @@ by a fanIn.}
     }
 }
     \end{minted}
-        \caption{A \texttt{chain} gadget that invokes function \texttt{G} with
+        \caption{\texttt{chain} gadget that invokes function \texttt{G} with
         \texttt{F}'s result}
         \label{fig:gadget-examples-chain}
     \end{subfigure}
-
-    \begin{subfigure}[t]{0.3\textwidth}
+    \begin{subfigure}[t]{\columnwidth}
+    \centering
         \begin{minted}[
     frame=single,
     fontsize=\footnotesize
@@ -539,12 +540,13 @@ by a fanIn.}
     }
 }
         \end{minted}
-        \caption{A \texttt{map} gadget that invokes a parallel instance of
+        \caption{\texttt{map} gadget that invokes a parallel instance of
         \texttt{G} for each element of the vector output of \texttt{F}}
         \label{fig:gadget-examples-map}
     \end{subfigure}
-
-    \begin{subfigure}[t]{0.3\textwidth}
+    \hfill
+    \begin{subfigure}[t]{\columnwidth}
+    \centering
         \begin{minted}[
     frame=single,
     fontsize=\footnotesize
@@ -563,12 +565,12 @@ by a fanIn.}
     ]
 }
         \end{minted}
-        \caption{A \texttt{fanOut} gadget that invokes function \texttt{G} and
+        \caption{\texttt{fanOut} gadget that invokes function \texttt{G} and
         \texttt{H} with the result of \texttt{F}}
         \label{fig:gadget-examples-fanout}
     \end{subfigure}
-
-    \begin{subfigure}[t]{0.3\textwidth}
+    \begin{subfigure}[t]{\columnwidth}
+    \centering
         \begin{minted}[
     frame=single,
     fontsize=\footnotesize
@@ -587,14 +589,17 @@ by a fanIn.}
     }
 }
         \end{minted}
-        \caption{A \texttt{fanIn} gadget that invokes function \texttt{G} with
+        \caption{\texttt{fanIn} gadget that invokes function \texttt{G} with
         the result of all \texttt{F} instances of a \texttt{map}.}
         \label{fig:gadget-examples-fanin}
     \end{subfigure}
-    
-    \caption{The \name{} intermediate representation language encodes gadgets
-    and provides APIs to support dynamic runtime behavior}
-    \label{fig:gadget-examples}
+    \caption{\name{} System Overview. Serverless computations form a directed
+            graph that encode sequential and data dependencies between functions. Workflow
+            orchestrators drive these graphs by centralizing control flow logic and
+            interposing on all communication between functions. \name{},
+            instead, decentralizes control flow logic among the functions with
+            no need for a separate orchestration system.}
+    \label{fig:arch2}
 \end{figure*}
 
 The goal of the \name{}~IR is to not only identify which gadget the \name{}
