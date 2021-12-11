@@ -102,7 +102,7 @@ invocation~\cite{aws-step-functions-exec-gntee}.
 % due to failures and retries, which is identical to \name{}. \shadi{this
 % paragraph is a bit confusing... }
 
-\subsection{Microbenchmarks}
+\subsection{Microbenchmarks}\label{sec:eval:micro}
 
 
 \begin{figure}[t!]
@@ -387,7 +387,6 @@ illustrated in Figure~\ref{fig:mapmicrolatency}.}
                                   & \textbf{Latency (seconds)} \\ \hline
 \textbf{Original ExCamera}        & 76                         \\ \hline
 \textbf{gg}                       & 90                         \\ \hline
-\textbf{Step Functions}           & 98                         \\ \hline
 \textbf{\name{}} & 84                         \\ \hline
 \end{tabular}
 \caption{\name{}'s implementation closely matches that of gg and the original
@@ -403,63 +402,107 @@ workloads and compare with Step Functions. We use the following applications
 taken from serverless applications repositories and prior research work. The
 applications cover a range of use cases and workflow patterns:
 
-\paragraph{IoT Pipeline} Adapted from a humidity control application in the
-AWS serverless repository~\cite{iot-pipeline}. The workflow consists of a
-chain of two functions where the first function processes time-series data on
-indoor climate and outputs a set of aggregate statistics. The second function
-makes a HVAC system control decision based on the statistics and adjusts the
-HVAC settings.
-
-\paragraph{Text Processing} Adapted from the social networks application in
-the DeathStarBench~\cite{deathstar}. The workflow consists of 5 functions that
-create a social network post by processing text data of user posts. It fans
-out to two branches that resolves user mentions and shortens URLs in parallel.
-Eventually, it fans in to a function that saves the post along with resolved
-user mentions and shortened URLs in a NoSQL database.
-
-\paragraph{Wordcount} MapReduce word count~\cite{mapreduce} ran with 250
-parallel mappers and reducers.
-
-\paragraph{ExCamera} The ExCamera video encoder~\cite{excamera, gg-atc}. We
-use the same workload and setup as the experiment in gg~\cite{gg-atc}: the same
-input video of the first 888 chunks of sintel 4K, 3GB lambdas and 16 chunks
-per batch.
-
-Table~\ref{table:macro} lists the median end-to-end latency and computed costs
-per 1 million executions. Both latency and costs numbers are based on DynamoDB
-as the intermediary data store. \name{} is slower than Step Functions for Text
-Processing where the workflow fans out to 2 parallel branches. However,
-\name{} is faster in the other applications that consists of chaining and
-fan-outs at much higher level of parallelism.
-
-Furthermore, \name{} is consistently cheaper than Step Functions for all
-workloads with 3.7x to 32.8x costs savings. Most applications manually manage
-application data with their own storage and function checkpoints are smaller
-than 1KB for all 4 workflows.
-
-\subsubsection{ExCamera}\label{sec:eval-excamera}
-
 \begin{itemize}
+    \item \textbf{IoT Pipeline} Adapted from a humidity control application in the
+    AWS serverless repository~\cite{iot-pipeline}. The workflow consists of a
+    chain of two functions where the first function processes time-series data on
+    indoor climate and outputs a set of aggregate statistics. The second function
+    makes a HVAC system control decision based on the statistics and adjusts the
+    HVAC settings.
 
-    \item \name{} is able to express and execute parallel pipelines while Step
-    Functions has to serialize the decode and re-encode stages.
+    \item \textbf{Text Processing} Adapted from the social networks application in
+    the DeathStarBench~\cite{deathstar}. The workflow consists of 5 functions that
+    create a social network post by processing text data of user posts. It fans
+    out to two branches that resolves user mentions and shortens URLs in parallel.
+    Eventually, it fans in to a function that saves the post along with resolved
+    user mentions and shortened URLs in a NoSQL database.
 
-    \item Step Functions does not have a way to express fold, so the last
-    rebase stage has to be written as a single recursive function. \name{}
-    supports fold. The recursion logic is lifted to the \name{} IR and the
-    rebase function is written similarly to ExCamera.
+    \item \textbf{Wordcount} Adapted from MapReduce word count~\cite{mapreduce}.
+    Mappers and reducers execute as Lambda function. The workload uses 250
+    parallel mappers and reducers.
 
-    \item \name{} is 7.1\% faster than gg's implementation of ExCamera and
-    \%10.5 slower than the original ExCamera. Similar to gg, \name{} also do
-    not pre-load the input data from S3. Different from gg, \name{} does not
-    use a long-running coordinator on EC2 to manage communications and
-    invocations.
+    \item \textbf{ExCamera} ExCamera~\cite{excamera} is a novel video encoder that
+    encodes large raw videos with thousands of parallel functions to achieve
+    low latency. The workflow consists of three stages, \texttt{ENCODE},
+    \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact
+    in complex patterns. The first stage is a \texttt{map} that runs many
+    \texttt{ENCODE} functions entirely in parallel, the second stage forms
+    paralllel pipelines following the first stage where the $i^{th}$
+    \texttt{ENCODE-GIVEN-STATE} branch starts when the $(i)^{th}$ and
+    $(i-1)^{th}$ \texttt{ENCODE} branch complete. The final \texttt{REBASE}
+    runs in series and rebases each chunk on top of the state from the
+    previous chunk.
+
+    We implement a \name{} version and Step Functions version for ExCamera,
+    using the same binaries in constituent functions as the original
+    paper~\cite{excamera-binary}. The \name{} implementation closely matches
+    the original ExCamera where a task starts as soon as its input data
+    becomes available. But the Step Functions implementation had to serialize
+    the \texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} stages because fan-outs
+    in Step Functions require all parallel branches to complete before fan-in.
+    For this reason, we do not derive the \name{} version from a Step
+    Functions definition with the frontend compiler. Instead, we hand-write
+    \name{} configurations for each constituent function.
+
+    Furtheremore, we compare \name{}'s implementation against the original
+    authors' implementation of ExCamera. The original authors build two
+    version: a hand-optimized version in the original paper implemented with
+    the \texttt{mu} framework which exposes a state machine abstraction, and a
+    later version implemented with the \texttt{gg} framework which uses a
+    thunk abstraction. We use the exact same workload and setup as the
+    experiment in \texttt{gg}~\cite{gg-atc}, i.e., the same input video of the
+    first 888 chunks of \texttt{sintel-4k} video, 16 chunks per batch and
+    lambdas with 3GB of memory.
 
 \end{itemize}
 
+\subsubsection{Latency Comparison}
 
+Table~\ref{table:macro} compare the median end-to-end latency and costs (per 1
+million executions) of running the applications with \name{} and with Step
+Functions. Similar to our results in microbenchmarks (\S\ref{sec:eval:micro}),
+\name{} is around 50ms or 27.8\% faster in the chaining application---IoT
+Pipeline, and 2.2x faster in the highly-parallel application --- wordcount.
+Text Processing is the only application where \name{} is slower than Step
+Functions. We know from \S\ref{sec:eval:fan-out} that \name{} is around 100ms
+slower launching 2 parallel branches. However, with constituent functions
+performing real computation and chaining of function in parallel branch,
+\name{}'s end-to-end latency is merely 10ms or 1.8\% slower than Step
+Functions.
 
-\subsubsection{Cost breakdown}
+While ExCamera process all 888 chunks in parallel, each batch is a
+\texttt{map} with only 16 branches. From the result in
+\S\ref{sec:eval:fan-out}, we know that \name{} is around 200ms slower than
+Step Functions when launching 16 parallel branches. However, \name{} is able
+to win back 14.24s or 17\% of latency performance because fan-in in \name{} is
+wait-free. \name{} invokes the fan-in function whenever its input becomes
+available, whereas Step Functions first requires all branches to complete even
+if a branch is not part of the fan-in function's input, and lacks programming
+constructs to express fine-grained data dependencies between branches that can
+enable ``partial fan-in''.
+
+\dhl{Explain the difference between unum fan-in and Step Functions fan-in in
+design already. Specifically, unum fan-in starts when all inputs are
+available, whereas Step Functions fan-in first requires all branches to
+complete even if a branch is not part of the fan-in function's input.}
+
+Table~\ref{table:excamera} compares \name{}'s implementation of ExCamera with
+the original implementation and \texttt{gg}'s version. \name{}'s is 7.1\%
+faster than gg and \%10.5 slower than the original ExCamera. The original
+ExCamera pre-loads raw video chunks into lambdas before starting, while
+\name{} and \texttt{gg} do not. The original authors attributes the
+comparatively slower performance of \texttt{gg} to the lack of pre-loading
+which is likely also the reason for \name{}'s slower performance. But
+different from \texttt{gg}, \name{} executes control-flow logic in a
+decentralized manner while \texttt{gg} has a centralized coordinator on EC2
+that proxies inter-function communications and invokes lambdas. The reduced
+number of network communications likely explains why \name{} is slightly
+faster than \texttt{gg}.
+
+\subsubsection{Cost Comparison and Breakdown}
+
+Moreover, \name{} is consistently cheaper than Step Functions for all
+workloads with up to 32.8x costs savings. 
 
 Break the costs for \name{} and Step Functions after showing real-world
 applications results so that we don't have to justify that data is normally
