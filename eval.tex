@@ -115,6 +115,23 @@ invocation~\cite{aws-step-functions-exec-gntee}.
 
 \begin{figure}[t!]
     \centering
+    \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
+    \caption{\name{} latency of transitioning from the completion of a funtion
+    to the start of the next function. The transition involves a Lambda
+    invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
+    and a checkpoint read from data store (a DynamoDB GetItem call). Overall
+    latency increases with data size due to more data written in the PutItem
+    call and sent to next function via the Lambda invoke call. Over 97.5\% of
+    the latency is the
+    \name{} runtime waiting for data store accesses and Lambda invoke API
+    calls to return. When the underlying platform improves (e.g., a faster
+    Lambda or data store), the bulk of \name{}'s performance will
+    automatically improve without any modification to \name{} itself.}
+    \label{fig:single-transition-latency-breakdown}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
     \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
     \caption{End-to-end latency of parallel fan-out and fan-in with varying
     degrees of parallelism. All constituent functions in the experiment only
@@ -130,7 +147,7 @@ invocation~\cite{aws-step-functions-exec-gntee}.
 \subsubsection{Chaining performance}\label{sec:eval:chain}
 
 In this section, we evaluate how \name{} performs on executing a series of
-step in sequence, using the basic \texttt{chain} pattern, and compares with
+steps in sequence, using the basic \texttt{chain} pattern, and compare with
 Step Functions. We measure the end-to-end latency of executing a chain of
 functions with varying chain length (2 to 10 functions). We want the
 end-to-end latency to maximally reflects the performance of the workflow
@@ -152,23 +169,6 @@ constituent functions and not managed by a centralized orchestrator.
 
 \subsubsection{Single Transition Performance}
 
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
-    \caption{\name{} latency of transitioning from the completion of a funtion
-    to the start of the next function. The transition involves a Lambda
-    invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
-    and a checkpoint read from data store (a DynamoDB GetItem call). Overall
-    latency increases with data size due to more data written in the PutItem
-    call and sent to next function via the Lambda invoke call. Over 97.5\% of
-    the latency is the
-    \name{} runtime waiting for data store accesses and Lambda invoke API
-    calls to return. When the underlying platform improves (e.g., a faster
-    Lambda or data store), the bulk of \name{}'s performance will
-    automatically improve without any modification to \name{} itself.}
-    \label{fig:single-transition-latency-breakdown}
-\end{figure}
-
 Using the same experiment from the last section, we further breakdown the
 latency for \emph{a single transition} from one function to the next to
 understand where the overhead of orchestration comes from. In \name{}, this
@@ -176,13 +176,13 @@ transition involves (1). the egress on the source function writing its output
 to a checkpoint, (2). the egress on the source function invoking the target
 function, and (3). the ingress on the target function checking whether a
 checkpoint already exists to ensure exactly-once semantics. In total, that is
-2 storage accesses and one asynchronous invocation to Lambda. Because the
+two storage accesses and one asynchronous invocation to Lambda. Because the
 latency of storage accesses and Lambda invocation depends on the payload data
 size, we measure across data sizes ranging between 0-255KB in 5KB
-increments\footnote{Lambda limits payload size to 256KB for async
+increments\footnote{Lambda limits payload size to 256KB for asynchronous
 invocations.}.
 
-Figure~\ref{single-transition-latency-breakdown} shows the single transition
+Figure~\ref{fig:single-transition-latency-breakdown} shows the single transition
 latency and its breakdown for \name{}. As a baseline, we also measure the same
 latency of a state transition in Step Functions. However, Step Functions does
 not generate fine-grained enough logs for a detailed breakdown. Overall,
@@ -194,52 +194,54 @@ functions perform long computations, \name{}'s latency breakdown shows great
 potential for automatic future improvements as serverless gets faster. Over
 97.5\% of \name{}'s runtime overhead comes from APIs calls to the underlying
 serverless systems, i.e., Lambda invocation, GetItem and PutItem calls to
-DynamoDB. A faster NoSQL database and Lambda invocation API will automatically
-reduce bulk of \name{}'s latency without any modification to \name{} itself.
+DynamoDB. A faster NoSQL database or FaaS system will automatically reduce
+bulk of \name{}'s latency without any modification to \name{} itself.
 
 
 \subsubsection{Fan-out and fan-in performance}\label{sec:eval:fan-out}
 
-Next, we evaluate another critical orchestration primitive: fan-out and
-fan-in. Quickly creating parallel instances is an important operation for
-serverless because many applications migrate to serverless for its faster
-scalability.
+Next, we evaluate how \name{} performs on executing a number of tasks in
+parallel with the fan-out pattern, and compare with Step Functions. Quickly
+launching parallel functions is important for serverless applications because
+many require high degrees of parallelism (e.g., ExCamera runs thousands of
+encoding lambdas in parallel) and migrate to serverless specifically for its
+fast autoscaling.
 
-Step Functions has two state types, \texttt{Map} and \texttt{Parallel}, for creating
-parallel branches. \name{} supports both. This microbenchmark uses the
-\texttt{Map} state because it allows easy control on the number of parallel
-branches.
+We measure the end-to-end latency of launching a number of parallel branches
+and then aggregating the result of all branches in a single fan-in function.
+Similarly, we use a function that performs no computation so that the
+end-to-end latency maximally reflects the performance of the workflow system.
 
-Similarly, we use a function that simply returns its input without any
-computations in this microbenchmark to minimize the runtime of user code so
-that the end-to-end latency maximally reflects the performance of the workflow
-system. \shadi{do we have any benchmarks with growing amount of computation in the function itself?  or  a few representative datapoints.}
+\shadi{do we have any benchmarks with growing amount of computation in the
+function itself?  or  a few representative datapoints.}\dhl{Not right now. Why
+do you think this might be helpful? Using a short-lived function means the
+numbers mostly measure the overhead of the system.}
 
 Figure~\ref{fig:mapmicrolatency} shows the end-to-end latency (logscale) of
-fan-out and fan-in at varying levels of parallelism. At lower level of
-parallelism (2-16 parallel branches), \name{} is around 100-200ms slower than
-Step Functions. \shadi{what \% is this?} \name{} starts to outperform Step Functions at even moderate parallelism level of 32
-parallel branches (2.37x) and up to 4.58x at 512 parallel branches. \shadi{is it common to have >32 parallelism?}
+fan-out and fan-in at varying degrees of parallelism. At lower degree of
+parallelism (2-16 parallel branches), \name{} is around 100-200ms or 26-32\%
+slower than Step Functions. However, \name{} starts to outperform Step
+Functions at even moderately higher parallelism of 32 parallel branches
+(2.37x) and up to 4.58x at 512 parallel branches.
 
-As we do not have direct access to Step Functions's backend, it is difficult to
-understand why Step Functions's performance becomes worse at higher parallelism. One
-possible cause of higher latency is throttlng of concurrent branch creations.
-Step Functions documentation states that it might pause creating branches when the
-fan-out size exceeds 40~\cite{aws-step-functions-map-state}.
+At lower degree of parallelism, \name{} is slower than Step Functions because
+launching branches is slower with our Python implementation as the
+asynchronous invocations essentially execute in series, while Step Functions
+starts branches truly in parallel. However, Step Functions starts to throttle
+branch creations very quickly. Step Functions documentation states that it
+might pause creating branches when the number exceeds
+40~\cite{aws-step-functions-map-state}, but we observe throttling starts
+around 20 parallel branches. This explains why \name{} scales much faster when
+the degree olf parallelism increases.
 
-Our result is not arguing that orchestrator-based workflow systems
-fundamentally scales worse than \name{}. Although Step Functions does not
-elaborate on the reason for throttling, there is little reason to believe that
-the maximum allowable concurrency must be capped around 40 for parallel
-workloads.
-
-However, this result does demonstrate an important downside of relying on
-supplemental services to support serverless workflows. Any services added must
-also perform well compared with the highly scalable FaaS engine, otherwise
-application developers have to work with the restrictions that the services
-impose. \name{} avoids the difficulty of building and maintaining hosted
-orchestrators and directly leverages the scalability of Lambda to achieve
-better parallel performance.
+While our result is not arguing that centralized orchestrators fundamentally
+scale worse than \name{}'s decentralized design, it is demonstrating that the
+added orchestrator can easily become a performance bottleneck, whether due to
+implementation or design restrictions, and its scalability problems has to be
+solved again independently for the end-to-end system to perform well. On the
+other hand, \name{} can leverage Lambda's fast autoscale capability without
+imposing any additional restrictions because we introduce no new services and
+build entirely on top of the existing serverless components.
 
 \subsubsection{Cost comparison}
 
