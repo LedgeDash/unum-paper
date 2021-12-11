@@ -534,12 +534,36 @@ charges $1.3942 \times 10^{-6}$ for writing and $0.279
 the data in DynamoDB because after a workflow execution, users can immediately
 delete the checkpoints or move them to cheaper storage.
 
-Figure~\ref{fig:cost-breakdown} shows the cost breakdown for 
+Figure~\ref{fig:cost-breakdown} shows the cost breakdown for the applications
+in \name{} and Step Functions.
 
+\dhl{Need to sync with Intro. If we say anything about billing schemes or predicted
+cheaper costs. Not sure what to highlight atm.}
 
+In both cases, the costs of running applications are dominated by the workflow
+system. The cost of Step Functions state transitions accounts for over 99\% of
+the total costs of running applications while \name{} accounts for 87-89\% of
+the total costs.
 
-\dhl{Sync with Intro, if we say anything about billing schemes or predicted
-cheaper costs.}
+The majority of \name{}'s costs come from reading and writing checkpoints to
+DynamoDB. A cheaper data store that supports strong consistency and
+conditional updates can significantly reduce the cost of using \name{}. For
+instance, Cosmos DB charges $0.279 \times 10^{-6}$ (or one fifth of the write
+cost of DynamoDB) per 1KB for both reads and writes~\cite{cosmosdb-pricing}.
+
+While pricing of a particular service can change based on a multitude of
+factors, the amount of developement efforts and the size of going workloads
+that has already gone into Lambda and multi-tenant storage systems likely
+means that they are much more resource efficient than a specialized
+orchestrator service such as Step Functions. The resource efficiency advantage
+is likely going to persist given the bigger pool of users and applications for
+Lambda and DynamoDB as they are more fundamental services. Therefore,
+\name{}'s cost benefits are likely going to continue and become even larger as
+FaaS systems and serverless data stores continue to improve.
+
+\dhl{Disccusion?: Building a cost-effective data store has long been
+identified as an important issue for serverless computing~\cite{pocket}}
+
 
 % \subsubsection{Questions}
 
