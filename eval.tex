@@ -13,12 +13,16 @@ questions:
     \textit{unumized} functions and how does it compare with running it
     directly with Step Functions?
 
-    \item Given the same application, what is the cost of running it with
-    \name{} vs on Step Functions?
+    \item What are the sources of \name{'s} latency overhead? How much does
+    the overhead come from API calls to the underlying serverless components?
 
-    \item How much additional costs does the \name{} runtime incur in Lambda
-    duration billing? And how much does it cost to write and read checkpoints
-    to and from the intermediary data store?
+    \item Given the same application, what is the billing cost of running it
+    with \name{} vs on Step Functions?
+
+    \item What are the sources of \name{'s} billing costs? How much additional
+    costs does the \name{} runtime incur in Lambda duration billing? And how
+    much does it cost to provide exactly-once execution semantics from writing
+    and reading checkpoints?
 
 \end{enumerate}
 
@@ -376,18 +380,42 @@ illustrated in Figure~\ref{fig:mapmicrolatency}.}
 \label{table:macro}
 \end{table*}
 
-We further evaluate \name{}'s performance, costs and expressiveness with 4
-real-world applications. 
+\begin{table}[]
+\centering
+\begin{tabular}{|r|r|}
+\hline
+                                  & \textbf{Latency (seconds)} \\ \hline
+\textbf{Original ExCamera}        & 76                         \\ \hline
+\textbf{gg}                       & 90                         \\ \hline
+\textbf{Step Functions}           & 98                         \\ \hline
+\textbf{\name{}} & 84                         \\ \hline
+\end{tabular}
+\caption{\name{}'s implementation closely matches that of gg and the original
+ExCamera where a task starts as soon as its input data becomes available. The
+Step Functions implementation had to serialize the encoding and re-encoding
+stages because the \texttt{Map} state in Step Functions requires all parallel
+branches to complete before fan-in.}
+\label{table:excamera}
+\end{table}
+
+In this section, we evaluate \name{}'s performance and costs with 4 real-world
+workloads and compare with Step Functions. We use the following applications
+taken from serverless applications repositories and prior research work. The
+applications cover a range of use cases and workflow patterns:
 
 \paragraph{IoT Pipeline} Adapted from a humidity control application in the
 AWS serverless repository~\cite{iot-pipeline}. The workflow consists of a
-chain of two functions that processes climate control data and change the HVAC
-setting.
+chain of two functions where the first function processes time-series data on
+indoor climate and outputs a set of aggregate statistics. The second function
+makes a HVAC system control decision based on the statistics and adjusts the
+HVAC settings.
 
-\paragraph{Text Processing} Adapted from the social network application in
-DeathStarBench~\cite{deathstar}. The workflow consists of 5 functions that
-create a social network post by processing user mentions, shortening URLs and
-eventually saving the post in a DynamoDB table.
+\paragraph{Text Processing} Adapted from the social networks application in
+the DeathStarBench~\cite{deathstar}. The workflow consists of 5 functions that
+create a social network post by processing text data of user posts. It fans
+out to two branches that resolves user mentions and shortens URLs in parallel.
+Eventually, it fans in to a function that saves the post along with resolved
+user mentions and shortened URLs in a NoSQL database.
 
 \paragraph{Wordcount} MapReduce word count~\cite{mapreduce} ran with 250
 parallel mappers and reducers.
@@ -428,6 +456,22 @@ than 1KB for all 4 workflows.
     invocations.
 
 \end{itemize}
+
+
+
+\subsubsection{Cost breakdown}
+
+Break the costs for \name{} and Step Functions after showing real-world
+applications results so that we don't have to justify that data is normally
+unders 10KB.
+
+Show the actual equations on how we calculated the costs for each case.
+
+With concrete applications, we can discuss the fact that applications often
+choose/have to do their own data management because Lambda limits the output
+data size. For example, ExCamera can't simply return an encoded video chunk as
+binary because it's 3MB while Lambda only supports up to 256KB.
+
 
 % \subsubsection{Questions}
 
