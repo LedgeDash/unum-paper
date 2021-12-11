@@ -363,12 +363,12 @@ build entirely on top of the existing serverless components.
 \centering
 \begin{tabular}{ll|rr|rr}
 \hline
-                     &                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per 1 mil. executions)}}       \\
+                     &                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
 \textbf{Application} & \textbf{Pattern}       & \textit{\name{}} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
 IoT Pipeline         & chain                  & 0.18       & 0.23       & 3.4       & 111.6   \\
 Text Processing      & fan-out, fan-in        & 0.56       & 0.55       & 12.0      & 196.3   \\
 Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
-ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 150.9     & 1,530.0      \\ \hline
+ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 8,299.5   & 84,150.0      \\ \hline
 \end{tabular}
 \caption{Latency and costs comparison between \name{} and Step Functions for
 the macrobenchmark applications. Running applications on \name{} is 3.7x to
@@ -502,19 +502,37 @@ faster than \texttt{gg}.
 \subsubsection{Cost Comparison and Breakdown}
 
 Moreover, \name{} is consistently cheaper than Step Functions for all
-workloads with up to 32.8x costs savings. 
+workloads with up to 32.8x costs savings. All costs numbers in
+Table~\ref{table:macro} are calculated based on public pricing information for
+AWS \texttt{us-west-1} region. We do not ``measure'' the costs of running
+workflows because AWS does not provide real-time billing results for all
+services.
 
-Break the costs for \name{} and Step Functions after showing real-world
-applications results so that we don't have to justify that data is normally
-unders 10KB.
+For Step Functions, the total costs of running an application consists of i.
+Lambda duration billing for running user code, ii. Lambda invocation billing
+for starting functions and iii. Step Functions state transition
+charges~\cite{aws-step-functions-pricing}. Step Functions charges a fixed rate
+of \$27.9 $ \times 10^{-6}$ per state transition. A state transition equates
+to an edge in the workflow graph in the case of chaining and fan-out. But
+fan-in only counts as one state transition. Additionally, Step Functions adds
+a \texttt{Start} and \texttt{End} state to each workflow that counts towards
+state transitions.
 
-Show the actual equations on how we calculated the costs for each case.
+The total costs of running an application with \name{} consists of i. Lambda
+duration billing for running the \emph{unumized} functions, that is both the
+user code and \name{} runtime code, ii. Lambda invocation billing for starting
+functions, and iii. data store reads and writes for checkpoints. DynamoDB
+charges $1.3942 \times 10^{-6}$ for writing and $0.279
+\times 10^{-6}$ for reading 1KB of data. We do not count the costs of storing
+the data in DynamoDB because after a workflow execution, users can immediately
+delete the checkpoints or move them to cheaper storage.
 
-With concrete applications, we can discuss the fact that applications often
-choose/have to do their own data management because Lambda limits the output
-data size. For example, ExCamera can't simply return an encoded video chunk as
-binary because it's 3MB while Lambda only supports up to 256KB.
+Figure~\ref{fig:cost-breakdown} shows the cost breakdown for 
 
+
+
+\dhl{Sync with Intro, if we say anything about billing schemes or predicted
+cheaper costs.}
 
 % \subsubsection{Questions}
 
