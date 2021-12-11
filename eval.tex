@@ -359,22 +359,20 @@ build entirely on top of the existing serverless components.
 \centering
 \begin{tabular}{ll|rr|rr}
 \hline
-                     &                        & \multicolumn{2}{c}{\textbf{\name{}}}            & \multicolumn{2}{c}{\textbf{Step Functions}}       \\
-\textbf{Application} & \textbf{Pattern}       & \textit{e2e latency} & \textit{cost (per 1 mil. exec.)}   & \textit{e2e latency} & \textit{cost (per 1 mil. exec.)}            \\ \hline
-IoT Pipeline         & chain                  & 0.12s              & \$3.4      & 0.23s       & \$111.6    \\
-Text Processing      & fan-out, fan-in        & 0.56s             & \$12.0      & 0.55s        & \$196.3   \\
-Wordcount            & chain, fan-out, fan-in & 410.64s                 & \$4,904.8   & 898.56s                 & \$18,113.0 \\
-ExCamera             & chain, fan-out, fold   & 84.17s                  & \$150.9 & 98.42s                  & \$1,530.0      \\ \hline
+                     &                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per 1 mil. executions)}}       \\
+\textbf{Application} & \textbf{Pattern}       & \textit{\name{}} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
+IoT Pipeline         & chain                  & 0.18       & 0.23       & 3.4       & 111.6   \\
+Text Processing      & fan-out, fan-in        & 0.56       & 0.55       & 12.0      & 196.3   \\
+Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
+ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 150.9     & 1,530.0      \\ \hline
 \end{tabular}
 \caption{Latency and costs comparison between \name{} and Step Functions for
 the macrobenchmark applications. Running applications on \name{} is 3.7x to
-32.8x cheaper than on Step Functions. \name{} delivers more than one
-order-of-magnitude cost savings for all but wordcount. Furthermore, \name{} is
-faster than Step Functions especially for workflows with high degrees of
-parallelism. Text Processing is the only workflow which \name{} is marginally
-slower because Step Functions creates parallel branches faster at low fan-out
-degrees as we illustrated in Figure~\ref{fig:mapmicrolatency}. 
-\shadi{suggestion: put all cost into one column (w/ two sub-columns, Unum and SF) and e2e latency in another. It would be easier to compare.}}
+32.8x cheaper than on Step Functions. Furthermore, \name{} is faster than Step
+Functions especially for workflows with high degrees of parallelism. Text
+Processing is the only workflow which \name{} is marginally slower because
+Step Functions creates parallel branches faster at low fan-out degrees as we
+illustrated in Figure~\ref{fig:mapmicrolatency}.}
 \label{table:macro}
 \end{table*}
 
@@ -402,7 +400,7 @@ per batch.
 Table~\ref{table:macro} lists the median end-to-end latency and computed costs
 per 1 million executions. Both latency and costs numbers are based on DynamoDB
 as the intermediary data store. \name{} is slower than Step Functions for Text
-Processing where the workflow fans out to 2 parallel branches. \shadi{it is only marginally slower. Maybe we don't want to give the impression that we are slow at low parallelism.} However,
+Processing where the workflow fans out to 2 parallel branches. However,
 \name{} is faster in the other applications that consists of chaining and
 fan-outs at much higher level of parallelism.
 
