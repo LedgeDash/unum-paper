@@ -1,0 +1,209 @@
+
+
+\subsection{\name{} Intermediate Representation}
+\label{sec:ir}
+
+The \name{} compiler converts high-level workflow definitions into an intermediate representation (IR). The IR couples each user function with a platform agnostic \name{} config file containing the details on how to transition from that function to the next function(s). Specifically, the \name{} config includes: i. \textit{which} function(s) to call next, ii. \textit{when} to call the next function(s), iii. \textit{what} to send to the next function(s). 
+
+
+
+In practice, the \name{} config of a particular transition pattern is  is a set of static configuration
+files written in JSON. The compiler drives these files, but developers can also directly write these files. 
+There should be one configuration file for each transition and it
+is placed in the source function. During
+execution, the \name{} runtime reads the file and performs control-flow
+transitions to the next function(s) based on the configuration.
+
+
+Figure~\ref{fig:arch2} shows examples for each transition type encoded
+by the \name{}~IR. The \texttt{Name} field identifies the source function, which is also the function where the
+configuration file is placed. The \texttt{Next} field identifies the function
+to which the destination function(s) and the
+\texttt{InputType} field helps define the transition type. The value
+\texttt{Scalar} instructs the runtime to treat user function's output as a
+single entity, and when the \texttt{Next} field contains only one object
+(i.e., not an array), it represents a \texttt{chain} pattern; whereas when the
+\texttt{Next} field is an array, it represents a \texttt{fanOut} pattern.
+\texttt{map} pattern have a special \texttt{Map} value for the
+\texttt{InputType} field as it instructs the runtime to expect and treat the
+output of the user function as an iterable. \shadi{add sentence on fan-in}.
+
+
+
+
+
+
+\begin{figure*}[t!]
+	\centering
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\scriptsize
+			]{json}
+			{
+				"Name": "F",
+				"Next": {
+					"Name": "G",
+					"InputType": "Scalar"
+				}
+			}
+		\end{minted}
+		\caption{\texttt{chain} pattern that invokes function \texttt{G} with
+			\texttt{F}'s result}
+		\label{fig:gadget-examples-chain}
+	\end{subfigure}
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\scriptsize
+			]{json}
+			{
+				"Name": "F",
+				"Next": {
+					"Name": "G",
+					"InputType": "Map"
+				}
+			}
+		\end{minted}
+		\caption{\texttt{map} pattern that invokes a parallel instance of
+			\texttt{G} for each element of the vector output of \texttt{F}}
+		\label{fig:gadget-examples-map}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\scriptsize
+			]{json}
+			{
+				"Name": "F",
+				"Next": [
+				{
+					"Name": "G",
+					"InputType": "Scalar"
+				},
+				{
+					"Name": "H",
+					"InputType": "Scalar"
+				}
+				]
+			}
+		\end{minted}
+		\caption{\texttt{fanOut} pattern that invokes function \texttt{G} and
+			\texttt{H} with the result of \texttt{F}}
+		\label{fig:gadget-examples-fanout}
+	\end{subfigure}
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\scriptsize
+			]{json}
+			{
+				"Name": "F",
+				"Next": {
+					"Name": "G",
+					"InputType": {
+						"Fan-in": {
+							"Values": [
+							"F-unumIndex-*"
+							]
+						}
+					}
+				}
+			}
+		\end{minted}
+		\caption{\texttt{fanIn} pattern that invokes function \texttt{G} with
+			the result of all \texttt{F} instances of a \texttt{map}.}
+		\label{fig:gadget-examples-fanin}
+	\end{subfigure}
+	\caption{The IR representation of the various transition patterns of \name{} . \shadi{can we shrink this figure? maybe reduce font size and put all in one row (instead of two)}}
+%		 System Overview. Serverless computations form a directed
+%		graph that encode sequential and data dependencies between functions. Workflow
+%		orchestrators drive these graphs by centralizing control flow logic and
+%		interposing on all communication between functions. \name{},
+%		instead, decentralizes control flow logic among the functions with
+%		no need for a separate orchestration system.}
+	\label{fig:arch2}
+\end{figure*}
+
+%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsubsection{Dynamic runtime behavior}\label{sec:ir:naming}
+
+
+A key design challenge of the \name{} IR is to support dynamic runtime
+behavior with statically generated configurations.
+% For instance, the number of
+%parallel branches in a \texttt{map} depends on the output of the egress node
+%and cannot be known at compile-time. 
+For instance, a workflow that consists of a \texttt{map}  followed by a
+\texttt{fanIn} the number of parallel branches depends on the output of
+the \texttt{map} egress node and cannot be known at compile-time. Furthermore,
+\texttt{map} creates multiple instances of the same function. \name{} needs to
+uniquely identify each \emph{runtime} instance so that \texttt{fanIn} can
+execute correctly (e.g., not miss an instance or counting the same instance
+twice).
+
+To solve this problem, \name{} defines a naming scheme for runtime instances
+in the control-flow graph and exposes a set of programming constructs. First,
+\name{} requires each user function to have a user-defined name. This is also
+a common requirement for existing serverless systems when developers deploy
+their functions. Next, each branch in a \texttt{map} and \texttt{fanOut}
+gadget is assigned an integer index, starting from zero, and the $i^th$ branch
+is named \texttt{<FunctionName>-unumIndex-\emph{i}}. For nested fan-outs, the
+indexes are delimited with periods. For example,
+\texttt{<FunctionName>-unumIndex-\emph{i.j}} identifies the $i^{th}$ branch in
+the outer loop and $j^{th}$ in the inner loop.
+
+To identify all branches, the \name{}~IR supports glob patterns, such as
+\texttt{*}, when specifying runtime instances' names.
+Figure~\ref{fig:gadget-examples-fanin} shows a \texttt{fanIn} example that
+invokes \texttt{G} with the outputs from all instances of \texttt{F}.
+
+\subsubsection{Programmable Constructs \shadi{better name?}}
+
+\begin{figure}[]
+	\begin{minted}[
+		frame=single,
+		fontsize=\scriptsize
+		]{json}
+		{
+			"Name": "F",
+			"Next": [
+			{
+				"Name": "G",
+				"InputType": "Scalar",
+				"Conditional": "$ret < 0"
+			},
+			{
+				"Name": "H",
+				"InputType": "Scalar",
+				"Conditional": "$ret >= 0"
+			}
+			]
+		}
+	\end{minted}
+	\caption{\texttt{F} branches on the user function's result by
+		combining \texttt{fanOut} gadget with \texttt{Conditional}}
+	\label{fig:gadget-examples-branch}
+\end{figure}
+
+In addition to the naming scheme, the IR also provides a set of constructs
+that directly controls dynamic behavior. The complete set of programmable
+constructs are beyond the scope of this paper, but we highlight one
+API---\texttt{Conditional}--- that enables
+branching. Figure~\ref{fig:gadget-examples-branch} shows an example of using
+the \texttt{Conditional} field to control whether to run a pattern based on the
+user function's output (\texttt{\$ret}). Combining \texttt{Conditional} with
+\texttt{fanOut}, we can express branching logic in the control-flow. We can
+	also express \texttt{for} loops and \texttt{fold} patterns (\shadi{i.e., ?}) using recursive function calls and conditionals as the termination
+	condition. \shadi{can we have these in the example figure above?}
+
+We highlight this example because it showcases the extensibility of \name{}'s
+design: Given a small set of gadgets, \name{} can layer on top of them to
+enable more dynamic control-flow logic.
