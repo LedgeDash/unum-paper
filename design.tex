@@ -1,140 +1,12 @@
-% DHL's Design notes:
 
-
-% Motifs:
-
-% gadgets are a set of general algorithms that implement control-flow patterns
-% in a decentralized manner and can execute on constituent functions alongside
-% user code.
-
-% gadgets are platform-independent control-flow patterns that can be implemented
-% efficiently in a decentralized manner.
-
-% Control-flow patterns.
-
-% IR describes control-flow "logic"
-
-
-
-% %%%%% Notes
-
-
-% Graphs:
-
-% A graph that constrasts application \emph{execution} with \name{} and
-% centralized orchestrator. It's ok for the application to be artificial but it
-% should sufficient complex with chain, fan-out and fan-in. The orchestrator
-% figure should show the orchestrator centralizing control flow and driving the
-% execution. The \name{} graph should show functions with gadgets and zoom in,
-% similar to Figure 2(c), to show the runtime wrapper and interactions with the
-% data store. The centralized orhcestrator should have the same color with the
-% gadgets. Different from the current (a), ingress should show gadgets too.
-
-% A graph that show the compilation stage. It's important to show what we gain
-% at compile time: assigning gadgets to nodes in the directed graph.
-
-% Architecture%%%%%%%%%%%%%%%
-
-% no new component. Instead, 
-
-% a set of general algorithms, called ``gadgets'', that  implements control-flow
-% patterns in a decentralized way using basic serverless APIs, 
-
-% Similar to existing systems, \name{} takes the user write workflows in the
-% form of a directed graph. Instead of an centralized orchestrator executing the
-% graph, \name{} ... Figure~\ref{fig:arch:centralized} and \ref{fig:arch} constrasts.
-
-
-
-% Computations are a direct graph.
-
-
-% Describe the abstract machine (the serverless abstraction with async invoke +
-% strongly consistent data store with conditional updates) and here in this
-% section.
-
-% "strongly consistent data store with conditional updates". Is this going to
-% raise eyebrows when we mention S3? Because technically, S3 does not have a
-% conditional update API. We implement it with its object versions feature,
-% which has to be turned on when creating the bucket.
-
-
-
-% Gadgets%%%%%%%%%%%%%%%%%
-
-% Gadgets are the general algorithms that implements control-flow patterns in a
-% decentralized way against a basic serverless abstraction that is universially
-% supported by all serverless providers.
-
-% A set of general algorithms that implements control-flow patterns in a
-% decentralized way using basic serverless APIs.
-
-
-% Different from ad-hoc compositions: 1. use of data store 2.
-% Control flow logic not only on the caller but also on the callee 3. standard,
-% off-the-shelf primitives that's not application specific that developers build
-% from scratch.
-
-
-% Then use the gadget section to describe the algorithm for each pattern.
-
-% State that "\name{} provides four gadgets that map can express a rich variety
-% of workflows efficiently, including a superset of workflows expressible in
-% Step Functions". Keep the example applications for each pattern that's
-% currently in the text to show the usefulness and necessity for each pattern.
-
-% supports all commonly found patterns. In SF, and in DAGs.
-
-% unum IR%%%%%%%%%%%%%
-
-% intermediate representation language that encodes control-flow 
-
-% The IR language primary encodes gadgets but also provides other programmable
-% constructs that enables dynamic behavior at runtime. Have a table of
-% programmable constructs? (Conditional, \$ret, \$0, \$size)
-
-% In pratice the IR is a set of JSON file, one for each edge in the control flow
-% graph transition from a function to the next in the control-flow.
-
-% Each function node has a unique name.
-
-% Scalar, Map, Parallel are pretty straightforward because it dosen't have data
-% dependency on other functions in the workflow.
-
-% Fan-in expresses data dependencies. More flexible than Step Functions because
-% SF only supports dependencies within a state. unum fan-in can specify any
-% function in the workflow.
-
-% Programmable constructs: 
-
-% Conditional: branch, termination condition for a loop, foward condition for a
-% selective set of parallel branches
-
-
-
-% Frontend compiler%%%%%%%%%%%%%%%%
-
-% how to assign gadgets
-
-% Runtime%%%%%%%%%%%%
-
-% XXX: Transparently wraps around user code and interposes on entry and exit -> keep user code unchanged
-
-
-
-% Show the runtime input payload structure
-
-
-% Execution guarantees%%%%%%%%%%%%%%%%%%
-
-% XXX: All unum runtime code needs to be idempotent
 
 \section{System Architecture}\label{sec:architecture}
 
 \begin{figure*}[t]
     \centering
     \begin{subfigure}[t]{0.8\textwidth}
-        \includegraphics[width=\columnwidth]{figures/unum-arch-compile-time.pdf}
+%        \includegraphics[width=\columnwidth]{figures/unum-arch-compile-time.pdf}
+   \includegraphics[width=\columnwidth]{figures/architecture.png}
         \caption{Stateful serverless computations form a directed graph. Nodes
                 are user defined FaaS functions and workflow ``gadgets'' that dictate the
                 communication pattern between user functions.}
@@ -170,55 +42,46 @@
     \label{fig:arch}
 \end{figure*}
 
-\dhl{TODO: Explain the purpose and use of the data store early on in the
-design portion of the paper. Probably also a good idea to motivate the use of
-data store in the background section.}
 
+Similar to other workflow systems~\cite{aws-step-functions, google-workflows,
+	google-cloud-composer, gg-atc}, in \name{} users define their workflows using
+a high-level description language that (directly or indirectly) expresses the
+control-flow in the form of directed graphs  where nodes are serverless
+functions and edges are control-flow transitions between functions. \name{'s} modular and extensible design supports integration with all commonly used high-level languages, e.g., Step functions representing workflows as state machines and Google
+Workflows, Apache Airflow, Dask, representing workflows as DAGs\footnote{Our current implementation of \name{} is based on Step Functions.}.
+%
 
-A key design feature of \name{} is to not introduce new components to the
-basic serverless infrastructure. Instead, \name{} invents a set of general
-algorithms, called ``gadgets'', that implement control-flow patterns in a
-decentralized manner and can execute on constituent functions alongside user
-code. Additionally, \name{} encompasses an intermediate representation
-language that encodes gadgets and describes control-flow logic, a frontend
-compiler that transforms higher-level workflow representations written by
-developers to the intermediate representation, and a runtime library that
-implements the gadgets with platform-specific APIs.
+Different from existing systems where a centralized orchestrator executes
+the control-flow graph, \name{} partitions the control flow logic;  embeds the control flow alongside each individual function; and executes the functions in a distributed manner, with no centralized controller or additional services. Figure~\ref{fig:arch:unum-compile-time} shows the steps involved. First, the  \name{} compiler transforms the high-level workflow into a directed graph representation, e.g., converting the Step function state machines to a directed graph. Using this graph, the compiler outputs an platform agnostic intermediate representation (IR) represented as a set of IR functions, i.e, the user functions with the \name{} config embedded into it. the \name{} config includes the configuration on transition from the current function to the next function(s). Thus, instead of having a global view of the control-flow (in an orchestrator), the control-flow is distributed among functions such that each function just need to know where next to send the output. 
 
-Similar to existing systems~\cite{aws-step-functions, google-workflows,
-google-cloud-composer, gg-atc}, \name{} users define workflows using
-high-level description languages, such as AWS Step Functions, that express the
-control-flow in the form of directed graphs where nodes are serverless
-functions and edges are control-flow transitions between functions. A
-transition from function \texttt{F} to \texttt{G} involves (1). invoking an
-instance of \texttt{G} and (2). passing \texttt{F}'s result to the \texttt{G}
-instance.
-\dhl{Describing the directed graph abstraction helps clarify and set the
-mental model. Should also explain from the directed graph perspective in the
-background:workflow orchestrators section so that this is not the first time
-we say this. State machines (i.e., Step Functions) and DAGs (i.e., Google
-Workflows, Apache Airflow, Dask) all fit into direct graphs.}
-
-But different from existing systems where a centralized orchestrator executes
-control-flow graphs by invoking every function and receiving their results
-(Figure~\ref{fig:arch:centralized}), \name{} transforms this high-level
-description to \name{}'s intermediate representation (IR) and embeds portions
-of the control-flow logic to appropriate functions, \emph{at compile time}
-(Figure~\ref{fig:arch:unum-compile-time}). Control-flow in the IR is encoded
-as ``gadgets''---platform-independent control-flow patterns that can be
-implemented efficiently in a decentralized manner. Finally, developers combine
-their functions with a platform-specific \name{} runtime which implements
-gadgets using platform-specific APIs and datastores.
-
-During execution, the \name{} runtime performs control-flow transitions by
-running its assigned gadget (Figure~\ref{fig:arch:unum-runtime}). The runtime
-transparently interposes on user code entry and exit. On entry, the runtime
-reads data sent by the caller and passes it to user code. On exit, the runtime
-gets user code result and invokes the next function with it. Additionally, the
+Next, the \name{} backend compiler converts the IR functions into \textit{unumized} functions, i.e., platform specific FaaS functions embedded with a \name{} runtime for that platform and the \name{} config. The user then deploys these unumized functions instead of its original functions. Upon execution, based on the \name config, the \name{} runtime  transparently, and in a decentralized manner, transitions data accordingly from one function to the next while also providing support for complex patterns such as fan-in. Additionally, the
 runtime implements a checkpointing mechanism that ensures exactly-once
-semantics.
+semantics (Section \shadi{?}).
 
-\dhl{say more about exactly-once semantics here?}
+This two step process in \name{} with the IR representation, enables portability to different function platforms (e.g., AWS Lambda or Azure Functions), and compatibility to different high-level languages as long as they can be compiled to a directed graph. Our current implementation is based on Step Functions as the API and AWS Lambda as the backend.
+
+
+
+ 
+
+
+\dhl{TODO: Explain the purpose and use of the data store early on in the
+	design portion of the paper. Probably also a good idea to motivate the use of
+	data store in the background section.}
+
+
+
+
+
+%During execution, the \name{} runtime performs control-flow transitions by
+%running its assigned gadget (Figure~\ref{fig:arch:unum-runtime}). The runtime
+%transparently interposes on user code entry and exit. On entry, the runtime
+%reads data sent by the caller and passes it to user code. On exit, the runtime
+%gets user code result and invokes the next function with it. Additionally, the
+%runtime implements a checkpointing mechanism that ensures exactly-once
+%semantics.
+%
+%\dhl{say more about exactly-once semantics here?}
 
 
 \amit{TODO: gadgets are the secret sauce, in particular noticing that fan-in needs to
@@ -230,39 +93,236 @@ fan-in. This is kind of the ``magic'' of the front-end compiler.}
 understand your "move" gadgets mental model and it can work. Let's chat.}
 
 
+%%%%%%%%%%%%%%%%%%
 
-\section{Gadgets}\label{sec:gadgets}
+
+\subsection{\name{} Intermediate Representation}\label{sec:ir}
+The \name{} compiler converts high-level workflow definitions into an intermediate representation (IR). The IR couples each user function with a platform agnostic \name{} config file containing the details on how to transition from that function to the next function(s). Specifically, the \name{} config includes: i. \textit{which} function(s) to call next, ii. \textit{when} to call the next function(s), iii. \textit{what} to send to the next function(s). 
+
+\begin{table}[t!]
+	\centering
+	\begin{tabular}{ |m{8em}| m{13em} | }
+		\hline
+		\texttt{chain(a,b) }& Invokes function \texttt{b} with the output of \texttt{a} \\
+		\hline
+		\texttt{fanOut(a, [b])} & Invokes each element of \texttt{[b]} with the output from \texttt{a} \\
+		\hline
+		\texttt{map(a, b)} & Invokes \texttt{b} once for each element in the vector output of \texttt{a} \\
+		\hline
+		\texttt{fanIn([a], b)} & Invokes \texttt{b} once with the vector of outputs from each of \texttt{[a]} \\
+		\hline
+	\end{tabular}
+	\caption{\name{} workflows express complex interactions using a small set of
+		gadgets. \texttt{a} and \texttt{b} are names that identify specific function
+		instances in the control flow graph.}
+	\label{tab:gadgets}
+\end{table}
+
+
+As described in Table~\ref{tab:gadgets}, \name{} supports four general  control-flow patterns:
+\begin{itemize}
+	\item \textit{chain} connecting two functions. Chaining is a simple but common control-flow pattern, e.g.,  a function (source) processing sensor data followed by another function (destination) adjusting an
+	actuator. 
+	\item \textit{map} \shadi{??}
+	\item \textit{fan out}  e.g.,  an social network application performing
+	several independent functions given a new user post, such as URL shortening
+	and resolving other users mentioned in the post. 
+	\item \textit{fan in}. \shadi{@David: describe pattern in the text. also merge with descriptions in later section. move to here.} 
+\end{itemize}
+ These four patterns  can express a rich variety of workflows
+efficiently, including a superset of workflows expressible in AWS Step
+Functions and all workflows we encountered.  
+
+In practice, the \name{} config of a particular transition pattern is  is a set of static configuration
+files written in JSON. The compiler drives these files, but developers can also directly write these files. 
+There should be one configuration file for each transition and it
+is placed in the source function. During
+execution, the \name{} runtime reads the file and performs control-flow
+transitions to the next function(s) based on the configuration.
+
+
+Figure~\ref{fig:arch2} shows examples for each transition type encoded
+by the \name{}~IR. The \texttt{Name} field identifies the source function, which is also the function where the
+configuration file is placed. The \texttt{Next} field identifies the function
+to which the destination function(s) and the
+\texttt{InputType} field helps define the transition type. The value
+\texttt{Scalar} instructs the runtime to treat user function's output as a
+single entity, and when the \texttt{Next} field contains only one object
+(i.e., not an array), it represents a \texttt{chain} pattern; whereas when the
+\texttt{Next} field is an array, it represents a \texttt{fanOut} pattern.
+\texttt{map} pattern have a special \texttt{Map} value for the
+\texttt{InputType} field as it instructs the runtime to expect and treat the
+output of the user function as an iterable. \shadi{add sentence on fan-in}.
+
+
+
+\shadi{talk about dynamic runtime behavior and how that is encoded somewhere.}
+%The goal of the \name{}~IR is to not only identify which transition pattern the
+%runtime should execute (Figure\shadi{?}) but also contain enough information so that the \name{}
+%runtime knows what to do when encountering dynamic runtime behavior,
+
+
+%\dhl{We give an overview of how the \name{} IR language works in this section, but
+%	the full language features and design rationales are beyond the scope of this
+%	paper.}
+
+
+
+\begin{figure*}[t!]
+	\centering
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\footnotesize
+			]{json}
+			{
+				"Name": "F",
+				"Next": {
+					"Name": "G",
+					"InputType": "Scalar"
+				}
+			}
+		\end{minted}
+		\caption{\texttt{chain} pattern that invokes function \texttt{G} with
+			\texttt{F}'s result}
+		\label{fig:gadget-examples-chain}
+	\end{subfigure}
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\footnotesize
+			]{json}
+			{
+				"Name": "F",
+				"Next": {
+					"Name": "G",
+					"InputType": "Map"
+				}
+			}
+		\end{minted}
+		\caption{\texttt{map} pattern that invokes a parallel instance of
+			\texttt{G} for each element of the vector output of \texttt{F}}
+		\label{fig:gadget-examples-map}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\footnotesize
+			]{json}
+			{
+				"Name": "F",
+				"Next": [
+				{
+					"Name": "G",
+					"InputType": "Scalar"
+				},
+				{
+					"Name": "H",
+					"InputType": "Scalar"
+				}
+				]
+			}
+		\end{minted}
+		\caption{\texttt{fanOut} pattern that invokes function \texttt{G} and
+			\texttt{H} with the result of \texttt{F}}
+		\label{fig:gadget-examples-fanout}
+	\end{subfigure}
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\footnotesize
+			]{json}
+			{
+				"Name": "F",
+				"Next": {
+					"Name": "G",
+					"InputType": {
+						"Fan-in": {
+							"Values": [
+							"F-unumIndex-*"
+							]
+						}
+					}
+				}
+			}
+		\end{minted}
+		\caption{\texttt{fanIn} pattern that invokes function \texttt{G} with
+			the result of all \texttt{F} instances of a \texttt{map}.}
+		\label{fig:gadget-examples-fanin}
+	\end{subfigure}
+	\caption{\name{} System Overview. Serverless computations form a directed
+		graph that encode sequential and data dependencies between functions. Workflow
+		orchestrators drive these graphs by centralizing control flow logic and
+		interposing on all communication between functions. \name{},
+		instead, decentralizes control flow logic among the functions with
+		no need for a separate orchestration system.}
+	\label{fig:arch2}
+\end{figure*}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%
+
+%\section{Gadgets}\label{sec:gadgets}
+
+
+\subsection{\name{'s} transition patterns  \shadi{suggested names?}}
+
 
 A key challenge in decentralizing control-flow is determining where to store
-control-flow state and where to execute transitions. \name{} uses the notion
-of gadgets---a set of general algorithms for control-flow patterns that can be
-implemented efficiently in a decentralized manner. At compile-time,
-\name{} derives the necessary gadgets from a workflow definition written in
-high-level description language and attaches them to the approprite user
-functions. The \name{} runtime that wraps the user function implements the
-gadgets with platform-specific APIs and executes its assigned gadget during
-execution.
-
-Logically, gadgets are treated as a special kind of node in the control-flow
-graph and placed alongside user function nodes. Each gadget is implemented as
-a pair of nodes: an ingress node and an egress node. Every user function in
+control-flow state and how to execute transitions, without a global view of the orchestrator. 
+Logically, each pattern is designed as
+a pair of nodes: an ingress node and an egress node. The egress node is appended to the
+upstream function and the matching ingress node is prepended to the immediate
+downstream function(s).
+Every user function in
 \name{} has exactly one input edge coming from an ingress node and one output
 edge going to an egress node, i.e., the user function is invoked once with a
 single value by an ingress node and outputs its result to a single egress
-node. When placing a gadget in the graph, the egress node is appended to the
-upstream function and the matching ingress node is prepended to the immediate
-downstream node along an existing edge.
+node. 
 
-\name{} provides four gadgets that can express a rich variety of workflows
-efficiently, including a superset of workflows expressible in AWS Step
-Functions. Table~\ref{tab:gadgets} lists the gadgets available in \name{} and
-we explain each in detail in this section.
-
-\name{} gadgets are designed against a basic serverless abstraction that is
-universally supported by current platforms. The algorithms themselves are
-platform-agnostic and use only basic serverless APIs. Specifically, they rely
+The \name{} backend compiler converts the IR representation of functions  to platform specific \name{} runtimes with pairs of ingress/egress nodes (Figure \shadi{??}). The runtime then, based on the transition patterns embeded in \name{} config file, executes the patterns accordingly in each egress/ingress point. In this section we describe what exact execution logic does each pattern map to at the ingress and egress points. We note that \name{} runtime only uses the basic serverless abstractions, universally supported by current platforms, and are platform agnostic.
+Specifically, it relies
 on an asynchronous invocation API for FaaS functions and a strongly consistent
-data store that supports conditional writes.
+data store that supports conditional writes (for fan-in and exactly-once guarantees only). 
+
+ \begin{figure}[t!]
+ 	\centering
+ 	\scalebox{.7}{\includegraphics[width=\columnwidth]{figures/transitions.png}}
+ 	\caption{TODO}
+ 	\label{fig:transition}
+ \end{figure}
+
+\noindent\textbf{Chain}
+The \texttt{chain} pattern connects two
+user functions together by invoking the target with the result of the source.
+As shown in Figure~\ref{fig:transition}, chaining consists of one egress node 
+appended to the source function and one ingress is prepended to the target.
+At runtime, the egress node gets the output of the source user function
+and uses the platform's asynchronous function invocation API to call the
+target function directly from the source. The ingress on the target reads the
+data sent from source and passes it to the target user function. Depending on
+the platform's implementation of asynchronous invoke API, the ingress might
+read the input data from a data store or the received HTTP message.
+
+
+\noindent\textbf{Fan-out}
+The fan-out processes the output of a function in different
+ways in parallel, by 
+invoking vector of functions (branches) each with the output of the same
+source function. The gadget consists of one egress node and many ingress
+nodes (one per branch). Similar to chaining, the egress node runs with the
+source function and it uses the asynchronous invocation API to invoke each
+branch where each ingress node 
+reads the input data sent from the source and passes it to its user function.
+
+\shadi{:::::::::made changes only up to this point:::::::::::}
+
 
 \dhl{"strongly consistent data store with conditional writes". Is this going
 to raise eyebrows when we later mention S3? Because technically, S3 does not
@@ -287,57 +347,9 @@ unclear to me. Running gadgets incur latency and additional Lambda billing.}
 
 
 
-\begin{table}[t!]
-  \centering
-  \begin{tabular}{ |m{8em}| m{13em} | }
-    \hline
-      \texttt{chain(a,b) }& Invokes function \texttt{b} with the output of \texttt{a} \\
-    \hline
-      \texttt{fanOut(a, [b])} & Invokes each element of \texttt{[b]} with the output from \texttt{a} \\
-    \hline
-      \texttt{map(a, b)} & Invokes \texttt{b} once for each element in the vector output of \texttt{a} \\
-    \hline
-      \texttt{fanIn([a], b)} & Invokes \texttt{b} once with the vector of outputs from each of \texttt{[a]} \\
-    \hline
-\end{tabular}
-  \caption{\name{} workflows express complex interactions using a small set of
-  gadgets. \texttt{a} and \texttt{b} are names that identify specific function
-  instances in the control flow graph.}
-  \label{tab:gadgets}
-\end{table}
-
-\dhl{pseudocode for each gadget? or a simple schematics showing the pattern
-graphically?}
-
-\paragraph{Chain}
-Chaining is a simple but common control-flow pattern. For example, an
-application might include a function (the source) that processes input data
-from a sensor followed by another function (the target) that adjusts an
-actuator based on the processed input. The \texttt{chain} gadget connects two
-user functions together by invoking the target with the result of the source.
-It consists of one egress node and one ingress node. The egress node is
-appended to the source function while the ingress is prepended to the target.
-
-At runtime, the egress node runs on the same FaaS function as the source and
-ingress as the target. The egress gets the output of the source user function
-and uses the platform's asynchronous function invocation API to call the
-target function directly from the source. The ingress on the target reads the
-data sent from source and passes it to the target user function. Depending on
-the platform's implementation of asynchronous invoke API, the ingress might
-read the input data from a data store or the received HTTP message.
 
 
-\paragraph{Fan-out}
-Another common interaction processes the output of a function in different
-ways in parallel. For example, an social network application might perform
-several independent functions given a new user post, such as URL shortening
-and resolving other users mentioned in the post. The \texttt{fanOut} gadget
-invokes a vector of functions (branches) each with the output of the same
-source function. The gadget consists of one egress node and many ingress
-nodes. Similar to chaining, the egress node is appended to and runs with the
-source function and it uses the asynchronous invocation API to invoke each
-branch. But in this case, an ingress node is prepended to each branch and
-reads the input data sent from the source and passes it to its user function.
+
 
 \paragraph{Map}
 An application may also perform the same function on multiple outputs of a
@@ -504,139 +516,7 @@ by a fanIn.}
 % store. The fan-in function first reads the branches' results, in order, via the
 % pointers, then pass them as input to the user code.
 
-\section{\name{}~Intermediate Representation}\label{sec:ir}
 
-\begin{figure*}[t!]
-    \centering
-    \begin{subfigure}[t]{\columnwidth}
-    \centering
-        \begin{minted}[
-    frame=single,
-    fontsize=\footnotesize
-  ]{json}
-{
-    "Name": "F",
-    "Next": {
-        "Name": "G",
-        "InputType": "Scalar"
-    }
-}
-    \end{minted}
-        \caption{\texttt{chain} gadget that invokes function \texttt{G} with
-        \texttt{F}'s result}
-        \label{fig:gadget-examples-chain}
-    \end{subfigure}
-    \begin{subfigure}[t]{\columnwidth}
-    \centering
-        \begin{minted}[
-    frame=single,
-    fontsize=\footnotesize
-  ]{json}
-{
-    "Name": "F",
-    "Next": {
-        "Name": "G",
-        "InputType": "Map"
-    }
-}
-        \end{minted}
-        \caption{\texttt{map} gadget that invokes a parallel instance of
-        \texttt{G} for each element of the vector output of \texttt{F}}
-        \label{fig:gadget-examples-map}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{\columnwidth}
-    \centering
-        \begin{minted}[
-    frame=single,
-    fontsize=\footnotesize
-  ]{json}
-{
-    "Name": "F",
-    "Next": [
-        {
-            "Name": "G",
-            "InputType": "Scalar"
-        },
-        {
-            "Name": "H",
-            "InputType": "Scalar"
-        }
-    ]
-}
-        \end{minted}
-        \caption{\texttt{fanOut} gadget that invokes function \texttt{G} and
-        \texttt{H} with the result of \texttt{F}}
-        \label{fig:gadget-examples-fanout}
-    \end{subfigure}
-    \begin{subfigure}[t]{\columnwidth}
-    \centering
-        \begin{minted}[
-    frame=single,
-    fontsize=\footnotesize
-  ]{json}
-{
-    "Name": "F",
-    "Next": {
-        "Name": "G",
-        "InputType": {
-            "Fan-in": {
-                "Values": [
-                    "F-unumIndex-*"
-                ]
-            }
-        }
-    }
-}
-        \end{minted}
-        \caption{\texttt{fanIn} gadget that invokes function \texttt{G} with
-        the result of all \texttt{F} instances of a \texttt{map}.}
-        \label{fig:gadget-examples-fanin}
-    \end{subfigure}
-    \caption{\name{} System Overview. Serverless computations form a directed
-            graph that encode sequential and data dependencies between functions. Workflow
-            orchestrators drive these graphs by centralizing control flow logic and
-            interposing on all communication between functions. \name{},
-            instead, decentralizes control flow logic among the functions with
-            no need for a separate orchestration system.}
-    \label{fig:arch2}
-\end{figure*}
-
-The goal of the \name{}~IR is to not only identify which gadget the \name{}
-runtime should execute but also contain enough information so that the \name{}
-runtime knows what to do when encountering dynamic runtime behavior. To this
-end, we design the \name{}~IR as a language that i. encodes the gadgets, ii.
-defines a naming scheme for runtime function instances in the control-flow
-graph and iii. exposes a set of programmable constructs that layer on top of
-gadgets and enable dynamic runtime behaviors.
-
-In practice, the IR of a particular workflow is a set of static configuration
-files written in JSON. Developers can directly write the configuration file
-for each constituent function in their workflow. Alternatively, they can use
-the frontend compiler that \name{} provides to derive the configurations from
-workflow definition written in a high-level description language (e.g., AWS
-Step Functions). There should be one configuration file for each gadget and it
-is placed in the function to which the gadget's egress node appends. During
-execution, the \name{} runtime reads the file and performs control-flow
-transitions based on the configuration.
-
-\dhl{We give an overview of how the \name{} IR language works in this section, but
-the full language features and design rationales are beyond the scope of this
-paper.}
-
-Figure~\ref{fig:gadget-examples} shows examples for each gadget type encoded
-by the \name{}~IR. The \texttt{Name} field identifies the function that the
-egress node of the gadget is appended to, which is also the function where the
-configuration file is placed. The \texttt{Next} field identifies the function
-to which the ingress node of the gadget is prepended, and the
-\texttt{InputType} field helps define the gadget type. The value
-\texttt{Scalar} instructs the runtime to treat user function's output as a
-single entity, and when the \texttt{Next} field contains only one object
-(i.e., not an array), it encodes a \texttt{chain} gadget; whereas when the
-\texttt{Next} field is an array, it represents a \texttt{fanOut} gadget.
-\texttt{map} gadgets have a special \texttt{Map} value for the
-\texttt{InputType} field as it instructs the runtime to expect and treat the
-output of the user function as an iterable.
 
 \subsection{Naming Scheme}\label{sec:ir:naming}
 
