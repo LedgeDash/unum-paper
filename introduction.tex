@@ -1,87 +1,69 @@
 \section{Introduction}
 
-Serverless computing offers a simple and yet powerful abstraction consisting of
+Serverless computing offers a simple but powerful abstraction consisting of
 stateless compute component (Functions as a Service, or FaaS) and scalable,
 multi-tenant data stores~\cite{berkeley}. Developers build applications using
 task-specific, event-driven ``functions'' without the need to provision or
 manage servers. In turn, serverless platforms have been able to offer high
-burst-scalability and quickly relaim function resources as soon as they are
+burst-scalability and quickly reclaim function resources as soon as they are
 idle. Developers are charged in small compute and storage increments (100s of
 milliseconds and per-stored-object and request, respectively), and platforms
-can make efficient use of hardware resources.\amit{I think we should avoid the
-BaaS acronym. Berkeley used it, but it's confusing. It means
-``Backend-as-a-Service'' and in practice is used to refer to a wide variety of
-non-storage-only services}
+can make efficient use of hardware resources.
 
 Originally, serverless platforms targeted simple applications with one or a few
 functions and simple interaction patters. Recently, though, there has been
 emerging interest in using serverless platforms to build complex applications
 composed of many functions with rich interaction patterns~\cite{excamera,
-pywren, gg-atc, beldi, boki}. Unforunately, building such applications using
+pywren, gg-atc, beldi, boki}. Unfortunately, building such applications using
 basic serverless building blocks is challenging. FaaS invocation semantics
 require applications to handle individual function failures and retries
 gracefully, and driving complex control flows in a decentralized manner is both
 difficult to implement correctly and difficult to express.
-
-\amit{Note from previous version of 2nd paragraph: As the second paragraph,
-this implies that the main thing we're contributing is going to be a
-higher-level interface and execution guarantees. But I think we've moved away
-from that as the key contribution. Instead, I think the thing that these
-workloads call for is ``stateful''ness (needs to be defined still)}
-\dhl{I thought about using the term "statefulness", but decided
-against it because (1). Beldi (OSDI '20) and Boki (SOSP '21) both specify
-"statefulness" as the key differentiator \emph{but their definition is
-different}. In their definition, "statefulness" mainly refers to the behavior
-of individual functions that explicitly persists application data in DynamoDB.
-Specifically, Beldi defines "stateful serverless functions (SSFs)" as
-functions that "maintains their own state (e.g., modify a data structure that
-persists across invocations)" (top of right column on page 1). It's a
-definition that works well for their problem because they want consistent
-write results in face of faults and retries (2). Not all our gadgets are
-straight-forwardly stateful. Chaining for example doesn't "appear" stateful,
-and \name{} runtime doesn't explicitly manage states for chaining. The only
-pattern that requires \name{} to explicit manage states is fan-in.}
 
 To meet this need, several workflow systems have emerged offering higher-level
 programming interfaces to express function interactions, a rich set of
 composition primitives that support chaining, branching, fan-out and fan-in, and
 exactly-once semantics for workflow execution~\cite{excamera, gg-atc,
 aws-step-functions, google-cloud-composer, google-workflows, durable-functions}.
-These systems require the addition of an orchestrator to existing serverless
+These systems require the addition of an orchestrater to existing serverless
 infrastructure: yet-another scalable, multi-tenant, centralized service.
 
-An orchestrator is a stateful hosted service that centralizes states and
-control-flow. For each workflow transition, an orchestrator instance interprets
-the workflow definition and drives execution by invoking constituent functions,
-waiting for their results and passing those results to downstream functions. All
-function invocations are initiated by the orchestrator and all workflow states
-(e.g., function results) flow through the orchestrator.
+An orchestrater is a stateful hosted service that centralizes execution states
+and control-flow operations. For each workflow transition in a serverless
+application, the orchestrater waits for currently running functions to complete,
+determines what to do with their results, and which function or functions to run
+next. All function invocations are initiated by the orchestrater and all
+workflow states (e.g., function results) flow through the orchestrater.
 
-While a solution that meets application requirements, orchestrators break out
-of the serverless abstraction, neglecting and even compromising key serverless
-benefits. First, the existing serverless infrastructure already provides
-highly performant and scalable compute and storage components. Adding
-orchestrators is repeating the expensive process of building and maintaining a
-hosted service, which usually requires a dedicated engineering team.
-Furthermore, application end-to-end performance now also depends on the
-orchestrator. A slow orchestrator can become a bottleneck and nullify the fast
-autoscale advantage of serverless. Lastly, orchestrators expose specialized
-proprietary APIs. Applications written for an orchestrator have to work with
-the propensities and limitations of the APIs and is locked in to a particular
-provider. \dhl{The drawbacks of orchestrators. Ideas are here. But need better
-wording.}
+Such centralized orchestraters enable new classes of serverless applications,
+but requires an additional multi-tenant service to be maintained and operated
+and adds additional contraints on performance and scalability.  While basic
+serverless build blocks are the result of decades of research and engineering to
+achieve performant and scalable compute and storage infrastructure,
+orchestrators provide perform specialized functionality that must solve
+scalability and performance problems independently. Applications may suffer, for
+example, from scalability bottlenecks in the orchestrater even if storage and
+FaaS platforms can support much higher burst-scalability. Moreover, an
+orchestrater represents yet-another system for which platform providers must fix
+bugs, maintain high availability, and provision resources.
 
-In this paper, we propose \name{}, a new serverless workflow system design
-that preserves all the advantages of orchestrators but execute in a purely
-serverless environment, without adding any supplemental components to current
-infrastructures. We show that by building on top of the existing serverless
-components that are already highly performant and scalable, \name{} removes
-the expensive process of building and maintaining a separate hosted service
-for serverless providers, significantly reduces costs by up to 32.8x for
-serverless users, and improves application end-to-end latency by up to 4.5x,
-especially applications with high degrees of parallelism.
+In this paper, we propose \name{}, a decentralized serverless workflow system
+that runs in-situ with user defined FaaS functions on existing, minimal,
+serverless infrastructure. \name{} supports the same class of applications as
+centralized orchestraters, has similar or better performance, and can achieve
+better scalability than some widely used centralized orchestraters. Compared to
+Step Functions, a representative set of applications cost up to 32.8x less, and
+run up to 4.5x faster using \name{}.
 
-\dhl{Design insights, highlights and overview}
+Importantly, \name{}'s decentralization does not sacrifice properties important
+to complex serverless applications. It can provide the same set of execution
+guarantees as centralized orchestraters. Specifically, \name{} guarantees
+exactly-once execution semantics even if an application's constituent function
+fails and is retried or is otherwise run multiple times by the FaaS system.
+Even if some constituent functions execute multiple times, the final application
+states appear as if all functions executed once.
+
+%\dhl{Design insights, highlights and overview}
 
 % \name{} uses a two-stage compiler that tackles the complexity of orchestration
 % at compile-time and removes the need to use hosted orchestrator services for
@@ -109,15 +91,6 @@ especially applications with high degrees of parallelism.
 % functions. Developer can still write functions exactly the same way as if they
 % are individual functions, and do not need to import any additional libraries
 % in order to use \name{}.
-
-\name{} provides a set of execution guarantees that serverless workflows care
-about. Specifically, \name{} ensures at-least-once execution on constituent
-function, which guarantees that workflow execution does not hang
-mid-execution. If a workflow execution crashes, \name{} automatically retries
-the function where the crash happens without restarting the worklfow from the
-beginning. Furthermore, \name{} provides exactly-once semantics such that even
-if a function executes multiple times, the final states appear as if it
-executes once.
 
 % We present and evaluate an implementation of \name{} that can compile Step
 % Functions state machines and execute them purely as Lambda functions using
