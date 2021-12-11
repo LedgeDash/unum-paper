@@ -190,12 +190,12 @@ not generate fine-grained enough logs for a detailed breakdown. Overall,
 of reduced number of network communications mentioned in the last section.
 
 While the latency improvement is marginal, especially for workflows whose
-functions perform real and expensive computations, \name{}'s latency breakdown shows great
-potential for automatic future improvements as serverless gets faster. Over
-97.5\% of \name{}'s runtime overhead comes from APIs calls to the underlying
-serverless systems, i.e., Lambda invocation, GetItem and PutItem calls to
-DynamoDB. A faster NoSQL database or FaaS system will automatically reduce
-bulk of \name{}'s latency without any modification to \name{} itself.
+functions perform real and expensive computations, \name{}'s latency breakdown
+shows great potential for automatic future improvements as serverless gets
+faster. Over 97.5\% of \name{}'s runtime overhead comes from APIs calls to the
+underlying serverless systems, i.e., Lambda invocation, GetItem and PutItem
+calls to DynamoDB. A faster NoSQL database or FaaS system will automatically
+reduce bulk of \name{}'s latency without any modification to \name{} itself.
 
 
 \subsubsection{Fan-out and fan-in performance}\label{sec:eval:fan-out}
@@ -243,76 +243,76 @@ other hand, \name{} can leverage Lambda's fast autoscale capability without
 imposing any additional restrictions because we introduce no new services and
 build entirely on top of the existing serverless components.
 
-\subsubsection{Cost comparison}
+% \subsubsection{Cost comparison}
 
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/TotalCost.pdf}
-    \caption{Total costs comparison of 1 million state transitions between
-    Step Functions and \name{}. Computation assumes Lambda size of 3GB. \shadi{colors are hard to read}}
-    \label{fig:total-costs-single}
-\end{figure}
+% \begin{figure}[t!]
+%     \centering
+%     \includegraphics[width=\columnwidth]{figures/TotalCost.pdf}
+%     \caption{Total costs comparison of 1 million state transitions between
+%     Step Functions and \name{}. Computation assumes Lambda size of 3GB. \shadi{colors are hard to read}}
+%     \label{fig:total-costs-single}
+% \end{figure}
 
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/TotalMapCost.pdf}
-    \caption{Total costs comparison of fan-out and fan-in between Step
-    Functions and \name{}. Computation assumes Lambda size of 3GB and 1KB data
-    size for function outputs and checkpoints.}
-    \label{fig:total-costs-map}
-\end{figure}
+% \begin{figure}[t!]
+%     \centering
+%     \includegraphics[width=\columnwidth]{figures/TotalMapCost.pdf}
+%     \caption{Total costs comparison of fan-out and fan-in between Step
+%     Functions and \name{}. Computation assumes Lambda size of 3GB and 1KB data
+%     size for function outputs and checkpoints.}
+%     \label{fig:total-costs-map}
+% \end{figure}
 
-In this section, we break down the cost of running workflows with \name{} and
-compare with that of Step Functions. We discuss the costs for a single transition,
-chaining and fan-out.
+% In this section, we break down the cost of running workflows with \name{} and
+% compare with that of Step Functions. We discuss the costs for a single transition,
+% chaining and fan-out.
 
-Costs numbers are calculated based on AWS pricing for \texttt{us-west-1}
-region. We do not "measure" the cost of running workflows because AWS does not
-provide real-time billing data. We scale costs numbers by 1 million to ease
-reading.
+% Costs numbers are calculated based on AWS pricing for \texttt{us-west-1}
+% region. We do not "measure" the cost of running workflows because AWS does not
+% provide real-time billing data. We scale costs numbers by 1 million to ease
+% reading.
 
-Step Functions charges based on the number of state
-transitions~\cite{aws-step-functions-pricing}. Each state transition is charged
-a fixed rate of \$27.9 $ \times 10^{-6}$.
+% Step Functions charges based on the number of state
+% transitions~\cite{aws-step-functions-pricing}. Each state transition is charged
+% a fixed rate of \$27.9 $ \times 10^{-6}$.
 
-There are two parts to \name{}'s costs: (1). additional Lambda duration
-billing for running the \name{} runtime, and (2). data store reads and writes.
+% There are two parts to \name{}'s costs: (1). additional Lambda duration
+% billing for running the \name{} runtime, and (2). data store reads and writes.
 
-We do not count the storage costs in the intermediary data store because after
-a workflow execution, checkpoints can be immediately deleted or moved to
-cheaper storage by the user.
+% We do not count the storage costs in the intermediary data store because after
+% a workflow execution, checkpoints can be immediately deleted or moved to
+% cheaper storage by the user.
 
-Figure~\ref{fig:total-costs-single} shows the total cost of transitions for
-function data size varying between 0-255KB. The computation assumes Lambda
-memory size of 3GB. We can see that the additional Lambda duration costs from
-running \name{} runtime is a small fraction when compared with the costs of
-DynamoDB writes. \shadi{how is the figure showing this? how do you translate lambda duration to cost in the figure? this figure is hard to understand. }
-In fact, even at 255KB, the additional Lambda
-duration costs is only abour \$10. If using the smallest 128MB lambdas \shadi{(instead of 3GB)}, the
-costs diminishes to merely \$0.46.
+% Figure~\ref{fig:total-costs-single} shows the total cost of transitions for
+% function data size varying between 0-255KB. The computation assumes Lambda
+% memory size of 3GB. We can see that the additional Lambda duration costs from
+% running \name{} runtime is a small fraction when compared with the costs of
+% DynamoDB writes. \shadi{how is the figure showing this? how do you translate lambda duration to cost in the figure? this figure is hard to understand. }
+% In fact, even at 255KB, the additional Lambda
+% duration costs is only abour \$10. If using the smallest 128MB lambdas \shadi{(instead of 3GB)}, the
+% costs diminishes to merely \$0.46.
 
-DynamoDB writes dominates the costs in \name{} because the on-demand mode
-charges only not on the number of writes but also on the amount of data
-written. For 1KB of data, DynamoDB charges $1.3942 \times 10^{-6}$ for a write
-and $0.279 \times 10^{-6}$ for a read. Because checkpoint reads do not return
-any data when there are no faults, the cost of checkpoint reads does not
-increase with the data size and stays merely \$0.279 for the computation in
-Figure~\ref{fig:total-costs-single}.
+% DynamoDB writes dominates the costs in \name{} because the on-demand mode
+% charges only not on the number of writes but also on the amount of data
+% written. For 1KB of data, DynamoDB charges $1.3942 \times 10^{-6}$ for a write
+% and $0.279 \times 10^{-6}$ for a read. Because checkpoint reads do not return
+% any data when there are no faults, the cost of checkpoint reads does not
+% increase with the data size and stays merely \$0.279 for the computation in
+% Figure~\ref{fig:total-costs-single}.
 
-Even though the simulation in Figure~\ref{fig:total-costs-single} shows the
-costs of \name{} outpacing that of Step Functions at larger data sizes, our
-macrobenchmark results demonstrate that functions in real-world serverless
-workflows do not output large amount of data. In fact, workflows tend to use
-their own storage and manage application data manually. Checkpoints in the
-\name{} intermediary data store are normally under 1KB. \shadi{currently, the graph look very much not in favor of Unum. it seems like a big part of the time, it just works worse. If our argument is that usually data sizes are small, do we have to show such a big range? maybe use a log scale so at least we can focus on the important part of the range?}
+% Even though the simulation in Figure~\ref{fig:total-costs-single} shows the
+% costs of \name{} outpacing that of Step Functions at larger data sizes, our
+% macrobenchmark results demonstrate that functions in real-world serverless
+% workflows do not output large amount of data. In fact, workflows tend to use
+% their own storage and manage application data manually. Checkpoints in the
+% \name{} intermediary data store are normally under 1KB. 
 
-Figure~\ref{fig:total-costs-map} shows the total costs of fan-out and fan-in
-when function checkpoints are under 1KB. In addition to the costs discussed
-for a single transition, the entry function performing the fan-out incurs
-higher Lambda duration costs for invoking each fan-out function. The fan-in
-function at the end also causes extra costs because it reads the checkpoints
-of all fan-out branches. However, the total costs of this microbenchmark is
-more than 3.2x lower with \name{} than Step Functions.
+% Figure~\ref{fig:total-costs-map} shows the total costs of fan-out and fan-in
+% when function checkpoints are under 1KB. In addition to the costs discussed
+% for a single transition, the entry function performing the fan-out incurs
+% higher Lambda duration costs for invoking each fan-out function. The fan-in
+% function at the end also causes extra costs because it reads the checkpoints
+% of all fan-out branches. However, the total costs of this microbenchmark is
+% more than 3.2x lower with \name{} than Step Functions.
 
 % \begin{itemize}
 
