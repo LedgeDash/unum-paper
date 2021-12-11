@@ -8,8 +8,7 @@
 %        \includegraphics[width=\columnwidth]{figures/unum-arch-compile-time.pdf}
    \includegraphics[width=\columnwidth]{figures/architecture.png}
         \caption{Stateful serverless computations form a directed graph. Nodes
-                are user defined FaaS functions and workflow ``gadgets'' that dictate the
-                communication pattern between user functions.}
+                are user defined FaaS functions and ingress and egress ``gadgets'' that perform the necessary data movement, synchronization, and checkpointing between user functions.}
         \label{fig:arch:unum-compile-time}
         % unum injects gadgets to functions at compile time. But more
         % specifically, unum injects an encoding of gadgets at compile time.
@@ -26,11 +25,10 @@
     \hfill
     \begin{subfigure}[b]{\columnwidth}
     \centering
-        \includegraphics[width=0.5\columnwidth]{figures/unum-arch-runtime.pdf}
-        \caption{\name{} decentralizes controller logic by running local state
-                 transitions alongside Faas functions inside the \name{} runtime
-                library. There is no centralized controller, instead \name{} relies on existing
-                serverless datastores such as DynamoDB or Cosmos DB.}
+        \includegraphics[width=.7\columnwidth]{figures/unum-arch-runtime.pdf}
+        \caption{At runtime, all \name{} control logic is decentralized and runs within the Faas 
+                 functions executed on an unmodified serverless platform. For synchronization and checkpointing, \name{} relies exclusively on a
+                standard datastore of choice, such as DynamoDB or Cosmos DB.}
         \label{fig:arch:unum-runtime}
     \end{subfigure}
     \caption{\name{} System Overview. Serverless computations form a directed

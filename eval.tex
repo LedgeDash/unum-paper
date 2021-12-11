@@ -1,34 +1,26 @@
-
 \section{Evaluation}\label{sec:eval}
 
-We evaluate \name{} along 3 metrics: (1). cost, (2). latency, and (3).
-expressiveness, to answer the following questions:
+We evaluate \name{}'s decentralized design and compare against a
+state-of-the-art production workflow orchestrator---AWS Step Functions---on
+latency and costs of running applications. Specifically, we ask the following
+questions:
 
 \begin{enumerate}
 
-    \item What is the cost of running applications on \name{} and how does it
-    compare to existing serverless workflow systems? Specifically, how much
-    additional costs does the \name{} runtime incur in Lambda duration
-    billing? And how much does it cost to write and read checkpoints to and
-    from the intermediary data store?
+    \item Given the same application, i.e., the same user functions and the
+    same workflow definition written as Step Functions, what is the end-to-end
+    latency of running the application with \name{} after compiling it into
+    \textit{unumized} functions and how does it compare with running it
+    directly with Step Functions?
 
-    \item What is the latency performance of representative applications on
-    \name{}? And how does it compare to existing serverless workflow systems?
+    \item Given the same application, what is the cost of running it with
+    \name{} vs on Step Functions?
 
-    \item How expressive is the \name{} IR? Can one build complex, real-world
-    applications with \name{}? \shadi{how are you going to test this? maybe this can be a discussion in the design/implementation. }
+    \item How much additional costs does the \name{} runtime incur in Lambda
+    duration billing? And how much does it cost to write and read checkpoints
+    to and from the intermediary data store?
 
 \end{enumerate}
-
-
-We use a suite of micro- and macro-benchmarks. The micro-benchmarks target the
-basic operations of \name{} (e.g., invoking a continuation, checkpointing,
-etc.) and building-block orchestration patterns (e.g., chaining, fan-out and
-fan-in) to understand \name{}'s performance and cost characteristics.
-
-The macro-benchmarks consists of 4 real-world applications, taken from
-serverless repositories and prior research work, and assesses \name{}'s
-expressiveness and end-to-end performance and costs.
 
 % We show that 
 
@@ -61,75 +53,151 @@ expressiveness and end-to-end performance and costs.
 
 \subsection{Experimental setup}
 
+We use a set of microbenchmarks and 4 real-world applications in the
+evaluation. The micro-benchmarks target basic orchestration patterns such as
+chaining (\S\ref{sec:eval:chain}), fan-out and fan-in
+(\S\ref{sec:eval:fan-out}), to gain insights into \name{}'s costs and latency
+characteristics. We take the applications from serverless repositories and
+prior research work, that encompass a variety of orchestration patterns, to
+assess \name{}'s end-to-end performance and costs in real-world settings.
+
 We run all experiments on AWS, region \texttt{us-west-1} and costs numbers
 reflect \texttt{us-west-1} pricing. We configure lambdas to 128MB memory size
 unless otherwise specified and use on-demand capacity mode for DynamoDB. To
 avoid function cold starts, we pre-warm functions by running the workflow a
-few dozen times before collecting measurement.
+few dozen times before collecting data.
 
 % S3 buckets all have Versioning turned on.
 
 We compare against Step Functions as the baseline. All applications in the
-evaluation are written as Step Functions state machines and \name{} versions
-are compiled from the Step Functions definitions, with the only exception of
+evaluation are written as Step Functions state machines. For the Step
+Functions experiments, we run the workflow definitions directly on AWS. For
+the \name{} experiments, we first compile the Step Functions state machines to
+unumized functions and then execute them as lambdas. The sole exception is
 ExCamera due to limitations of the AWS State Language which we discuss in
-\S~\ref{sec:eval-excamera}.
+\S~\ref{sec:eval:excamera}.
 
-% We compare against Step Functions' \emph{Standard} Workflows as the baseline. 
-
-
-All Step Functions workflows are executed as \emph{Standard}
-workflows~\cite{aws-step-functions-standard-vs-express}. Similar to \name{},
-the Standard workflows persist execution states on every state transition
-(i.e., completing one function and starting the next function), and always
-return exactly one response for one workflow
+Step Functions experiments are executed using the \emph{Standard}
+version~\cite{aws-step-functions-standard-vs-express}. Similar to \name{}, the
+Standard workflows persist execution states on every state transition (i.e.,
+completing one function and starting the next function), and always return
+exactly one response for one workflow
 invocation~\cite{aws-step-functions-exec-gntee}.
 
-We do not consider Step Functions' Express Workflows in our comparison because
-of its weaker execution guarantee, namely the same invocation could result in
-multiple and potentially diverging results if any part of the workflow logic
-is nonidempotent~\cite{aws-step-functions-exec-gntee}.
+% We do not consider Step Functions' Express Workflows in our comparison because
+% of its weaker execution guarantee, namely the same invocation could result in
+% multiple and potentially diverging results if any part of the workflow logic
+% is nonidempotent~\cite{aws-step-functions-exec-gntee}.
 
-Note that even though Step Functions claims that the Standard Workflows
-provides "exactly-once workflow
-execution"~\cite{aws-step-functions-exec-gntee}, it is not clear whether it
-implies exactly-once execution for component functions of the workflows. Our
-interpretation is that the internal states of a standard workflow will appear
-to execute exactly once, but component functions might not run exactly-once
-due to failures and retries, which is identical to \name{}. \shadi{this paragraph is a bit confusing... }
+% Note that even though Step Functions claims that the Standard Workflows
+% provides "exactly-once workflow
+% execution"~\cite{aws-step-functions-exec-gntee}, it is not clear whether it
+% implies exactly-once execution for component functions of the workflows. Our
+% interpretation is that the internal states of a standard workflow will appear
+% to execute exactly once, but component functions might not run exactly-once
+% due to failures and retries, which is identical to \name{}. \shadi{this
+% paragraph is a bit confusing... }
 
 \subsection{Microbenchmarks}
 
-% \begin{figure}[t!]
-%     \centering
-%     \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatency.pdf}
-%     % \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNCosts.pdf}
-%     \caption{Total latency for a transition}
-%     % \caption{Total latency for a single state transition. We use a
-%     % chain of two functions (\texttt{F->G}) that simply return their input.
-%     % \texttt{data size} is the output data size of \texttt{F}, which in turn is
-%     % the amount of data \texttt{F} writes to checkpoint and the input data size
-%     % of \texttt{G}.}
-%     \label{fig:totallatency}
-% \end{figure}
 
-% \begin{figure}[t!]
-%     \centering
-%     \includegraphics[width=\columnwidth]{figures/OpLatency.pdf}
-%     \caption{Latency of the Lambda \texttt{invoke} API for triggering a single
-%     function, the DynamoDB \texttt{GetItem} API for reading a checkpoint and
-%     the DynamoDB \texttt{PutItem} API for writing a checkpoint}
-%     \label{fig:oplatency}
-% \end{figure}
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
+    \caption{End-to-end latency of chaining N functions. All constituent
+    functions in the experiment only run for 1-2ms, so the results mostly
+    reflect the latency of the workflow systems. \name{} is marginally
+    (11-28\%) faster than Step Functions on average. The results show that
+    \name{} is basically as fast in the most fundamental orchestration
+    primitive of transitioning from one function to the next.}
+    \label{fig:chainmicrolatency}
+\end{figure}
 
-% \begin{figure}[t!]
-%     \centering
-%     \includegraphics[width=\columnwidth]{figures/OpLatency-pct.pdf}
-%     \caption{Latency breakdown of the \name{} runtime. The majority of the
-%     latency comes from API calls to underlying services: the Lambda
-%     \texttt{invoke}, data store read and write.}
-%     \label{fig:oplatency-pct}
-% \end{figure}
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
+    \caption{End-to-end latency of parallel fan-out and fan-in with varying
+    degrees of parallelism. All constituent functions in the experiment only
+    run for 1-2ms, so the results mostly reflect the latency of the workflow
+    systems. \name{} is around 100-200ms slower at lower degrees of
+    parallelism (2-16 parallel branches), but starts to outperform Step
+    Functions (2.37x faster) at even moderate parallelism level of 32 parallel
+    branches. \name{}'s advantage widens as the the degress of parallelism
+    increases, and is up to 4.58x at 512 parallel branches.}
+    \label{fig:mapmicrolatency}
+\end{figure}
+
+\subsubsection{Chaining performance}\label{sec:eval:chain}
+
+In this section, we discuss how \name{} performs on executing a series of step
+in sequence, using the basic \texttt{chain} pattern, and compares with Step
+Functions. We measure the end-to-end latency of executing a chain of functions
+with varying chain length (2 to 10 functions). We want the end-to-end latency
+to maximally reflects the performance of the workflow system, and not the
+latency of user code. Therefore, we use a constituent function that simply
+returns its input without any computations to keep the user code runtime
+intentionally short (less than 2ms).
+
+Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
+Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
+11-28\% faster in chaining than Step Functions. The slighly shorter latency is
+likely because a transition in \name{} from one function to the next involves
+a single network communication to Lambda when the source function calls the
+target function asynchronously. On the other hand, in a centralized
+orchestrator, the same transition first requires a network communication from
+the source function to the orchestrator to send back the function output and
+then an invocation from the orchestrator to Lambda. \name{} reduces the number
+of network communications because control-flow states and logic are
+decentralized to constituent functions and not managed by a centralized
+orchestrator.
+
+\subsubsection{Single Transition Performance}
+
+Using the same experiment from the last section, we further breakdown the
+latency for a single transition from one function to the next.
+
+\subsubsection{Fan-out and fan-in performance}\label{sec:eval:fan-out}
+
+Next, we evaluate another critical orchestration primitive: fan-out and
+fan-in. Quickly creating parallel instances is an important operation for
+serverless because many applications migrate to serverless for its faster
+scalability.
+
+Step Functions has two state types, \texttt{Map} and \texttt{Parallel}, for creating
+parallel branches. \name{} supports both. This microbenchmark uses the
+\texttt{Map} state because it allows easy control on the number of parallel
+branches.
+
+Similarly, we use a function that simply returns its input without any
+computations in this microbenchmark to minimize the runtime of user code so
+that the end-to-end latency maximally reflects the performance of the workflow
+system. \shadi{do we have any benchmarks with growing amount of computation in the function itself?  or  a few representative datapoints.}
+
+Figure~\ref{fig:mapmicrolatency} shows the end-to-end latency (logscale) of
+fan-out and fan-in at varying levels of parallelism. At lower level of
+parallelism (2-16 parallel branches), \name{} is around 100-200ms slower than
+Step Functions. \shadi{what \% is this?} \name{} starts to outperform Step Functions at even moderate parallelism level of 32
+parallel branches (2.37x) and up to 4.58x at 512 parallel branches. \shadi{is it common to have >32 parallelism?}
+
+As we do not have direct access to Step Functions's backend, it is difficult to
+understand why Step Functions's performance becomes worse at higher parallelism. One
+possible cause of higher latency is throttlng of concurrent branch creations.
+Step Functions documentation states that it might pause creating branches when the
+fan-out size exceeds 40~\cite{aws-step-functions-map-state}.
+
+Our result is not arguing that orchestrator-based workflow systems
+fundamentally scales worse than \name{}. Although Step Functions does not
+elaborate on the reason for throttling, there is little reason to believe that
+the maximum allowable concurrency must be capped around 40 for parallel
+workloads.
+
+However, this result does demonstrate an important downside of relying on
+supplemental services to support serverless workflows. Any services added must
+also perform well compared with the highly scalable FaaS engine, otherwise
+application developers have to work with the restrictions that the services
+impose. \name{} avoids the difficulty of building and maintaining hosted
+orchestrators and directly leverages the scalability of Lambda to achieve
+better parallel performance.
 
 \begin{figure}[t!]
     \centering
@@ -147,10 +215,6 @@ due to failures and retries, which is identical to \name{}. \shadi{this paragrap
     automatically improve without any modification to \name{} itself.}
     \label{fig:totallatency}
 \end{figure}
-
-
-% \paragraph{How much additional latency does unum incur? How much does that
-% translate to costs?}
 
 \subsubsection{Single transition performance}
 
@@ -201,91 +265,6 @@ and data stores. \name{} runtime code only incurs less than 2.5\% of the total
 overhead. This means the bulk of \name{}'s performance will automatically
 improve with the underlying platform (e.g., a faster Lambda or data store)
 without any modification to \name{} itself.
-
-\shadi{GENERAL COMMENT: the writing of the eval (and some other sections) is very verbose. we should do another pass and shrink it.}
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
-    \caption{End-to-end latency of chaining N functions. All constituent
-    functions in the experiment only run for 1-2ms, so the results mostly
-    reflect the latency of the workflow systems. \name{} is marginally
-    (11-28\%) faster than Step Functions on average. The results show that
-    \name{} is basically as fast in the most fundamental orchestration
-    primitive of transitioning from one function to the next.}
-    \label{fig:chainmicrolatency}
-\end{figure}
-
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
-    \caption{End-to-end latency of parallel fan-out and fan-in with varying
-    degrees of parallelism. All constituent functions in the experiment only
-    run for 1-2ms, so the results mostly reflect the latency of the workflow
-    systems. \name{} is around 100-200ms slower at lower degrees of
-    parallelism (2-16 parallel branches), but starts to outperform Step
-    Functions (2.37x faster) at even moderate parallelism level of 32 parallel
-    branches. \name{}'s advantage widens as the the degress of parallelism
-    increases, and is up to 4.58x at 512 parallel branches.}
-    \label{fig:mapmicrolatency}
-\end{figure}
-
-\subsubsection{Chaining performance}
-\shadi{this section and previous one can be merged into one.}
-In this section, we discuss how \name{} performs on a basic orchestration
-pattern: chaining. Similarly, we use a function that simply returns its input
-without any computations in this microbenchmark to minimize the runtime of
-user code so that the end-to-end latency maximally reflects the performance of
-the workflow system. The workflow consists of a sequential chain of the
-function. We experiment with chains of varying length between 2 and 10.
-
-Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
-Functions and \name{} with DynamoDB for input data size of 1KB. We also run
-the same microbenchmark with 5KB and 50KB input size and the results are
-similar. Overall, \name{} is around 11-28\% faster in chaining than Step
-Functions.
-
-\subsubsection{Fan-out and fan-in performance}\label{sec:eval-fan-out}
-
-Next, we evaluate another critical orchestration primitive: fan-out and
-fan-in. Quickly creating parallel instances is an important operation for
-serverless because many applications migrate to serverless for its faster
-scalability.
-
-Step Functions has two state types, \texttt{Map} and \texttt{Parallel}, for creating
-parallel branches. \name{} supports both. This microbenchmark uses the
-\texttt{Map} state because it allows easy control on the number of parallel
-branches.
-
-Similarly, we use a function that simply returns its input without any
-computations in this microbenchmark to minimize the runtime of user code so
-that the end-to-end latency maximally reflects the performance of the workflow
-system. \shadi{do we have any benchmarks with growing amount of computation in the function itself?  or  a few representative datapoints.}
-
-Figure~\ref{fig:mapmicrolatency} shows the end-to-end latency (logscale) of
-fan-out and fan-in at varying levels of parallelism. At lower level of
-parallelism (2-16 parallel branches), \name{} is around 100-200ms slower than
-Step Functions. \shadi{what \% is this?} \name{} starts to outperform Step Functions at even moderate parallelism level of 32
-parallel branches (2.37x) and up to 4.58x at 512 parallel branches. \shadi{is it common to have >32 parallelism?}
-
-As we do not have direct access to Step Functions's backend, it is difficult to
-understand why Step Functions's performance becomes worse at higher parallelism. One
-possible cause of higher latency is throttlng of concurrent branch creations.
-Step Functions documentation states that it might pause creating branches when the
-fan-out size exceeds 40~\cite{aws-step-functions-map-state}.
-
-Our result is not arguing that orchestrator-based workflow systems
-fundamentally scales worse than \name{}. Although Step Functions does not
-elaborate on the reason for throttling, there is little reason to believe that
-the maximum allowable concurrency must be capped around 40 for parallel
-workloads.
-
-However, this result does demonstrate an important downside of relying on
-supplemental services to support serverless workflows. Any services added must
-also perform well compared with the highly scalable FaaS engine, otherwise
-application developers have to work with the restrictions that the services
-impose. \name{} avoids the difficulty of building and maintaining hosted
-orchestrators and directly leverages the scalability of Lambda to achieve
-better parallel performance.
 
 \subsubsection{Cost comparison}
 
@@ -387,8 +366,7 @@ more than 3.2x lower with \name{} than Step Functions.
 
 
 
-\subsection{Macrobenchmarks}
-\shadi{should we have the real-world experiments first, and then the benchmarks? btw, I would call them "real-world" apps instead of macrobenchmarks. }
+\subsection{Real-World Applications}
 
 % \begin{table}[]
 % \begin{tabular}{llllll}
