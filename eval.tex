@@ -186,11 +186,11 @@ Figure~\ref{fig:single-transition-latency-breakdown} shows the single transition
 latency and its breakdown for \name{}. As a baseline, we also measure the same
 latency of a state transition in Step Functions. However, Step Functions does
 not generate fine-grained enough logs for a detailed breakdown. Overall,
-\name{} is xxxms or \% faster than Step Functions, likely for the same reason
+\name{} is up to 56ms faster than Step Functions, likely for the same reason
 of reduced number of network communications mentioned in the last section.
 
 While the latency improvement is marginal, especially for workflows whose
-functions perform long computations, \name{}'s latency breakdown shows great
+functions perform real and expensive computations, \name{}'s latency breakdown shows great
 potential for automatic future improvements as serverless gets faster. Over
 97.5\% of \name{}'s runtime overhead comes from APIs calls to the underlying
 serverless systems, i.e., Lambda invocation, GetItem and PutItem calls to
