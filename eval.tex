@@ -129,32 +129,74 @@ invocation~\cite{aws-step-functions-exec-gntee}.
 
 \subsubsection{Chaining performance}\label{sec:eval:chain}
 
-In this section, we discuss how \name{} performs on executing a series of step
-in sequence, using the basic \texttt{chain} pattern, and compares with Step
-Functions. We measure the end-to-end latency of executing a chain of functions
-with varying chain length (2 to 10 functions). We want the end-to-end latency
-to maximally reflects the performance of the workflow system, and not the
-latency of user code. Therefore, we use a constituent function that simply
-returns its input without any computations to keep the user code runtime
-intentionally short (less than 2ms).
+In this section, we evaluate how \name{} performs on executing a series of
+step in sequence, using the basic \texttt{chain} pattern, and compares with
+Step Functions. We measure the end-to-end latency of executing a chain of
+functions with varying chain length (2 to 10 functions). We want the
+end-to-end latency to maximally reflects the performance of the workflow
+system, and not the latency of user code. Therefore, we use a constituent
+function that simply returns its input without any computations to keep the
+user code runtime intentionally short (less than 2ms).
 
 Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
 Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
 11-28\% faster in chaining than Step Functions. The slighly shorter latency is
 likely because a transition in \name{} from one function to the next involves
 a single network communication to Lambda when the source function calls the
-target function asynchronously. On the other hand, in a centralized
-orchestrator, the same transition first requires a network communication from
-the source function to the orchestrator to send back the function output and
-then an invocation from the orchestrator to Lambda. \name{} reduces the number
-of network communications because control-flow states and logic are
-decentralized to constituent functions and not managed by a centralized
-orchestrator.
+target function asynchronously. On the other hand, in Step Functions, the same
+transition first requires a network communication from the source function to
+the orchestrator to send back the function output and then an invocation from
+the orchestrator to Lambda. \name{} reduces the number of network
+communications because control-flow states and logic are decentralized to
+constituent functions and not managed by a centralized orchestrator.
 
 \subsubsection{Single Transition Performance}
 
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
+    \caption{\name{} latency of transitioning from the completion of a funtion
+    to the start of the next function. The transition involves a Lambda
+    invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
+    and a checkpoint read from data store (a DynamoDB GetItem call). Overall
+    latency increases with data size due to more data written in the PutItem
+    call and sent to next function via the Lambda invoke call. Over 97.5\% of
+    the latency is the
+    \name{} runtime waiting for data store accesses and Lambda invoke API
+    calls to return. When the underlying platform improves (e.g., a faster
+    Lambda or data store), the bulk of \name{}'s performance will
+    automatically improve without any modification to \name{} itself.}
+    \label{fig:single-transition-latency-breakdown}
+\end{figure}
+
 Using the same experiment from the last section, we further breakdown the
-latency for a single transition from one function to the next.
+latency for \emph{a single transition} from one function to the next to
+understand where the overhead of orchestration comes from. In \name{}, this
+transition involves (1). the egress on the source function writing its output
+to a checkpoint, (2). the egress on the source function invoking the target
+function, and (3). the ingress on the target function checking whether a
+checkpoint already exists to ensure exactly-once semantics. In total, that is
+2 storage accesses and one asynchronous invocation to Lambda. Because the
+latency of storage accesses and Lambda invocation depends on the payload data
+size, we measure across data sizes ranging between 0-255KB in 5KB
+increments\footnote{Lambda limits payload size to 256KB for async
+invocations.}.
+
+Figure~\ref{single-transition-latency-breakdown} shows the single transition
+latency and its breakdown for \name{}. As a baseline, we also measure the same
+latency of a state transition in Step Functions. However, Step Functions does
+not generate fine-grained enough logs for a detailed breakdown. Overall,
+\name{} is xxxms or \% faster than Step Functions, likely for the same reason
+of reduced number of network communications mentioned in the last section.
+
+While the latency improvement is marginal, especially for workflows whose
+functions perform long computations, \name{}'s latency breakdown shows great
+potential for automatic future improvements as serverless gets faster. Over
+97.5\% of \name{}'s runtime overhead comes from APIs calls to the underlying
+serverless systems, i.e., Lambda invocation, GetItem and PutItem calls to
+DynamoDB. A faster NoSQL database and Lambda invocation API will automatically
+reduce bulk of \name{}'s latency without any modification to \name{} itself.
+
 
 \subsubsection{Fan-out and fan-in performance}\label{sec:eval:fan-out}
 
@@ -199,73 +241,6 @@ impose. \name{} avoids the difficulty of building and maintaining hosted
 orchestrators and directly leverages the scalability of Lambda to achieve
 better parallel performance.
 
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
-    \caption{\name{} latency of transitioning from the completion of a funtion
-    to the start of the next function. The transition involves a Lambda
-    invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
-    and a checkpoint read from data store (a DynamoDB GetItem call). Overall
-    latency increases with data size due to more data written in the PutItem
-    call and sent to next function via the Lambda invoke call. Over 97.5\% of
-    the latency is the
-    \name{} runtime waiting for data store accesses and Lambda invoke API
-    calls to return. When the underlying platform improves (e.g., a faster
-    Lambda or data store), the bulk of \name{}'s performance will
-    automatically improve without any modification to \name{} itself.}
-    \label{fig:totallatency}
-\end{figure}
-
-\subsubsection{Single transition performance}
-
-A fundamental operation of any serverless workflow system is the transition
-between a function's completion and the next function's start. The latency
-of transitions bounds the end-to-end performance of workflows. In \name{},
-this transition involves (1). writing a checkpoint, (2). invoking the
-continuation, and (3). reading a checkpoint. That is two storage accesses and
-at least one Lambda \texttt{invoke} call.
-
-Therefore, we start our evaluation by measuring the latency of a single
-transition and further breaking it down into the latencies of the Lambda
-\texttt{invoke} and data store read and write API calls.
-
-The microbenchmark we use is a chain of two functions (\texttt{F->G}) that
-simply return their input without performing any computations. Invoking the
-continuation involves a single call to the Lambda \texttt{invoke} API.
-
-Because the latency of storage accesses and the Lambda \texttt{invoke} APIs
-depend on how much data is written to the checkpoint and then sent to the next
-function as the invocation payload, we measure across data sizes ranging
-between 0-255KB in 5KB increments\footnote{Lambda limits payload size to 256KB
-for async invocations.}.
-
-As a baseline, we also measure the same latency of a state transition in Step
-Functions. However, Step Functions does not generate fine-grained enough logs
-for us to measure the exact apple-to-apple comparison. The results we show
-measure between a \texttt{LambdaFunctionSucceeded} event and the next
-\texttt{LambdaFunctionStarted} event. This is likely an underestimate because
-it may not include the latency of persisting function outputs. In fact, based
-on end-to-end performance of chaining (Figure~\ref{fig:chainmicrolatency}), it
-is almost certain that we are not measuring all of the latency in a state
-transition.
-
-Figure~\ref{fig:totallatency} shows the total latency of a transition. \name{}
-incurs 73-217ms of latency, depending on the data size. A likely underestimate
-of Step Functions latency notwithstanding, \name{} is 1.09-3.54x slower than
-Step Functions on a single transition. \shadi{can you show step function latency in  figure 6.  Also, if the number is not representative, why do we mention it? it seems misguiding. being 3.5x slower is not good... maybe just say we cannot measure transitions for step functions, and instead we compare the e2e latency.  }
-
-Figure~\ref{fig:oplatency} shows the latency of the Lambda \texttt{invoke}
-API, the DynamoDB \texttt{GetItem} call to read a checkpoint and the DynamoDB
-\texttt{PutItem} call to write a checkpoint. Overall, all three operations
-slows down as data size increases.
-
-Figure~\ref{fig:oplatency-pct} shows the latency breakdown for 0KB data size
-and 255KB data size. Over 97.5\% of the latency comes from APIs call to Lambda
-and data stores. \name{} runtime code only incurs less than 2.5\% of the total
-overhead. This means the bulk of \name{}'s performance will automatically
-improve with the underlying platform (e.g., a faster Lambda or data store)
-without any modification to \name{} itself.
-
 \subsubsection{Cost comparison}
 
 \begin{figure}[t!]
@@ -284,8 +259,6 @@ without any modification to \name{} itself.
     size for function outputs and checkpoints.}
     \label{fig:total-costs-map}
 \end{figure}
-
-
 
 In this section, we break down the cost of running workflows with \name{} and
 compare with that of Step Functions. We discuss the costs for a single transition,
