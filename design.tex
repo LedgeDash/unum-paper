@@ -75,23 +75,34 @@ checkpointing mechanism which we discuss in the next section.
 
 \section{Execution Guarantees}
 
-Serverless systems only provide weak execution guarantees for functions.
-Functions can crash for a variety of causes mid-execution. FaaS engines
-usually only ensure at-least-once execution on individual functions. Invoking
-a function once might result in duplicate instances that are potentially
-concurrent.
+An important characteristic of any workflow system 
+is (a) how it deals with  a transient failure in a constituent step, and 
+(b) what guarantees it makes in the presence of such faults.
+ 
+Most workflow systems use checkpointing to limit the scope of re-execution after faults. 
+In \name{}, each function is checkpointed to storage after it completes. In particular, if a
+workflow experiences crashes mid-execution, \name{} does not retry from the beginning but
+from the node of failure only.
 
-\name{} provides exactly-once semantics for workflow execution despite the
-challenges. Specifically, \name{} guarantees that even if there are
-duplicates, whether they are concurrent or not, only one instance's result is
+\name{} guarantees \textbf{exactly-once execution}, meaning that each step of the 
+workflow appears to execute exactly once. Even though FaaS engines already support automatic retries for functions,
+they only guarantee at-least-once execution. Strengthening this guarantee requires dealing with the following subtleties:
+\begin{itemize}
+\item Function executions are not always deterministic, each re-execution may produce a different result.
+\item The FaaS engine may detect failures incorrectly, thus multiple executions of a function can be in progress simultaneously.
+\end{itemize}
+
+Fortunately, we found a way to handle these challenges by taking advantage of conditional store operations 
+supported by strongly consistent data stores. 
+Specifically, \name{} guarantees that even if there are
+multiple function execution instances, concurrent or not, only one instance's result is
 taken as the final result and propagates to the downstream ingress node(s).
-Other instances simply discard their results and terminate. Moreover, when a
-workflow crashes mid-execution, \name{} does not retry from the beginning but
-instead from the node of failure.
+Other instances simply discard their results and terminate. 
 
-To ensure exactly once, \name{} uses a similar checkpointing technique across all transition patterns. After user code returns, the \name{}
-runtime immediately creates a checkpoint file that contains the user code
-results in the intermediary data store. The checkpoint is uniquely named with
+\paragraph{Checkpoints and Synchronization.}
+%\name{} uses a similar checkpointing technique across all transition patterns. 
+After user code completes, the \name{} egress gadget immediately writes a checkpoint file that contains the user code
+results to the intermediary data store. The checkpoint is uniquely named with
 the instance's name (i.e., the name according the
 \name{}~IR's naming scheme (\S\ref{sec:ir:naming}), prefixed by the workflow
 invocation's unique session ID) such that the existence of a checkpoint
@@ -113,9 +124,14 @@ crashed after checkpointing but before running the downstream ingress node. \nam
 tolerate running a ingress/egress node more than once because of the same protection
 against duplicates.
 
-\name{} provides exactly-once semantics on the granularity of entire user
-function, and therefore does not guarantee exactly-once for user code
-operations that have external side effects.
+\paragraph{External Side Effects.}
+In the applications targeted by \name{}, there is no need for functions to directly call external storage services. 
+Rather, all functions are "side-effect-free": their only effect is to provide a result.
+Therefore, the "exactly-one-result" guarantee of the \name{} runtime is in fact synonymous with exactly-once execution.
+
+Although it is not currently required by any of our applications, it is conceivable to extend \name{} in the future to support
+workflows whose functions have additional side effects. For example, a store interposition mechanism (such as used in Beldi \cite{beldi}) could 
+be added to support functions that require more complex storage interactions than obtaining an input and producing a result.
 
 
 \amit{TODO: Are there special considerations for exactly-once
