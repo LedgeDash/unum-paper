@@ -194,16 +194,15 @@ this goal with careful consideration.
 %azure-functions-exec-guarantee} so a single invocation can trigger multiple,
 %potentially concurrent, instances. \shadi{if no failures, why would there be multiple invokes?}
 
-\subsubsection{Workflow orchestrators}
+\subsubsection{Workflow Orchestrators}
 
-To simplify the development of large serverless applications, many workflow
-orchestrator have emerged~\cite{excamera, gg-atc, aws-step-functions,
-google-cloud-composer, google-workflows, durable-functions}. Orchestrators
-are  high-level programming interface running on top of the primitive
-functions and hide the low-level complexities of using multiple functions.
-They offer a  rich set of composition primitives, such as branching,
-chaining, fan-out and fan-in while ensuring exactly-once semantics and
-long or no runtime limits.
+An increasingly common solution to address the needs of complex serverless
+applications is to introduce a workflow orchestrator~\cite{excamera, gg-atc, aws-step-functions,
+google-cloud-composer, google-workflows, durable-functions}. Orchestrators are
+high-level programming interface running on top of the primitive functions and
+hide the low-level complexities of using multiple functions.  They offer a  rich
+set of composition primitives, such as branching, chaining, fan-out and fan-in
+while ensuring exactly-once semantics and long or no runtime limits.
 
 Orchestrators provide these features by hosting a separate ``orchestration''
 service alongside the low-level functions to manage the execution of a
