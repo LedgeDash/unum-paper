@@ -507,12 +507,28 @@ faster than \texttt{gg}.
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/AppCostBreakdown.pdf}
-    \caption{TODO}
+    \caption{\dhl{I'm trying to figure out how the figure should look like. So
+    trying a couple of things in this draft graph here. The top row splits
+    unum breakdown and Step Functions breakdown to 2 graphs. The top left is
+    the unum breakdown for just IoT Pipeline and Text Processing and no
+    Wordcount or ExCamera. The top right is the Step Functions breakdown. The
+    bottom row puts unum breakdown and Step Functions breakdown side-by-sdie.
+    The bottom left is Wordcount and bottom right is ExCamera. Another
+    thought: if percentage is the only thing we care about, should just pie
+    charts instead? Esp. give that we already have Table~\ref{table:macro}.}
+    Step Functions state transitions dominate the total costs of running
+    applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and
+    over 99\% in IoT Pipeline and Text Processing. While \name{} runtime and
+    checkpoint costs are also the majority in IoT Pipeline (87.2\%) and Text
+    Processing (89\%), for large-scale workflows, \name{} only accounts for
+    18.1\% of the costs in ExCamera and 24.8\% in Wordcount. Most of \name{}'s
+    costs come from reading and writing checkpoints to DynamoDB. A cheaper
+    data store can significantly reduce the cost of using \name{}.}
     \label{fig:cost-breakdown}
 \end{figure}
 
 Moreover, \name{} is consistently cheaper than Step Functions for all
-workloads with up to 32.8x costs savings. All costs numbers in
+workloads with up to 27.3x costs savings. All costs numbers in
 Table~\ref{table:macro} are calculated based on public pricing information for
 AWS \texttt{us-west-1} region. We do not ``measure'' the costs of running
 workflows because AWS does not provide real-time billing results for all
@@ -543,10 +559,12 @@ in \name{} and Step Functions.
 \dhl{Need to sync with Intro. If we say anything about billing schemes or predicted
 cheaper costs. Not sure what to highlight atm.}
 
-In both cases, the costs of running applications are dominated by the workflow
-system. The cost of Step Functions state transitions accounts for over 99\% of
-the total costs of running applications while \name{} accounts for 87-89\% of
-the total costs.
+Step Functions state transitions dominate the total costs of running
+applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and over
+99\% in IoT Pipeline and Text Processing. While \name{} runtime and checkpoint
+costs are also the majority in IoT Pipeline (87.2\%) and Text Processing
+(89\%), for large-scale workflows, \name{} only accounts for 18.1\% of the
+costs in ExCamera and 24.8\% in Wordcount.
 
 The majority of \name{}'s costs come from reading and writing checkpoints to
 DynamoDB. A cheaper data store that supports strong consistency and
