@@ -1,23 +1,20 @@
 \section{Evaluation}\label{sec:eval}
 
-We evaluate \name{}'s decentralized design and compare against a
-state-of-the-art production workflow orchestrator---AWS Step Functions---on
-latency and costs of running applications. Specifically, we ask the following
-questions: \shadi{if short on space, can compress the following Q's }
+In this section, we evaluate \name{}'s decentralized design and compare
+against a state-of-the-art production workflow orchestrator---AWS Step
+Functions---on latency and costs of running applications. Specifically, we ask
+the following questions:
 
 \begin{enumerate}
 	
-	\item Given the same application, i.e., the same user functions and the
-	same workflow definition written as Step Functions, what is the end-to-end
-	latency of running the application with \name{} after compiling it into
-	\textit{unumized} functions and how does it compare with running it
-	directly with Step Functions?
+    \item Given the same application, what is the end-to-end latency of
+    running it with \name{} and how does it compare with Step Functions?
 	
-	\item What are the sources of \name{'s} latency overhead? How much does
-	the overhead come from API calls to the underlying serverless components?
+    \item What are the sources of \name{'s} latency overhead? How much does
+    the overhead come from API calls to the underlying serverless components?
 	
 	\item Given the same application, what is the billing cost of running it
-	with \name{} vs on Step Functions?
+	with \name{} vs with Step Functions?
 	
 	\item What are the sources of \name{'s} billing costs? How much additional
 	costs does the \name{} runtime incur in Lambda duration billing? And how
@@ -57,32 +54,33 @@ questions: \shadi{if short on space, can compress the following Q's }
 
 \subsection{Experimental setup}
 
-We use a combination of both microbenchmarks, for individualized characterization of \name{}, and 4 real-world applications, for end-to-end analysis of \name{}. The micro-benchmarks target basic orchestration patterns such as
-chaining, fan-out and fan-in
-(\S\ref{sec:eval:micro}). The real-world apps composed of applications from serverless repositories and
-prior research work  that encompass a variety of orchestration patterns (\S\ref{sec:eval:realworld}).
+We use a combination of both microbenchmarks and 4 real-world applications,
+for end-to-end analysis of \name{}. The micro-benchmarks target basic
+orchestration patterns such as chaining, fan-out and fan-in
+(\S\ref{sec:eval:micro}). The real-world apps consist of applications from
+serverless repositories and prior research work  that encompass a variety of
+orchestration patterns (\S\ref{sec:eval:realworld}).
 
 We run all experiments on AWS, region \texttt{us-west-1} and costs numbers
 reflect \texttt{us-west-1} pricing. We configure lambdas to 128MB memory size
 unless otherwise specified and use on-demand capacity mode for DynamoDB. To
-avoid function cold starts, we pre-warm functions by running the workflow a
-few dozen times before collecting data.
+avoid function cold starts, we run the workflow a few dozen times before
+starting to collect data.
 
 % S3 buckets all have Versioning turned on.
 
 We compare against Step Functions as the baseline. All applications in the
-evaluation are written as Step Functions state machines. 
-We use the \emph{Standard}
-version of Step Function~\cite{aws-step-functions-standard-vs-express}, which similar to \name{}, it persists execution states on every state transition (i.e.,
-completing one function and starting the next function), and always returns
-exactly one response per workflow
-invocation~\cite{aws-step-functions-exec-gntee}.
-For the Step
-Functions experiments, we run the workflow definitions directly on AWS. For
-the \name{} experiments, we first compile the Step Functions state machines to
-unumized functions and then execute them as AWS Lambdas. The sole exception is
-ExCamera due to limitations of the AWS State Language which we discuss in
-\S~\ref{sec:eval:excamera}.
+evaluation are written as Step Functions state machines. We use the
+\emph{Standard} version of Step
+Function~\cite{aws-step-functions-standard-vs-express}, which, similar to
+\name{}, persists execution states on every transition from one function to
+the next, and always returns exactly one response per workflow
+invocation~\cite{aws-step-functions-exec-gntee}. For the Step Functions
+experiments, we run the workflow definitions directly on AWS. For the \name{}
+experiments, we first compile the Step Functions state machines to unumized
+functions and then execute them as lambdas. The sole exception is ExCamera due
+to limitations of the AWS State Language which we discuss in
+\S~\ref{sec:eval:realworld}.
 
 
 % We do not consider Step Functions' Express Workflows in our comparison because
@@ -101,7 +99,8 @@ ExCamera due to limitations of the AWS State Language which we discuss in
 
 \subsection{Microbenchmarks}\label{sec:eval:micro}
 
-In this section, we analyze \name{} on a series of micro-benchmark patterns in terms of both cost and latency. \shadi{do we have cost for micro bench?}
+In this section, we analyze \name{} on a series of micro-benchmark patterns in
+terms of both cost and latency.
 
 \begin{figure}[t!]
 	\centering
@@ -148,14 +147,14 @@ In this section, we analyze \name{} on a series of micro-benchmark patterns in t
 
 \subsubsection{Chaining performance}\label{sec:eval:chain}
 
-We evaluate how \name{} performs on executing a series of
-functions in sequence, using the basic \texttt{chain} pattern, and compare with
-Step Functions. We measure the end-to-end latency of executing a chain of
-functions with varying chain length (2 to 10 functions). We want the
-end-to-end latency to maximally reflect the performance of the workflow
-system, and not the latency of user code. Therefore, we use a constituent \shadi{can we use better term?}
-function that simply returns its input without any computations to keep the
-user code runtime intentionally short (less than 2ms).
+We evaluate how \name{} performs on executing a series of functions in
+sequence, using the \texttt{chain} pattern, and compare with Step Functions.
+We measure the end-to-end latency of executing a chain of functions with
+varying chain length (2 to 10 functions). We want the end-to-end latency to
+maximally reflect the performance of the workflow system, and not the latency
+of user code. Therefore, we use a constituent function that simply returns its
+input without any computations to keep the user code runtime intentionally
+short (less than 2ms).
 
 Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
 Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
@@ -339,8 +338,7 @@ build entirely on top of the existing serverless components.
 
 
 
-\subsection{Real-World Applications}
-\label{sec:eval:realworld}
+\subsection{Real-World Applications}\label{sec:eval:realworld}
 
 % \begin{table}[]
 	% \begin{tabular}{llllll}
@@ -393,60 +391,62 @@ build entirely on top of the existing serverless components.
 \end{table}
 
 In this section, we evaluate \name{}'s performance and costs with 4 real-world
-workloads and compare with Step Functions. We use a diverse set of applications
-taken from serverless application repositories and prior research work, covering a wide range of use cases and workflow patterns: \shadi{if we have space, it would be good to have a small figure with the graph of each app. that helps to show the patterns and complexity of excamera}
+workloads and compare with Step Functions. We use a diverse set of
+applications taken from serverless application repositories and prior research
+work, covering a wide range of use cases and workflow patterns:
 
 \begin{itemize}
+
 	\item \textbf{IoT Pipeline} Adapted from a humidity control application in the
-	AWS serverless repository~\cite{iot-pipeline}. The workflow consists of a
-	chain of two functions where the first function processes time-series data on
-	indoor climate and outputs a set of aggregate statistics. The second function
-	makes a HVAC system control decision based on the statistics and adjusts the
-	HVAC settings.
+    AWS serverless repository~\cite{iot-pipeline}. The workflow consists of a
+    chain of two functions where the first function processes time-series data
+    on indoor climate and outputs a set of aggregate statistics. The second
+    function makes a HVAC system control decision based on the statistics and
+    adjusts the HVAC settings.
 	
 	\item \textbf{Text Processing} Adapted from the social networks application in
-	the DeathStarBench~\cite{deathstar}. The workflow consists of 5 functions that
-	create a social network post by processing text data of user posts. It fans
-	out to two branches that resolves user mentions and shortens URLs in parallel.
-	Lastly, it fans in to a function that saves the post along with resolved
-	user mentions and shortened URLs in a NoSQL database.
+    the DeathStarBench~\cite{deathstar}. The workflow consists of 5 functions
+    that create a social network post by processing text data of user posts.
+    It fans out to two branches that resolves user mentions and shortens URLs
+    in parallel. Lastly, it fans in to a function that saves the post along
+    with resolved user mentions and shortened URLs in a NoSQL database.
 	
-	\item \textbf{Wordcount} Adapted from MapReduce word count~\cite{mapreduce}.
-	Mappers and reducers execute as Lambda function. The workload uses 250
-	parallel mappers and reducers.
+    \item \textbf{Wordcount} Adapted from MapReduce word
+    count~\cite{mapreduce}. Mappers and reducers execute as Lambda function.
+    The workload uses 250 parallel mappers and reducers.
 	
 	\item \textbf{ExCamera} ExCamera~\cite{excamera} is a novel video encoder that
-	encodes large raw videos with thousands of parallel functions to achieve
-	low latency. The workflow consists of three stages, \texttt{ENCODE},
-	\texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact
-	in complex patterns. The first stage is a \texttt{map} that runs many
-	\texttt{ENCODE} functions entirely in parallel, the second stage forms
-	paralllel pipelines following the first stage where the $i^{th}$
-	\texttt{ENCODE-GIVEN-STATE} branch starts when the $(i)^{th}$ and
-	$(i-1)^{th}$ \texttt{ENCODE} branch complete. The final \texttt{REBASE}
-	runs in series and rebases each chunk on top of the state from the
-	previous chunk.\shadiS{chunk\textbf{s}?}
+    encodes large raw videos with thousands of parallel functions to achieve
+    low latency. It breaks a large video into small chunks and runs expensive
+    steps in parallel and fast steps in series. The workflow consists of three
+    stages, \texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE},
+    where functions interact in complex patterns. The first stage is a
+    \texttt{map} that runs many \texttt{ENCODE} functions entirely in
+    parallel, the second stage forms paralllel pipelines following the first
+    stage where the $i^{th}$ \texttt{ENCODE-GIVEN-STATE} branch starts when
+    the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete. The final
+    \texttt{REBASE} runs in series and rebases each chunk on top of the state
+    from the previous chunk.
 	
-	We implement the \name{} version and Step Functions version for ExCamera,
-	using the same binaries in constituent functions as the original
-	paper~\cite{excamera-binary}. The \name{} implementation closely matches
-	the original ExCamera where a task starts as soon as its input data
-	becomes available. But the Step Functions implementation had to serialize
-	the \texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} stages because fan-outs
-	in Step Functions require all parallel branches to complete before fan-in.
-	For this reason, we do not derive the \name{} version from a Step
-	Functions definition with the frontend compiler. Instead, we hand-write
+    We implement a \name{} version and a Step Functions version for ExCamera,
+    using the same binaries in constituent functions as the original
+    paper~\cite{excamera-binary}. The \name{} implementation closely matches
+    the original ExCamera where a task starts as soon as its input data
+    becomes available. But the Step Functions implementation had to serialize
+    the \texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} stages because fan-outs
+    in Step Functions require all parallel branches to complete before fan-in.
+    For this reason, we do not derive the \name{} version from a Step
+    Functions definition with the frontend compiler. Instead, we hand-write
 	\name{} configurations for each unumized function.
 	
-	Furtheremore, we compare \name{}'s implementation against the original
-	authors' implementation of ExCamera. The original authors build two
-	version: a hand-optimized version in the original paper implemented with
-	the \texttt{mu} framework which exposes a state machine abstraction, and a
-	later version implemented with the \texttt{gg} framework which uses a
-	thunk abstraction. \shadi{what is thunk? is it important? maybe remove}We use the exact same workload and setup as the
-	experiment in \texttt{gg}~\cite{gg-atc}, i.e., the same input video of the
-	first 888 chunks of \texttt{sintel-4k} video, 16 chunks per batch and
-	lambdas with 3GB of memory.
+    Furtheremore, we compare \name{}'s implementation against the original
+    authors' implementation of ExCamera. The original authors build two
+    version: a hand-optimized version in the original paper~\cite{excamera},
+    and a later version implemented with the \texttt{gg}
+    framework~\cite{gg-atc}. We use the exact same workload and setup as the
+    experiment in \texttt{gg}~\cite{gg-atc}, i.e., the same input video of the
+    first 888 chunks of \texttt{sintel-4k} video, 16 chunks per batch and
+    lambdas with 3GB of memory.
 	
 \end{itemize}
 
@@ -475,10 +475,11 @@ if a branch is not part of the fan-in function's input, and lacks programming
 constructs to express fine-grained data dependencies between branches that can
 enable ``partial fan-in''.
 
-\dhl{Explain the difference between unum fan-in and Step Functions fan-in in
-	design already. Specifically, unum fan-in starts when all inputs are
-	available, whereas Step Functions fan-in first requires all branches to
-	complete even if a branch is not part of the fan-in function's input.}
+\dhl{Sync with Design. Explain the difference between unum fan-in and Step
+Functions fan-in in design already. Specifically, unum fan-in starts when all
+inputs are available, whereas Step Functions fan-in first requires all
+branches to complete even if a branch is not part of the fan-in function's
+input.}
 
 Table~\ref{table:excamera} compares \name{}'s implementation of ExCamera with
 the original implementation and \texttt{gg}'s version. \name{}'s is 7.1\%
