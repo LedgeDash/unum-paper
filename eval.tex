@@ -1,7 +1,7 @@
 \section{Evaluation}\label{sec:eval}
 
 In this section, we evaluate \name{}'s decentralized design and compare
-against a state-of-the-art production workflow orchestrator---AWS Step
+with a state-of-the-art production workflow orchestrator---AWS Step
 Functions---on latency and costs of running applications. Specifically, we ask
 the following questions:
 
@@ -14,7 +14,7 @@ the following questions:
     the overhead come from API calls to the underlying serverless components?
 	
 	\item Given the same application, what is the billing cost of running it
-	with \name{} vs with Step Functions?
+	with \name{} vs that with Step Functions?
 	
 	\item What are the sources of \name{'s} billing costs? How much additional
 	costs does the \name{} runtime incur in Lambda duration billing? And how
@@ -65,22 +65,24 @@ We run all experiments on AWS, region \texttt{us-west-1} and costs numbers
 reflect \texttt{us-west-1} pricing. We configure lambdas to 128MB memory size
 unless otherwise specified and use on-demand capacity mode for DynamoDB. To
 avoid function cold starts, we run the workflow a few dozen times before
-starting to collect data.
+initial data collection.
 
 % S3 buckets all have Versioning turned on.
 
-We compare against Step Functions as the baseline. All applications in the
-evaluation are written as Step Functions state machines. We use the
-\emph{Standard} version of Step
-Function~\cite{aws-step-functions-standard-vs-express}, which, similar to
-\name{}, persists execution states on every transition from one function to
-the next, and always returns exactly one response per workflow
-invocation~\cite{aws-step-functions-exec-gntee}. For the Step Functions
-experiments, we run the workflow definitions directly on AWS. For the \name{}
+We compare with Step Functions as the baseline. All applications in the
+evaluation are written as Step Functions state machines. For the Step
+Functions experiments, we run the workflow definitions directly on AWS Step
+Functions using the \emph{Standard}
+version~\cite{aws-step-functions-standard-vs-express}. For the \name{}
 experiments, we first compile the Step Functions state machines to unumized
 functions and then execute them as lambdas. The sole exception is ExCamera due
 to limitations of the AWS State Language which we discuss in
 \S~\ref{sec:eval:realworld}.
+
+We choose to use the \emph{Standard} version of Step Function because, similar
+to \name{}, it persists execution states on every transition from one function
+to the next, and always returns exactly one response per workflow
+invocation~\cite{aws-step-functions-exec-gntee}.
 
 
 % We do not consider Step Functions' Express Workflows in our comparison because
@@ -148,56 +150,59 @@ terms of both cost and latency.
 \subsubsection{Chaining performance}\label{sec:eval:chain}
 
 We evaluate how \name{} performs on executing a series of functions in
-sequence, using the \texttt{chain} pattern, and compare with Step Functions.
-We measure the end-to-end latency of executing a chain of functions with
-varying chain length (2 to 10 functions). We want the end-to-end latency to
-maximally reflect the performance of the workflow system, and not the latency
-of user code. Therefore, we use a constituent function that simply returns its
-input without any computations to keep the user code runtime intentionally
-short (less than 2ms).
+sequence and then compare with Step Functions. We measure the end-to-end
+latency of executing a chain of functions with varying chain lengths (2 to 10
+functions). Our goal is to allow the end-to-end latency to maximally reflect
+the performance of the workflow system, with minimum interference from the
+latency of user code. Therefore, we use a constituent function that simply
+returns its input without any computations to keep the user code runtime
+intentionally short (less than 2ms).
 
 Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
 Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
-11-28\% faster in chaining than Step Functions. The slighly shorter latency is
-likely because a transition in \name{} from one function to the next involves
-a single network communication to Lambda when the source function calls the
-target function asynchronously. On the other hand, in Step Functions, the same
-transition first requires a network communication from the source function to
-the orchestrator to send back the function output and then an invocation from
-the orchestrator to Lambda. \name{} reduces the number of network
-communications because control-flow states and logic are decentralized to
-constituent functions and not managed by a centralized orchestrator.
+11-28\% faster in chaining than Step Functions. A plausible explanation for
+the shorter latency is that a transition in \name{} from one function to the
+next involves a single network communication to Lambda when the source
+function calls the target function asynchronously. The same transition in Step
+Functions, however, requires not only an invocation from the orchestrator to
+Lambda but also a network communication from the source function to the
+orchestrator to send back the function output first. \name{} reduces
+the number of network communications because control-flow states and logic are
+decentralized to constituent functions without being managed by a centralized
+orchestrator.
 
 \subsubsection{Single Transition Performance}
 
 Using the same experiment from the last section, we further breakdown the
 latency for \emph{a single transition} from one function to the next to
 understand where the overhead of orchestration comes from. In \name{}, this
-transition involves (1). the egress on the source function writing its output
-to a checkpoint, (2). the egress on the source function invoking the target
-function, and (3). the ingress on the target function checking whether a
+transition involves (1) the egress on the source function writing its output
+to a checkpoint, (2) the egress on the source function invoking the target
+function, and (3) the ingress on the target function checking whether a
 checkpoint already exists to ensure exactly-once semantics. In total, that is
-two storage accesses and one asynchronous invocation to Lambda. Because the
-latency of storage accesses and Lambda invocation depends on the payload data
-size, we measure across data sizes ranging between 0-255KB in 5KB
+two storage accesses and one asynchronous invocation to Lambda. In order to
+honor the effect of payload data size on the latency of storage accesses and
+Lambda invocation, we measure across data sizes ranging between 0-255KB in 5KB
 increments\footnote{Lambda limits payload size to 256KB for asynchronous
-	invocations.}.
+invocations.}.
 
-Figure~\ref{fig:single-transition-latency-breakdown} shows the single transition
-latency and its breakdown for \name{}. As a baseline, we also measure the same
-latency of a state transition in Step Functions. However, Step Functions does
-not generate fine-grained enough logs for a detailed breakdown. Overall,
-\name{} is up to 56ms faster than Step Functions, likely for the same reason
-of reduced number of network communications mentioned in the last section.
+Figure~\ref{fig:single-transition-latency-breakdown} shows the total single
+transition latency for \name{} and its breakdown to Lambda invocation,
+DynamoDB \texttt{PutItem} and \texttt{GetItem} API calls. Over 97.5\% of
+\name{}'s runtime overhead comes from the three APIs calls to the underlying
+serverless system. As a baseline,
+Figure~\ref{fig:single-transition-latency-breakdown} also shows the equivalent
+single transition latency for Step Functions. Overall, \name{} is up to 56ms
+faster than Step Functions, likely for the same reason of reduced number of
+network communications mentioned in the last section.
 
-While the latency improvement is marginal, especially for workflows whose
-functions perform real and expensive computations, \name{}'s latency breakdown
-shows great potential for automatic future improvements as serverless gets
-faster. Over 97.5\% of \name{}'s runtime overhead comes from APIs calls to the
-underlying serverless systems, i.e., Lambda invocation, GetItem and PutItem
-calls to DynamoDB. A faster NoSQL database or FaaS system will automatically
-reduce bulk of \name{}'s latency without any modification to \name{} itself.
-
+While \name{}'s latency improvement over Step Functions is marginal,
+especially for workflows whose functions perform real and expensive
+computations, \name{}'s latency breakdown shows great potential for automatic
+future improvements as serverless gets faster. Because the majority of
+\name{}'s runtime overhead comes from APIs calls to Lambda and DynamoDB, a
+faster NoSQL database or FaaS system will automatically reduce bulk of
+\name{}'s latency without any modification to \name{} itself.
 
 \subsubsection{Fan-out and fan-in performance}\label{sec:eval:fan-out}
 
