@@ -5,7 +5,7 @@
 \begin{tabular}{|l|l|l|l|l|}
 \hline
  & \textbf{Trigger-based} & \textbf{Driver functions} & \textbf{Orchestrators} & \textbf{\name{}} \\ \hline
-\textit{Purely Serverless}          & \cmark & \cmark & \xmark & \cmark \\ \hline
+\textit{No new services}   & \cmark & \cmark & \xmark & \cmark \\ \hline
 \textit{Higher-level interface}     & \xmark & \xmark & \cmark & \cmark \\ \hline
 \textit{Exactly-once semantics} & \xmark & \xmark & \cmark & \cmark \\ \hline
 \textit{Pay-for-what-you-use billing}       & \cmark & \xmark & \cmark & \cmark \\ \hline
@@ -15,23 +15,23 @@
 \end{table*}
 
 
-\begin{figure}[t!]
-    \centering
-    \scalebox{.7}{\includegraphics[width=\columnwidth]{figures/ChainExample.pdf}}
-    \caption{Chaining two functions with triggers, driver functions and
-    orchestrators. In the trigger-based approach, \texttt{F} asynchronously
-    invokes \texttt{G} with \texttt{F}'s result. In the driver functions
-    approach, a driver function first synchronously invokes \texttt{F},
-    usually via HTTP, and after \texttt{F} returns, synchronously invokes
-    \texttt{G} with \texttt{F}'s result. Workflow orchestrators provide
-    higher-level interfaces (e.g., AWS Step Functions state machines) to
-    express function compositions such that \texttt{F}'s code does not contain
-    explicit control-flow logic of invoking \texttt{G}. But architecturally,
-    orchestrators are similar to driver functions: an orchestrator instance
-    invokes \texttt{F}, waits for \texttt{F} to return and then invokes
-    \texttt{G} with \texttt{F}'s result.}
-    \label{fig:chain-example}
-\end{figure}
+%\begin{figure}[t!]
+%    \centering
+%    \scalebox{.7}{\includegraphics[width=\columnwidth]{figures/ChainExample.pdf}}
+%    \caption{Chaining two functions with triggers, driver functions and
+%    orchestrators. In the trigger-based approach, \texttt{F} asynchronously
+%    invokes \texttt{G} with \texttt{F}'s result. In the driver functions
+%    approach, a driver function first synchronously invokes \texttt{F},
+%    usually via HTTP, and after \texttt{F} returns, synchronously invokes
+%    \texttt{G} with \texttt{F}'s result. Workflow orchestrators provide
+%    higher-level interfaces (e.g., AWS Step Functions state machines) to
+%    express function compositions such that \texttt{F}'s code does not contain
+%    explicit control-flow logic of invoking \texttt{G}. But architecturally,
+%    orchestrators are similar to driver functions: an orchestrator instance
+%    invokes \texttt{F}, waits for \texttt{F} to return and then invokes
+%    \texttt{G} with \texttt{F}'s result.}
+%    \label{fig:chain-example}
+%\end{figure}
 
 The basic serverless abstraction is simple and quite powerful. Developers build
 ``functions'', typically written in a high-level language and packaged as OS
@@ -194,40 +194,48 @@ this goal with careful consideration.
 %azure-functions-exec-guarantee} so a single invocation can trigger multiple,
 %potentially concurrent, instances. \shadi{if no failures, why would there be multiple invokes?}
 
-\subsubsection{Workflow Orchestrators}
+\subsection{Workflow Orchestrators}
 
 An increasingly common solution to address the needs of complex serverless
-applications is to introduce a workflow orchestrator~\cite{excamera, gg-atc, aws-step-functions,
-google-cloud-composer, google-workflows, durable-functions}. Orchestrators are
-high-level programming interface running on top of the primitive functions and
-hide the low-level complexities of using multiple functions.  They offer a  rich
-set of composition primitives, such as branching, chaining, fan-out and fan-in
-while ensuring exactly-once semantics and long or no runtime limits.
+applications is to introduce a workflow orchestrator~\cite{excamera, gg-atc,
+aws-step-functions, google-cloud-composer, google-workflows, durable-functions}.
+Orchestrators operate similarly to driver-functions---they drive an application
+workflow by invoking each function in the application from the
+orchestrator---but are separate hosted services, usually multi-tenant.
+Typically, orchestrators provide a high-level programming interface to describe
+applications in terms of their control-flow graph and constituent functions.
+They offer a  rich set of composition primitives, such as branching, chaining,
+fan-out and fan-in, while ensuring exactly-once semantics.
 
-Orchestrators provide these features by hosting a separate ``orchestration''
-service alongside the low-level functions to manage the execution of a
-workflow. All functions invocation are initiated by the orchestrator and all
-states (e.g., function results) pass through the orchestrator. Similar to
-driver functions, for every workflow invocation, an orchestrator instance
-invokes a constituent function, waits for its result and passes it to
-downstream functions via invocation.
+%Orchestrators provide these features by hosting a separate ``orchestration''
+%service alongside the low-level functions to manage the execution of a
+%workflow. All functions invocation are initiated by the orchestrator and all
+%states (e.g., function results) pass through the orchestrator. Similar to
+%driver functions, for every workflow invocation, an orchestrator instance
+%invokes a constituent function, waits for its result and passes it to
+%downstream functions via invocation.
 
-However, adding this additional standalone service creates several important
-drawbacks that undermine the key benefits of the serverless abstraction. The
-end-to-end performance now depends on both the orchestrator service and the
-FaaS engine. A slow orchestrator can become a bottleneck and nullify the
-performance and scalability advantages of serverless. Moreover, developing a
-fast and scalable orchestrator is a difficult and expensive task that
-requires a dedicated engineering team which in turn will increase the cost of
-running serverless applications. Running a separate orchestrator service also
-requires additional computational resources which translates to cost overheads
-and potentially idle-billing. Most importantly, the developers no longer have
-any control on how to optimize the performance, scalability, or cost of
-orchestrator based environments.   \shadi{should we give a cost comparison
-example here? something in the lines of "For example, the pricing schema of
-AWS step functions makes running a simple X app Y times more expensive that
-running directly on AWS Lambda, and the developers have no control on this
-pricing."}
+While workflow orchestrators are able to address the needs of complex serverless
+applications, introducing a new platform service has significant drawbacks.
+
+Building performant, scalable multi-tenant systems is hard and orchestrators
+introduce yet-another potential performance and scalability bottleneck.
+Moreover, running such services can be expensive, as they require dedicated
+resources in addition to those allocated to FaaS and storage systems.  Indeed,
+we find (Section~\ref{sec:eval}) that, in practice, production systems limit
+end-to-end performance and scalability, and cost developers significantly more
+than necessary in some cases.
+
+\amit{I can't figure out a way to include developer flexibility here cleanly.
+I'm in favor of adding it, but also it might be a sort of tacit contribution
+that the reader deduces themselves... It could also come out in discussion
+instead. I think it's a really good point, but perhaps not as central to the
+argument? Not sure...}
+%
+\shadi{should we give a cost comparison example here? something in the lines of
+"For example, the pricing schema of AWS step functions makes running a simple X
+app Y times more expensive that running directly on AWS Lambda, and the
+developers have no control on this pricing."}
 
 
 \shadi{" Platform-specific orchestrators force developers to write with
@@ -271,7 +279,7 @@ merge into goals or later section}
 %all have different propritary APIs.} \shadi{I thought the point here was to be a design goal of "interoperability".}
 %\dhl{Yes, but the problem is that current \name{} implementation only works on AWS. So we can't show/prove that we achieved interoperability if we list that as a goal. }
 
-\subsection{Research question and objectives}
+\section{Goals}
 In this paper, we examine whether we can have the best of both worlds:
 \emph{Can we preserve the advantages of workflow orchestrators while building
 entirely on top of the existing serverless computing abstraction (no
@@ -282,7 +290,7 @@ Specifically, we aim for a system with the following objectives:
 
 \begin{itemize}
 
-    \item \textbf{Purely serverless: } The system should work within the
+    \item \textbf{No new services: } The system should work within the
     current serverless environment and not require adding any new services.
 
     The system should execute workflows solely as event-driven serverless
