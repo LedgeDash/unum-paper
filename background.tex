@@ -15,15 +15,6 @@
 \end{table*}
 
 
-% Large-scale applications composed of many functions~\cite{excamera, gg-atc,
-% deathstar} introduce several new challenges to serverless computing. 
-
-In this section, we describe why it is hard to compose large serverless
-workflows, why a purely serverless architecture is interesting and what our
-objectives are.
-
-\subsection{Evolution of Serverless Workflows}
-
 \begin{figure}[t!]
     \centering
     \scalebox{.7}{\includegraphics[width=\columnwidth]{figures/ChainExample.pdf}}
@@ -42,44 +33,70 @@ objectives are.
     \label{fig:chain-example}
 \end{figure}
 
-\subsubsection{Ad-hoc composition: triggers and driver functions}
+The basic serverless abstraction is simple and quite powerful. Developers build
+``functions'', typically written in a high-level language and packaged as OS
+containers or virtual machines, which run short computations in response to a
+platform event. Events include storage events (e.g.\ the creation of a new
+storage object) or HTTP requests. The platform can scale resources for each
+function based to respond to instantaneous bursts in events and developers are
+absolved from building scalable applications and from reserving resources for
+maximum capacity.
 
-The original serverless abstraction is designed around developing individual
-functions--a \textit{single} unit of work that can run independently on any
-machine. However, this design does not provide a higher-level interface to
-easily express control-flow logic \emph{between} functions. To build larger
-applications that are composed from multiple functions, early adopters use
-function invocation APIs to exress control-flows in an ad-hoc manner in one of
-the following two ways: \textit{ i. trigger-based}
-composition~\cite{netherite} where functions invoke their immediate downstream
-functions with \emph{asynchronous} triggers, usually via a queue or data
-store, (e.g., a lambda writes to an SQS queue or S3 bucket which in turn sends
-an event to Lambda and triggers the next function), and \textit{ii.driver
-functions}~\cite{beldi} where a single function, similar to the
-\texttt{main()} function of a program, encompasses the control-flow logic and
-invokes other functions \emph{synchronously}. Figure~\ref{fig:chain-example}
-depicts an example of chaining functions with the two approaches.
-	
-\shadi{shouldn't the first figure (a) have a storage in the middle?}\dhl{For
-the figure, I was intentionally not showing a storage because 1. the point is
-that it's \emph{asynchronous}, 2. AWS Lambda's async invoke API actually hides
-the fact that it's going over a queue. You simply call \texttt{invoke(data,
-RequestType=Event)}, and that adds an item to Lambda's internal queue, which
-then generates an event that triggers your lambda. I've adjusted the text to
-highlight the \emph{asynchronous} nature and downplay the details about
-storage. Take a look and let me know if it works. If not, we can add storage
-into Figure 1. But my concern with it is that people might think \name{} needs to
-manage similar intermediary data stores while in fact it's managed by Lambda.
-The important feature we care about is just that the invocation is
-asynchronous. We don't actually care that it's going over a storage.}
-\shadi{can we add the "async" keyword on the figure. Right now the figure is very simple. Not sure it is worth having the figure at all. It is not adding much more than what is in the text. One option would be to remove the figure entirely and just rely on text. }
-\shadi{from the figure and text it is not clear what is the diff between
-driver and coordinator. }\dhl{Edited the figure caption. Take a look and let
-me know if it's on point and sufficient? High-level note: I think the missing
-piece in the text is how the different approaches program differently. How
-developers write actual code.} \shadi{The caption is clear but too detailed for a caption. I still don't see much value in the figure unless you can somehow capture the details in the caption in the figure itself. For example, for (a) you can add async on the arrow, for (c) you can add a small box with "app logic" being submitted to the orchestrator depicting the high level API. If this does not make sense, maybe remove the figure?}
+For example, a developer builds a function that creates thumbnails from large
+images and configures the platform to trigger the function whenever a new image
+is uploaded to their object store. When there is a burst of such events---e.g\
+if an end-user uploads their whole photo library at once---the platform can
+scale by spawning many parallel instances of the function to respond to events
+within seconds and reclaim resources when the bust subsides.
 
-\shadi {let's just use trigger based throughout the paper}\dhl{Yes.}
+This simple abstraction can be used to build many simple applications with one
+or a few functions. For example, developers can chain functions for data
+pipelines using triggers. In trigger-based composition~\cite{netherite} each
+function in a chain invokes the next asynchronously or each function writes to a
+data-store configured to invoked the next function in response to the storage
+event. Similarly, developers might use a ``driver-function''~\cite{beldi} to
+drive more intricate control-flow logic. A driver function is a function that
+that invokes one or more other functions, waits for their responses, and invokes
+subsequent functions with their response.
+
+%\subsubsection{Ad-hoc composition: triggers and driver functions}
+%
+%The original serverless abstraction is designed around developing individual
+%functions--a \textit{single} unit of work that can run independently on any
+%machine. However, this design does not provide a higher-level interface to
+%easily express control-flow logic \emph{between} functions. To build larger
+%applications that are composed from multiple functions, early adopters use
+%function invocation APIs to exress control-flows in an ad-hoc manner in one of
+%the following two ways: \textit{ i. trigger-based}
+%composition~\cite{netherite} where functions invoke their immediate downstream
+%functions with \emph{asynchronous} triggers, usually via a queue or data
+%store, (e.g., a lambda writes to an SQS queue or S3 bucket which in turn sends
+%an event to Lambda and triggers the next function), and \textit{ii.driver
+%functions}~\cite{beldi} where a single function, similar to the
+%\texttt{main()} function of a program, encompasses the control-flow logic and
+%invokes other functions \emph{synchronously}. Figure~\ref{fig:chain-example}
+%depicts an example of chaining functions with the two approaches.
+%
+%\shadi{shouldn't the first figure (a) have a storage in the middle?}\dhl{For
+%the figure, I was intentionally not showing a storage because 1. the point is
+%that it's \emph{asynchronous}, 2. AWS Lambda's async invoke API actually hides
+%the fact that it's going over a queue. You simply call \texttt{invoke(data,
+%RequestType=Event)}, and that adds an item to Lambda's internal queue, which
+%then generates an event that triggers your lambda. I've adjusted the text to
+%highlight the \emph{asynchronous} nature and downplay the details about
+%storage. Take a look and let me know if it works. If not, we can add storage
+%into Figure 1. But my concern with it is that people might think \name{} needs to
+%manage similar intermediary data stores while in fact it's managed by Lambda.
+%The important feature we care about is just that the invocation is
+%asynchronous. We don't actually care that it's going over a storage.}
+%\shadi{can we add the "async" keyword on the figure. Right now the figure is very simple. Not sure it is worth having the figure at all. It is not adding much more than what is in the text. One option would be to remove the figure entirely and just rely on text. }
+%\shadi{from the figure and text it is not clear what is the diff between
+%driver and coordinator. }\dhl{Edited the figure caption. Take a look and let
+%me know if it's on point and sufficient? High-level note: I think the missing
+%piece in the text is how the different approaches program differently. How
+%developers write actual code.} \shadi{The caption is clear but too detailed for a caption. I still don't see much value in the figure unless you can somehow capture the details in the caption in the figure itself. For example, for (a) you can add async on the arrow, for (c) you can add a small box with "app logic" being submitted to the orchestrator depicting the high level API. If this does not make sense, maybe remove the figure?}
+%
+%\shadi {let's just use trigger based throughout the paper}\dhl{Yes.}
 
 
 
@@ -98,17 +115,26 @@ developers write actual code.} \shadi{The caption is clear but too detailed for 
 %\emph{synchronously}. Figure~\ref{fig:chain-example} depicts an example of
 %chaining functions with the two approaches. \shadi{shouldn't the first figure (a) have a storage in the middle?} \shadi{from the figure and text it is not clear what is the diff between driver and coordinator. }
 
+Such ad-hoc approaches work ``out-of-the-box'', i.e.\ they require no additional
+platform provided infrastructure. However neither is well suited to complex
+applications with 10s or 100s of functions~\cite{excamera, hello-retail}.
+Trigger-based composition can only support chaining of individual functions or
+fan-out patters, but cannot support fan-in patterns. As a result, only a limited
+class of applications can take advantage of burst parallelism for each
+application request. Moreover, trigger-based composition scatters control-flow
+logic across each function or in configured storage events making development
+unwieldy for long chains.
 
-Although both approaches are ``purely serverless'', i.e., they do not require
-adding additional components to the serverless infrastructure, neither is
-well-suited for the complexities of emerging serverless applications that
-consists of 10s or 100s of functions~\cite{excamera, hello-retail}.
-Trigger-based composition scatters control-flow logic across constituent
-functions, thus, development quickly gets unwieldy as the number of functions in the
-application increases. More importantly, it does not support all forms of
-composition such as fan-in that aggregates results from multiple (potentially)
-concurrent functions after \textit{all} are complete \footnote{\shadi{This is due to the asynchronous invocations of triggers with no support for either synchronizing across concurrent
-	instances, or the inability to pass caller's data other function's data to the callee.}}.
+%Although both approaches are ``purely serverless'', i.e., they do not require
+%adding additional components to the serverless infrastructure, neither is
+%well-suited for the complexities of emerging serverless applications that
+%consists of 10s or 100s of functions~\cite{excamera, hello-retail}.
+%Trigger-based composition scatters control-flow logic across constituent
+%functions, thus, development quickly gets unwieldy as the number of functions in the
+%application increases. More importantly, it does not support all forms of
+%composition such as fan-in that aggregates results from multiple (potentially)
+%concurrent functions after \textit{all} are complete \footnote{\shadi{This is due to the asynchronous invocations of triggers with no support for either synchronizing across concurrent
+%	instances, or the inability to pass caller's data other function's data to the callee.}}.
 
 %, \dhl{as
 %asynchronous invocation alone do not support synchronizing across concurrent
@@ -116,20 +142,20 @@ concurrent functions after \textit{all} are complete \footnote{\shadi{This is du
 %to the callee.}
 
 On the other hand, driver functions concentrate control flow in a single
-function and support arbitrary composition. However, they can  create ``double
-billing'' by the driver function idly waiting for callees to return. Also, the
-driver function has to wait until all functions in the application complete,
-which risks hitting the commonly imposed timeouts (e.g., 900 second on AWS
-Lambda) and limits scalability.
+function and support arbitrary composition. However, they result in ``double
+billing'' since the driver function consumes resources for the entire call-graph
+execution despite spending most of its time idly waiting for callees to return.
+Furthermore, since most serverless platforms impose modest timeouts on
+individual functions driver-functions risks timing out before a call-graph is
+complete.
 
-
-Moreover, neither approach provides the commonly sought-after ``exactly once''
-semantics~\cite{netherite, beldi, boki, formal-foundation-exec-gtnee}.
-Functions can crash mid-execution due to runtime or hardware faults which may
-lead to automatic retries~\cite{aws-lambda-retry, azure-functions-retry}. Even
-in the absence of faults, most FaaS systems only ensure at-least-once
-execution~\cite{aws-lambda-async-invoke, azure-functions-exec-guarantee}, so a
-single invocation can trigger multiple, potentially concurrent, instances.
+Finally, both ad-hoc approaches require developers to handle function crashes,
+retries and multiple invocations gracefully~\cite{aws-lambda-retry,
+azure-functions-retry, aws-lambda-async-invoke, azure-functions-exec-guarantee}.
+Application typically want to ensure ``exactly once'' semantics~\cite{netherite,
+beldi, boki, formal-foundation-exec-gtnee} for an entire call-graph, but both
+failing and multiple invocations of individual constituent functions can subvert
+this goal with careful consideration.
 
 
 %\dhl{Maybe explain why fan-in is not supported as a contrast to \name{}. But
