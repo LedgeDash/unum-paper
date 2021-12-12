@@ -197,53 +197,55 @@ faster than Step Functions, likely for the same reason of reduced number of
 network communications mentioned in the last section.
 
 While \name{}'s latency improvement over Step Functions is marginal,
-especially for workflows whose functions perform real and expensive
+especially for workflows in which functions perform real and expensive
 computations, \name{}'s latency breakdown shows great potential for automatic
-future improvements as serverless gets faster. Because the majority of
-\name{}'s runtime overhead comes from APIs calls to Lambda and DynamoDB, a
-faster NoSQL database or FaaS system will automatically reduce bulk of
-\name{}'s latency without any modification to \name{} itself.
+future improvements as serverless gets faster. For instance, a
+faster NoSQL database or FaaS system will automatically reduce the bulk of
+\name{}'s latency without any modification to \name{} itself, since the majority of
+\name{}'s runtime overhead comes from APIs calls to Lambda and DynamoDB.
 
 \subsubsection{Fan-out and fan-in performance}\label{sec:eval:fan-out}
 
-Next, we evaluate how \name{} performs on executing a number of tasks in
-parallel with the fan-out pattern, and compare with Step Functions. Quickly
-launching parallel functions is important for serverless applications because
-many require high degrees of parallelism (e.g., ExCamera runs thousands of
-encoding lambdas in parallel) and migrate to serverless specifically for its
-fast autoscaling.
+The ability to quickly launch parallel functions is important for serverless
+applications because many require high degrees of parallelism (e.g., ExCamera
+runs thousands of encoding lambdas in parallel) and migrate to serverless
+specifically for its fast autoscaling. In this section, we evaluate how
+\name{} performs on executing a number of tasks in parallel with the fan-out
+pattern, and compare with Step Functions.
 
 We measure the end-to-end latency of launching a number of parallel branches
 and then aggregating the result of all branches in a single fan-in function.
-Similarly, we use a function that performs no computation so that the
-end-to-end latency maximally reflects the performance of the workflow system.
+Similar to Section \ref{sec:eval:chain}, we use a function that performs no
+computation so that the end-to-end latency best indicates the performance of
+the workflow system.
 
 
 Figure~\ref{fig:mapmicrolatency} shows the end-to-end latency (logscale) of
-fan-out and fan-in at varying degrees of parallelism. At lower degree of
-parallelism (2-16 parallel branches), \name{} is around 100-200ms or 26-32\%
-slower than Step Functions. However, \name{} starts to outperform Step
-Functions at even moderately higher parallelism of 32 parallel branches
-(2.37x) and up to 4.58x at 512 parallel branches.
+fan-out and fan-in at varying degrees of parallelism. \name{} consistently
+outperforms Step Functions with 32 or more parallel branches, with an
+improvement in speed of up to 4.58 times that of Step Functions (achieved at
+512 parallel branches).
 
-At lower degree of parallelism, \name{} is slower than Step Functions because
-launching branches is slower with our Python implementation as the
-asynchronous invocations essentially execute in series, while Step Functions
-starts branches truly in parallel. However, Step Functions starts to throttle
-branch creations very quickly. Step Functions documentation states that it
-might pause creating branches when the number exceeds
-40~\cite{aws-step-functions-map-state}, but we observe throttling starts
-around 20 parallel branches. This explains why \name{} scales much faster when
-the degree of parallelism increases.
+At lower degrees of parallelism (2-16 parallel branches), \name{} is around
+100-200ms or 26-32\% slower than Step Functions. This is likely due to our
+Python implementation asynchronously invoking each branch in sequence, while
+Step Functions starts branches truly in parallel. That being said, Step
+Functions starts to throttle branch creations very quickly---we observe
+throttling starting around 20 parallel branches, although Step Functions
+documentation states that it might pause creating branches when the number
+exceeds 40~\cite{aws-step-functions-map-state}. Without such limitation,
+\name{} scales much faster when the degree of parallelism increases.
 
-While our result is not arguing that centralized orchestrators fundamentally
-scale worse than \name{}'s decentralized design, it is demonstrating that the
-added orchestrator can easily become a performance bottleneck, whether due to
-implementation or design restrictions, and its scalability problems has to be
-solved again independently for the end-to-end system to perform well, all of which are out of the control of users. On the
-other hand, \name{} can leverage Lambda's fast autoscale capability without
-imposing any additional restrictions because we introduce no new services and
-build entirely on top of the existing serverless components.
+Our results demonstrate that the added orchestrator can easily become a
+performance bottleneck, whether due to implementation or design restrictions,
+and its scalability problem has to be solved again independently for the
+end-to-end system to perform well, all of which are out of users' control.
+While we do not claim that centralized orchestrators fundamentally scale worse
+than \name{}'s decentralized design, we show that \name{} can leverage
+Lambda's fast autoscale capability without imposing any additional
+restrictions because we build entirely on top of the existing serverless
+components without introducing new services.
+
 
 % \subsubsection{Cost comparison}
 
@@ -363,10 +365,10 @@ build entirely on top of the existing serverless components.
 		\hline
 		&                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
 		\textbf{Application} & \textbf{Pattern}       & \textit{\name{}} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
-		IoT Pipeline         & chain                  & 0.18       & 0.23       & 3.4       & 111.6   \\
+		IoT Pipeline         & chain                  & 0.18       & 0.23       & 4.1       & 112.1   \\
 		Text Processing      & fan-out, fan-in        & 0.56       & 0.55       & 12.0      & 196.3   \\
 		Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
-		ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 8,299.5   & 84,150.0      \\ \hline
+		ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 37,289.1   & 110,494.7      \\ \hline
 	\end{tabular}
 	\caption{Latency and costs comparison between \name{} and Step Functions for
 		the macrobenchmark applications. Running applications on \name{} is 3.7x to
