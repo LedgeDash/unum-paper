@@ -16,10 +16,8 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 	\item Given a workflow written in a high-level description language, how
 	to partition its orchestration logic such that it can run in a
 	decentralized manner in-situ with user functions?\dhl{Sync with
-	background, readers should know that the workflow definitions
-	\emph{logically} expresses a directed graph where nodes are constituent
-	functions and edges are transitions. And the orchestrator executes the
-	transitions by...}
+	background, workflow definitions \emph{logically} expresses a directed
+	graph}
 
 	\item How to efficiently execute orchestration patterns that require data
 	sharing and synchronization across function instances (e.g., fan-in) in a
@@ -43,52 +41,37 @@ compiler and an intermediate representation (IR). Given a workflow definition
 written in a high-level description language, the frontend compiler derives a
 directed graph representation where nodes are constituent functions of the
 workflow and edges represent workflow transitions between
-functions.\dhl{again, sync with background. readers should know this is not
-hard to do because existing languages logically already express such a
-directed graph.} Based on the directed graph, the compiler generates an IR in
+functions. Based on the directed graph, the compiler generates an IR in
 the form of configuration files, one file for each node in the graph. A
-\name{} configuration encodes all the outgoing edges of a node by specifying
-i. \emph{which} function(s) to run next, ii. \emph{when} to invoke the next
-function(s), and iii. \emph{what} to send to the next function(s). Thus,
-instead of the entire workflow logic centralized in a single definition, each
-function in the workflow is assigned a configuration that defines how to
-transition just to its immediate downstream nodes.
+\name{} configuration encodes all the outgoing edges of a node such that each
+function in the workflow knows how to transition just to its immediate
+downstream nodes.
 
 With the configurations from the IR, \name{} solves the second challenge using
 a decentralized orchestrator (\deorc) that efficiently implements a set of
 workflow patterns in a decentralized manner and can run in-situ with the
 constituent user functions. In particular, the \deorc{} is a platform-specific
-runtime library made up of an ingress component and a egress component that
-transparently interposes on user function entry and exit. Developers package
-each user function with its assigned \name{} configuration and the \deorc{} to
-create an \emph{unumized} function. When an unumized function executes, its
-entry point is no longer the user code but instead the \deorc{} ingress. And
-when user code completes, it returns its results to the \deorc{} egress which
-then interprets its co-located \name{} configuration and performs the workflow
-transition.
-
-The \name{} \deorc{} supports a range of transition patterns that can express
-a rich variety of workflows efficiently, including a superset of workflows
-expressible in AWS Step Functions and all workflows we encountered.
+runtime library made up of an ingress component and a egress component.
+Developers package each user function with its assigned \name{} configuration
+and the \deorc{} to create an \emph{unumized} function. When an unumized
+function executes, its entry point is no longer the user code but instead the
+\deorc{} ingress. And when user code completes, it returns its results to the
+\deorc{} egress which then interprets its co-located \name{} configuration and
+performs the workflow transition.
 
 A critical complexity is to enable fan-in patterns where a single ``sink''
 function aggregates the results of multiple upstream functions. Importantly,
 to avoid idle-billing (\S\ref{sec:bg}), we want the entire fan-in pattern to
 execute \emph{wait-free}, i.e., to invoke the sink function only when all its
-input upstream functions have completed and none of the upstream functions
-waits for each other to complete. To this end, \name{} leverages a shared
-\emph{intermediary data store} that is a strongly consistent serverless
+input upstream functions have completed. To this end, \name{} leverages a
+shared \emph{intermediary data store} that is a strongly consistent serverless
 storage (e.g., DynamoDB) with conditional store operations. Upstream functions
-each writes user code output into the intermediary data store such that it is
-accessible to other upstream functions and the sink function. Then the
-upstream functions synchronize over an object in the intermediary data store
-using conditional update such that faster functions simply terminate and only
-the last-to-finish function invokes the sink function and pass all upstream
-functions output as pointers to the intermediary data store.
+each writes user code output into and synchronizes over the intermediary data
+store such that faster functions simply terminate and only the last-to-finish
+function invokes the sink function.
 
 \name{} leverages again the intermediary data store to also solve the third
-challenge and provide \emph{exactly-once} execution semantics, meaning that
-each step of the workflow appears to execute exactly once. \name{} uses
+challenge and provide \emph{exactly-once} execution semantics. \name{} uses
 checkpointing, where each function checkpoints its output to the intermediary
 data store, to limit the scope of retries when workflows crash mid-execution
 and guarantee that even if there are multiple instances of the same function,
@@ -96,31 +79,9 @@ concurrent or not, only one instance's output is taken as the final result and
 propargates downstream.
 
 
-\dhl{Sync with background. Reader should know by now how serverless workflows
-are normally developed. Use AWS Step Functions and Lambda as concrete example.
-A serverless workflow with Step Functions and Lambda = A Step Functions
-workflow definition written in JSON that expresses a state machine + a set of
-lambdas \emph{user code}. When deployed, a SF and a set of lambdas are
-created. When running, the SF instance invokes lambdas and lambdas send
-results back to SF.}
-
-
 \input{architecture}
 \input{patterns}
 \input{ir-design}
-
-
-
-
-
-
-Efficiently executing workflows in a
-decentralized manner requires solving three challenges.
-
-Most workflow language directly or indirectly express a directed graph
-(\S\ref{sec:bg}.\dhl{Sync with Background. make sure to explain this already}
-
-Instead of a centralized orchestrator executing workflows, \name{}
 
 
 
