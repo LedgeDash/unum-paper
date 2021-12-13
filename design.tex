@@ -3,38 +3,41 @@
 \begin{figure*}[t]
 	\centering
 	\begin{subfigure}[t]{0.8\textwidth}
-		       \includegraphics[width=\columnwidth]{figures/unum-arch-compile-time.pdf}
+	\centering
+		       \includegraphics[width=0.8\columnwidth]{figures/unum-arch-compile-time.pdf}
 		% \includegraphics[width=\columnwidth]{figures/architecture.png}
-		\caption{Stateful serverless computations form a directed graph. Nodes
-			are user defined FaaS functions and ingress and egress ``gadgets'' that perform the necessary data movement, synchronization, and checkpointing between user functions.}
+		\caption{Serverless workflows form directed graphs. \name{}
+		partitions the graph into an intermediate representation where each
+		function is embedded with a configuration that encodes how to
+		transition to its immediate downstream nodes. Developers package user
+		function, \name{} config and \name{}'s runtime library (\deorc{})
+		together to create unumized functions.}
 		\label{fig:arch:unum-compile-time}
-		% unum injects gadgets to functions at compile time. But more
-		% specifically, unum injects an encoding of gadgets at compile time.
-		% The encoding expresses control-flow transitions just like what the
-		% high-level workflow definition.
+
 	\end{subfigure}
 	\begin{subfigure}[b]{\columnwidth}
 		\centering
 		\includegraphics[width=0.8\columnwidth]{figures/unum-arch-centralized.pdf}
-		\caption{A typical stateful serverless system drives workflow logic
-			using a centralized controller that manages the computation's state-machine.}
+		\caption{A typical serverless workflow system drives workflow logic
+			using a centralized orchestrator that invokes constituent
+			functions and waits for their outputs.}
 		\label{fig:arch:centralized}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}[b]{\columnwidth}
 		\centering
 		\includegraphics[width=.7\columnwidth]{figures/unum-arch-runtime.pdf}
-		\caption{At runtime, all \name{} control logic is decentralized and runs within the Faas 
-			functions executed on an unmodified serverless platform. For synchronization and checkpointing, \name{} relies exclusively on a
-			standard datastore of choice, such as DynamoDB or Cosmos DB.}
+		\caption{At runtime, \name{} orchestration logic is decentralized and
+			runs in-situ with the user functions on an unmodified serverless
+			platform. For synchronization and checkpointing,
+			\name{} relies exclusively on a standard datastore of choice, such
+			as DynamoDB or Cosmos DB.}
 		\label{fig:arch:unum-runtime}
 	\end{subfigure}
-	\caption{\name{} System Overview. Serverless computations form a directed
-		graph that encode sequential and data dependencies between functions. Workflow
-		orchestrators drive these graphs by centralizing control flow logic and
-		interposing on all communication between functions. \name{},
-		instead, decentralizes control flow logic among the functions with
-		no need for a separate orchestration system.}
+	\caption{\name{}'s Decentralized Orchestration. \name{} partitions
+	orchestration logic at compile time and a decentralized orchestrator
+	(\deorc{}) runs in-situ with user functions to perform only the
+	orchestration logic local to its subsection of the graph.}
 	\label{fig:arch}
 \end{figure*}
 
@@ -68,7 +71,8 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 \name{} contributes an end-to-end system that solves the three challenges and
 delivers better performance and cost savings than a state-of-the-art
 production orchestrator (\S\ref{sec:eval}). Figure~\ref{fig:arch} depicts
-\name{}'s architecture graphically.
+\name{}'s architecture and contrasts how \name{} executes workflows vs a
+centralized orchestrator.
 
 \name{} solves the first challenge \emph{at compile time}, using a frontend
 compiler and an intermediate representation (IR). Given a workflow definition
@@ -118,13 +122,20 @@ efficiently executes transitions in a decentralized manner, and finally we
 detail \name{}'s checkpointing mechanism and how it ensure exactly-once
 execution semantics.
 
-% \input{architecture}
-% \input{patterns}
 \input{ir-design}
 
 
 
-\subsection{Decentralized Orchestration with \deorc{}}
+\subsection{Decentralized Orchestration with \deorc{}}\label{sec:runtime}
+
+\begin{figure}[t!]
+	\centering
+	\scalebox{1}{\includegraphics[width=\columnwidth]{figures/deorc-patterns.pdf}}
+	\caption{\deorc{} implements transitions in a decentralized manner where
+the egress on the source function(s) and ingress on the target function(s)
+work together to execute the orchestration.}
+	\label{fig:transition}
+\end{figure}
 
 \begin{figure}[]
     \begin{minted}[
@@ -151,70 +162,153 @@ execution semantics.
     \label{fig:input-format}
 \end{figure}
 
-The primary purpose of the \name{} runtime is to implement the transition with
-platform-specific APIs and manage runtime metadata that is required by the
-\name{} IR naming scheme and programmable constructs. We design the runtime to
-wrap user code and transparently interpose on its entry and exit so that we do
-not change how developers write application code.
+The second challenge of \name{} is to efficiently implement decentralized
+orchestration. \name{} designs a decentralized orchestrator (\deorc) that
+consists of an ingress and an egress component and can run in-situ with
+constituent user functions. \deorc{} transparently interposes on user code
+entry and exit so that it does not change how developers write application
+code.
 
- \name{} requires a specific input payload schema in JSON
-(Figure~\ref{fig:input-format}). When a function is invoked, the input data is
-first received by the runtime ingress. The ingress uses the \texttt{Data}
-field to read the user function's input data. If the \texttt{Source} is
-\texttt{http}, the input data is directly embedded in the \texttt{Value}
-field. Otherwise, \name{} uses the pointers in \texttt{Value} to read the
-input data from the intermediary data store.
+The primary purpose of \deorc is to interpret IR configurations and implement
+transitions with platform-specific APIs. In particular, \deorc{} implements
+transitions in a decentralized manner where the egress on the source
+function(s) and ingress on the target function(s) work together to execute the
+transition.
 
-After user function returns, the egress runtime gets its output and checks the
-IR configuration to see if there is a transition to execute. If no, it simply
-terminates. If yes, it checks if the \texttt{Conditional} evaluates to true
-and then executes the transition's egress.
+A key requirement of \deorc's design is to only use the basic serverless
+abstraction without relying on any specialized APIs. Therefore, we designed
+\deorc{} such that it only depends on two serverless components that are
+universally supported by all platforms: i. a FaaS system that supports
+asynchronous invocation of functions (e.g., AWS Lambda, Azure Functions,
+Google Cloud Funtions, Openwhisk) and ii. a strongly consistent data store
+that supports conditional write operations (e.g., DynamoDB, Cosmos DB).
 
-\name{} keeps all runtime metadata in the input payload such that the
-functions remain stateless and do not need to persist data via a data store
-across invocations. \name{} uses the \texttt{Fan-out} field to store branch
-indexes. The \texttt{Fan-out} field contains a recursive \texttt{OuterLoop}
-field that \name{} uses to support nest fan-outs.
+Figure~\ref{fig:transition} depicts how \deorc executes \texttt{chain},
+\texttt{map} and \texttt{fan-in}. The other patterns described in
+\S\ref{sec:ir} are variations of these three patterns.
+
+\paragraph{chain} 
+
+The \texttt{chain} pattern involves one egress on source function and one
+ingress on the target function. When the \texttt{Next} field of the source
+function's \name{} config contains a single object whose \texttt{InputType} is
+\texttt{Scalar}, the \deorc{} egress simply invokes the target function with
+the source function's user code's output. \deorc{} uses asynchronous
+invocation to avoid waiting and idle-billing and a particular input payload
+schema in JSON (Figure~\ref{fig:input-format}) that contains \name{} runtime
+metadata.
+
+When the target function is invoked, the input is first received by the \deorc
+ingress. The ingress uses the \texttt{Data} field to read the user function's
+input data. If the \texttt{Source} is \texttt{http}, the input data is
+directly embedded in the \texttt{Value} field. Otherwise,
+\name{} uses the pointers in \texttt{Value} to read the input data from the
+intermediary data store. Finally, ingress calls its user function and passes
+it the input.
+
+\paragraph{fan-out}
+
+The \texttt{fan-out} pattern involves one egress on the source function and
+many ingresses on the target functions.
+
+Similar to chaining, the egress asynchronously invoke each target and the
+ingresses on targets read the input data sent from the source and passes it to
+its user function.
+
+\texttt{map} is a simple variation of \texttt{fan-out} where the egress treats
+its user code output as an iterable. \texttt{branch} is another variation
+where the egress first evaluates the boolean condition in \texttt{Conditional}
+before invoke the target function in that branch.
+
+\paragraph{fan-in}
+
+The \texttt{fan-in} pattern involves one ingress node and many egress nodes.
+It is the main complexity of decentralized orchestration as we want to ensure
+that the transition is \emph{wait-free} to avoid idle-billing. In particular,
+we want to invoke the sink function only when all upstream functions have
+completed so that the sink function does have to be spun up ahead of time and
+wait for upstream functions to finish. Moreover, the upstream functions should
+simply terminates when done instead of waiting for each other either.
+
+To achieve this, the \deorc{} egress always writes the output of its user
+function to a data store when its \name{} config has a \texttt{InputType} of
+\texttt{Fan-in}. This serves two purposes: (1). it allows any of the upstream
+functions to access the output of other upstream functions (2). it signals the
+completion of a function. This way, each egress can simply writes its output
+and terminate. Other egress nodes can still access completed egress' data
+after they terminate. Any one of the egress can invoke the sink function. And
+any one of the egress can see if other egress has completed or not.
+
+Strongly consistent data store is important because it prevents the
+scenarios where all egress have written outputs but none of them sees that all
+have completed, which results in the sink function never invoked.
+
+Additionally, \texttt{fan-in} makes sure that when the sink function is
+invoked, it is invoked only once. \name{} achieves this by having the egress
+nodes synchronize with each other via the same data store such that only the
+last-to-finish egress invokes the sink function. Synchronization is done with
+atomic read-after-write over a single object. Specific implementation depends
+on the data store and we discuss the details in \S\ref{sec:impl}.
+
+The last-to-finish egress invokes the sink function with a vector of pointers
+to each upstream function's stored output. The pointers are the in same order
+as the vector of upstream function names. The ingress on the sink function
+dereferences each point by reading from the data store and passes a vector of
+output values to its user function.
+
+
+\subsubsection{Runtime Metadata}
+
+To support a rich variety of orchestration patterns, \name{} requires a
+specific input payload schema in JSON (Figure~\ref{fig:input-format}) that
+contains \name{} runtime metadata. In particular, \name{} uses the
+\texttt{Fan-out} field to store branch indexes. The \texttt{Fan-out} field
+contains a recursive \texttt{OuterLoop} field that \name{} uses to support
+nest fan-outs. The \texttt{\$0} and \texttt{\$size} variable in
+\name{} IR (\S\ref{sec:ir}) refers to the \texttt{Index}  and \texttt{Size}
+field of the top-level \texttt{Fan-out} field.
 
 The runtime additionally uses a \texttt{Session} field to support concurrent
 invocations of the same workflow. The \texttt{Session} field is a UUID string
 that is unique to a workflow invocation and shared by all constituent function
-instances in the invocation. Function checkpoint names are prefixed by the
-\texttt{Session} string so that concurrently invocations do not overwrite each
-other's data.
-
-The \name{} runtime also implements exactly-once semantics with a
-checkpointing mechanism which we discuss in the next section.
+instances in the invocation. Function checkpoint names
+(\S\ref{sec:exec-gntee}) are prefixed by the \texttt{Session} string so that
+concurrently invocations do not overwrite each other's data. We discuss
+\name{} checkpoints and execution guarantees details in the next section.
 
 
-\section{Execution Guarantees}
+\subsection{Execution Guarantees}\label{sec:exec-gntee}
 
-An important characteristic of any workflow system 
-is (a) how it deals with  a transient failure in a constituent step, and 
-(b) what guarantees it makes in the presence of such faults.
+An important characteristic of any workflow system is (a) how it deals with  a
+transient failure in a constituent step, and (b) what guarantees it makes in
+the presence of such faults.
  
-Most workflow systems use checkpointing to limit the scope of re-execution after faults. 
-In \name{}, each function is checkpointed to storage after it completes. In particular, if a
-workflow experiences crashes mid-execution, \name{} does not retry from the beginning but
-from the node of failure only.
+Most workflow systems use checkpointing to limit the scope of re-execution
+after faults. In \name{}, each function is checkpointed to storage after it
+completes. In particular, if a workflow experiences crashes mid-execution,
+\name{} does not retry from the beginning but from the node of failure only.
 
-\name{} guarantees \textbf{exactly-once execution}, meaning that each step of the 
-workflow appears to execute exactly once. Even though FaaS engines already support automatic retries for functions,
-they only guarantee at-least-once execution. Strengthening this guarantee requires dealing with the following subtleties:
+\name{} guarantees \textbf{exactly-once execution}, meaning that each step of
+the workflow appears to execute exactly once. Even though FaaS engines already
+support automatic retries for functions, they only guarantee at-least-once
+execution. Strengthening this guarantee requires dealing with the following
+subtleties:
+
 \begin{itemize}
-\item Function executions are not always deterministic, each re-execution may produce a different result.
-\item The FaaS engine may detect failures incorrectly, thus multiple executions of a function can be in progress simultaneously.
+	\item Function executions are not always deterministic, each re-execution
+	may produce a different result.
+	\item The FaaS engine may detect failures incorrectly, thus multiple
+	executions of a function can be in progress simultaneously.
 \end{itemize}
 
-Fortunately, we found a way to handle these challenges by taking advantage of conditional store operations 
-supported by strongly consistent data stores. 
-Specifically, \name{} guarantees that even if there are
-multiple function execution instances, concurrent or not, only one instance's result is
-taken as the final result and propagates to the downstream ingress node(s).
-Other instances simply discard their results and terminate. 
+Fortunately, we found a way to handle these challenges by taking advantage of
+conditional store operations supported by strongly consistent data stores.
+Specifically, \name{} guarantees that even if there are multiple function
+execution instances, concurrent or not, only one instance's result is taken as
+the final result and propagates to the downstream ingress node(s). Other
+instances simply discard their results and terminate.
 
-\paragraph{Checkpoints and Synchronization.}
-%\name{} uses a similar checkpointing technique across all transition patterns. 
+\paragraph{Checkpoints and Synchronization.}%\name{} uses a similar checkpointing technique across all transition patterns. 
 After user code completes, the \name{} egress gadget immediately writes a checkpoint file that contains the user code
 results to the intermediary data store. The checkpoint is uniquely named with
 the instance's name (i.e., the name according the
@@ -238,49 +332,15 @@ crashed after checkpointing but before running the downstream ingress node. \nam
 tolerate running a ingress/egress node more than once because of the same protection
 against duplicates.
 
-\paragraph{External Side Effects.}
-In the applications targeted by \name{}, there is no need for functions to directly call external storage services. 
-Rather, all functions are "side-effect-free": their only effect is to provide a result.
-Therefore, the "exactly-one-result" guarantee of the \name{} runtime is in fact synonymous with exactly-once execution.
+\paragraph{External Side Effects.} In the applications targeted by \name{},
+there is no need for functions to directly call external storage services.
+Rather, all functions are "side-effect-free": their only effect is to provide
+a result. Therefore, the "exactly-one-result" guarantee of the \name{} runtime
+is in fact synonymous with exactly-once execution.
 
-Although it is not currently required by any of our applications, it is conceivable to extend \name{} in the future to support
-workflows whose functions have additional side effects. For example, a store interposition mechanism (such as used in Beldi \cite{beldi}) could 
-be added to support functions that require more complex storage interactions than obtaining an input and producing a result.
-
-
-\amit{TODO: Are there special considerations for exactly-once
-	semantics? i.e. is checkpointing different than it is in chaining?}
-\dhl{No. In fact checkpoint works independently from the control-flow
-	patterns. The algorithm for exactly-once semantics is the same across all
-	gadgets.
-	
-	Now specifically for fan-out it works like this: the fan-out initiator node
-	will checkpoint right after user code returns which saves the data that is
-	about to be fanned out. After checkpointing completes, the fan-out initiator
-	node invokes the branches. If it crashes at any point during the series of
-	invocations, unum retries the fan-out initiator lambda. The unum runtime on
-	the lambda will see that a checkpoint with its name already exists, and
-	therefore skips running the user function. But it will not skip retrying the
-	fan-out, and it restarts the fan-out \emph{from the beginning}, which will
-	result in duplicate instances for some or even all of the branches. But that
-	is OK. Because the unum runtime protects against duplicates and still ensures
-	exactly-once semantics. If the duplicates are concurrent (i.e., the original
-	branch instances are still running), we protects that with a conditional write
-	when checkpointing the results so only one instance of the duplicates will
-	win. If the duplicates are nonconcurrent (i.e., the original branch instances
-	already completed), the duplicates will skip running the user functions
-	altogether.
-	
-	The fan-out initiator will keep retrying until a full fan-out is performed to
-	make sure at-least-once invocation.
-	
-	% (explaining this makes me appreciate the consistency papers even more, 'cuz
-	% this stuff is hard to explain.)
-	
-	So the patterns do not change the algorithms with which we provide exactly
-	once. They work independently from each other. The only real gotcha we need to
-	be careful with in \emph{implementing} exactly-once is nonidempotent
-	operations, as pointed out by you. Specifically, the synchronizations across
-	branches have to be idempotent. The purpose is prevent pre-mature fan-in.
-	
-}
+Although it is not currently required by any of our applications, it is
+conceivable to extend \name{} in the future to support workflows whose
+functions have additional side effects. For example, a store interposition
+mechanism (such as used in Beldi \cite{beldi}) could be added to support
+functions that require more complex storage interactions than obtaining an
+input and producing a result.
