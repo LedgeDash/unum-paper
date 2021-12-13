@@ -125,6 +125,13 @@ application request. Moreover, trigger-based composition scatters control-flow
 logic across each function or in configured storage events making development
 unwieldy for long chains.
 
+\dhl{This and the last para jumped into patterns without first defining them.
+Why can't ad-hoc approach support fan-in? What is fan-in in serverless and why
+do we need it? I think it'd be useful to describe the patterns at least
+concisely to some extent in the bg, because it'll help the readers appreciate
+the necessity and difficulty, and it will make the design section easier to
+write since it won't be the first time readers see these patterns.}
+
 %Although both approaches are ``purely serverless'', i.e., they do not require
 %adding additional components to the serverless infrastructure, neither is
 %well-suited for the complexities of emerging serverless applications that
