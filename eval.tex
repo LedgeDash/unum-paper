@@ -6,51 +6,51 @@ Functions---on latency and costs of running applications. Specifically, we ask
 the following questions:
 
 \begin{enumerate}
-	
-    \item Given the same application, what is the end-to-end latency of
+
+  \item Given the same application, what is the end-to-end latency of
     running it with \name{} and how does it compare with Step Functions?
-	
-    \item What are the sources of \name{'s} latency overhead? How much does
+
+  \item What are the sources of \name{'s} latency overhead? How much does
     the overhead come from API calls to the underlying serverless components?
-	
-	\item Given the same application, what is the billing cost of running it
-	with \name{} vs that with Step Functions?
-	
-	\item What are the sources of \name{'s} billing costs? How much additional
-	costs does the \name{} runtime incur in Lambda duration billing? And how
-	much does it cost to provide exactly-once execution semantics from writing
-	and reading checkpoints?
-	
+
+  \item Given the same application, what is the billing cost of running it
+  with \name{} vs that with Step Functions?
+
+  \item What are the sources of \name{'s} billing costs? How much additional
+  costs does the \name{} runtime incur in Lambda duration billing? And how
+  much does it cost to provide exactly-once execution semantics from writing
+  and reading checkpoints?
+
 \end{enumerate}
 
 % We show that 
 
 % \begin{itemize}
-	
-	%     \item over 97\% of \name{}'s latency overhead comes from API calls to
-	%     Lambda and data stores, which means the bulk of \name{}'s performance will
-	%     automatically improve with the underlying platform (e.g., a faster Lambda
-	%     or data store) without any modification to \name{} itself.
-	
-	%     % \item The additional Lambda duration billing for executing \name{} runtime
-	%     % is negligible across all data sizes
-	
-	%     \item \name{} is slightly faster (11-28\%) in chaining performance and
-	%     much faster in parallel fan-out and fan-in performance (up to 4.58x),
-	%     especially at higher level of parallelism, than Step Functions.
-	
-	%     \item \name{} delivers more than one order-of-magnitude cost savings for
-	%     almost all applications we evaluated, even when using the more expensive
-	%     DynamoDB as the intermediary data store. The applications we use cover all
-	%     orchestration patterns that Step Functions currently support.
-	
-	%     \item \name{} is able to express all orchestration patterns that Step
-	%     Functions currently support. Additionally, with the ExCamera
-	%     implementation, we demonstrate that \name{} can express fold or for loops
-	%     and support pipeline parallelism, neither of which is expressible in Step
-	%     Functions.
-	
-	% \end{itemize}
+
+  %     \item over 97\% of \name{}'s latency overhead comes from API calls to
+  %     Lambda and data stores, which means the bulk of \name{}'s performance will
+  %     automatically improve with the underlying platform (e.g., a faster Lambda
+  %     or data store) without any modification to \name{} itself.
+
+  %     % \item The additional Lambda duration billing for executing \name{} runtime
+  %     % is negligible across all data sizes
+
+  %     \item \name{} is slightly faster (11-28\%) in chaining performance and
+  %     much faster in parallel fan-out and fan-in performance (up to 4.58x),
+  %     especially at higher level of parallelism, than Step Functions.
+
+  %     \item \name{} delivers more than one order-of-magnitude cost savings for
+  %     almost all applications we evaluated, even when using the more expensive
+  %     DynamoDB as the intermediary data store. The applications we use cover all
+  %     orchestration patterns that Step Functions currently support.
+
+  %     \item \name{} is able to express all orchestration patterns that Step
+  %     Functions currently support. Additionally, with the ExCamera
+  %     implementation, we demonstrate that \name{} can express fold or for loops
+  %     and support pipeline parallelism, neither of which is expressible in Step
+  %     Functions.
+
+  % \end{itemize}
 
 \subsection{Experimental setup}
 
@@ -97,7 +97,7 @@ invocation~\cite{aws-step-functions-exec-gntee}.
 % interpretation is that the internal states of a standard workflow will appear
 % to execute exactly once, but component functions might not run exactly-once
 % due to failures and retries, which is identical to \name{}. \shadi{this
-	% paragraph is a bit confusing... }
+  % paragraph is a bit confusing... }
 
 \subsection{Microbenchmarks}\label{sec:eval:micro}
 
@@ -105,46 +105,46 @@ In this section, we analyze \name{} on a series of micro-benchmark patterns in
 terms of both cost and latency.
 
 \begin{figure}[t!]
-	\centering
-	\includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
-	\caption{End-to-end latency of chaining N functions. All constituent
-		functions in the experiment only run for 1-2ms, so the results mostly
-		reflect the latency of the workflow systems. \name{} is marginally
-		(11-28\%) faster than Step Functions on average. The results show that
-		\name{} is basically as fast in the most fundamental orchestration
-		primitive of transitioning from one function to the next.}
-	\label{fig:chainmicrolatency}
+  \centering
+  \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
+  \caption{End-to-end latency of chaining N functions. All constituent
+    functions in the experiment only run for 1-2ms, so the results mostly
+    reflect the latency of the workflow systems. \name{} is marginally
+    (11-28\%) faster than Step Functions on average. The results show that
+    \name{} is basically as fast in the most fundamental orchestration
+    primitive of transitioning from one function to the next.}
+  \label{fig:chainmicrolatency}
 \end{figure}
 
 \begin{figure}[t!]
-	\centering
-	\includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
-	\caption{\name{} latency of transitioning from the completion of a funtion
-		to the start of the next function. The transition involves a Lambda
-		invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
-		and a checkpoint read from data store (a DynamoDB GetItem call). Overall
-		latency increases with data size due to more data written in the PutItem
-		call and sent to next function via the Lambda invoke call. Over 97.5\% of
-		the latency is the
-		\name{} runtime waiting for data store accesses and Lambda invoke API
-		calls to return. When the underlying platform improves (e.g., a faster
-		Lambda or data store), the bulk of \name{}'s performance will
-		automatically improve without any modification to \name{} itself.}
-	\label{fig:single-transition-latency-breakdown}
+  \centering
+  \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
+  \caption{\name{} latency of transitioning from the completion of a funtion
+    to the start of the next function. The transition involves a Lambda
+    invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
+    and a checkpoint read from data store (a DynamoDB GetItem call). Overall
+    latency increases with data size due to more data written in the PutItem
+    call and sent to next function via the Lambda invoke call. Over 97.5\% of
+    the latency is the
+    \name{} runtime waiting for data store accesses and Lambda invoke API
+    calls to return. When the underlying platform improves (e.g., a faster
+    Lambda or data store), the bulk of \name{}'s performance will
+    automatically improve without any modification to \name{} itself.}
+  \label{fig:single-transition-latency-breakdown}
 \end{figure}
 
 \begin{figure}[t!]
-	\centering
-	\includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
-	\caption{End-to-end latency of parallel fan-out and fan-in with varying
-		degrees of parallelism. All constituent functions in the experiment only
-		run for 1-2ms, so the results mostly reflect the latency of the workflow
-		systems. \name{} is around 100-200ms slower at lower degrees of
-		parallelism (2-16 parallel branches), but starts to outperform Step
-		Functions (2.37x faster) at even moderate parallelism level of 32 parallel
-		branches. \name{}'s advantage widens as the the degress of parallelism
-		increases, and is up to 4.58x at 512 parallel branches.}
-	\label{fig:mapmicrolatency}
+  \centering
+  \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
+  \caption{End-to-end latency of parallel fan-out and fan-in with varying
+    degrees of parallelism. All constituent functions in the experiment only
+    run for 1-2ms, so the results mostly reflect the latency of the workflow
+    systems. \name{} is around 100-200ms slower at lower degrees of
+    parallelism (2-16 parallel branches), but starts to outperform Step
+    Functions (2.37x faster) at even moderate parallelism level of 32 parallel
+    branches. \name{}'s advantage widens as the the degress of parallelism
+    increases, and is up to 4.58x at 512 parallel branches.}
+  \label{fig:mapmicrolatency}
 \end{figure}
 
 \subsubsection{Chaining performance}\label{sec:eval:chain}
@@ -250,21 +250,21 @@ components without introducing new services.
 % \subsubsection{Cost comparison}
 
 % \begin{figure}[t!]
-	%     \centering
-	%     \includegraphics[width=\columnwidth]{figures/TotalCost.pdf}
-	%     \caption{Total costs comparison of 1 million state transitions between
-		%     Step Functions and \name{}. Computation assumes Lambda size of 3GB. \shadi{colors are hard to read}}
-	%     \label{fig:total-costs-single}
-	% \end{figure}
+  %     \centering
+  %     \includegraphics[width=\columnwidth]{figures/TotalCost.pdf}
+  %     \caption{Total costs comparison of 1 million state transitions between
+    %     Step Functions and \name{}. Computation assumes Lambda size of 3GB. \shadi{colors are hard to read}}
+  %     \label{fig:total-costs-single}
+  % \end{figure}
 
 % \begin{figure}[t!]
-	%     \centering
-	%     \includegraphics[width=\columnwidth]{figures/TotalMapCost.pdf}
-	%     \caption{Total costs comparison of fan-out and fan-in between Step
-		%     Functions and \name{}. Computation assumes Lambda size of 3GB and 1KB data
-		%     size for function outputs and checkpoints.}
-	%     \label{fig:total-costs-map}
-	% \end{figure}
+  %     \centering
+  %     \includegraphics[width=\columnwidth]{figures/TotalMapCost.pdf}
+  %     \caption{Total costs comparison of fan-out and fan-in between Step
+    %     Functions and \name{}. Computation assumes Lambda size of 3GB and 1KB data
+    %     size for function outputs and checkpoints.}
+  %     \label{fig:total-costs-map}
+  % \end{figure}
 
 % In this section, we break down the cost of running workflows with \name{} and
 % compare with that of Step Functions. We discuss the costs for a single transition,
@@ -319,28 +319,28 @@ components without introducing new services.
 % more than 3.2x lower with \name{} than Step Functions.
 
 % \begin{itemize}
-	
-	%     \item S3 charges \$5.5 per 1M PUT requests (for checkpoint write) and \$0.44
-	%     per 1M GET requests (for checkpoint read).
-	
-	%     \item DynamoDB on-demand capcity mode charges reads and writes based on
-	%     the data size. 1M requests for writing 1KB data costs \$1.3942 and 1M
-	%     requests for reading 1KB data costs \$0.279. Note that in the case of
-	%     DynamoDB, if no faults happen during execution, the checkpoint read will
-	%     return "item not found", which costs the same as returning 1KB of data.
-	
-	%     \item For 1M state transitions, \name{}'s costs for S3:
-	
-	%     \[  r(d)\times0.05 + 5.94 \]
-	
-	%     and for DynamoDB:
-	
-	%     \[  r(d)\times0.05 + d\times1.3942 +0.279\],
-	
-	%     where $r$ is the total additional runtime of \name{}, $d$ is the data
-	%     size.
-	
-	% \end{itemize}
+
+  %     \item S3 charges \$5.5 per 1M PUT requests (for checkpoint write) and \$0.44
+  %     per 1M GET requests (for checkpoint read).
+
+  %     \item DynamoDB on-demand capcity mode charges reads and writes based on
+  %     the data size. 1M requests for writing 1KB data costs \$1.3942 and 1M
+  %     requests for reading 1KB data costs \$0.279. Note that in the case of
+  %     DynamoDB, if no faults happen during execution, the checkpoint read will
+  %     return "item not found", which costs the same as returning 1KB of data.
+
+  %     \item For 1M state transitions, \name{}'s costs for S3:
+
+  %     \[  r(d)\times0.05 + 5.94 \]
+
+  %     and for DynamoDB:
+
+  %     \[  r(d)\times0.05 + d\times1.3942 +0.279\],
+
+  %     where $r$ is the total additional runtime of \name{}, $d$ is the data
+  %     size.
+
+  % \end{itemize}
 
 
 
@@ -348,53 +348,53 @@ components without introducing new services.
 \subsection{Real-World Applications}\label{sec:eval:realworld}
 
 % \begin{table}[]
-	% \begin{tabular}{llllll}
-		% \hline
-		%                      &                        & \multicolumn{2}{l}{\textbf{unum}}                                                                                                   & \multicolumn{2}{l}{\textbf{Step Functions}}                                                                     \\
-		% \textbf{Application} & Pattern                & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                                                 & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                             \\ \hline
-		% IoT Pipeline         & chain                  & 120.9ms              & $0.2*2+(73+28)*$0.0021+2*\$1.3942                                                                            & 226.52               & $0.2*2+ 4*$27.9                                                                          \\
-		% Text Processing      & fan-out, fan-in        & 562.69ms             & $0.2*6+ (105+149+70+68+144+100)*$0.0021 + 6*$1.3942+2*2*$0.279                                               & 552.46ms             & $0.2*5+7*$27.9                                                                           \\
-		% Wordcount            & chain, fan-out, fan-in & 410s                 & $0.2*(1+262+1+250+1) + (277+6264*262 + 348 + 667*250 +68)*$0.0021 +(1+262+1+250+1)*$1.3942 + 262*2*$0.279+ 250*2* $0.279    & 898s                 & $0.2*(1+262+1+250+1) + (5913*262 + 154 + 633*250 +5)*$0.0021 +(1+262+1+1+250+1+1)*\$27.9 \\
-		% ExCamera             & chain, fan-out, fold   & 84s                  & $0.2*(1+16+15+15+14) + (6500+1500+350+4500+5000)*$0.0021+ (1+16+15+15+14)*$1.3942 + 15*2*$0.279+14*2*\$0.279 & 98s                  & $0.2*(16+16+1+16+15)+(6300+1400+2+5500+5300)*$0.0021+(1+16+16+1+1+16+1+1)*\$27.9      \\ \hline
-		% \end{tabular}
-	% \end{table}
+  % \begin{tabular}{llllll}
+    % \hline
+    %                      &                        & \multicolumn{2}{l}{\textbf{unum}}                                                                                                   & \multicolumn{2}{l}{\textbf{Step Functions}}                                                                     \\
+    % \textbf{Application} & Pattern                & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                                                 & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                             \\ \hline
+    % IoT Pipeline         & chain                  & 120.9ms              & $0.2*2+(73+28)*$0.0021+2*\$1.3942                                                                            & 226.52               & $0.2*2+ 4*$27.9                                                                          \\
+    % Text Processing      & fan-out, fan-in        & 562.69ms             & $0.2*6+ (105+149+70+68+144+100)*$0.0021 + 6*$1.3942+2*2*$0.279                                               & 552.46ms             & $0.2*5+7*$27.9                                                                           \\
+    % Wordcount            & chain, fan-out, fan-in & 410s                 & $0.2*(1+262+1+250+1) + (277+6264*262 + 348 + 667*250 +68)*$0.0021 +(1+262+1+250+1)*$1.3942 + 262*2*$0.279+ 250*2* $0.279    & 898s                 & $0.2*(1+262+1+250+1) + (5913*262 + 154 + 633*250 +5)*$0.0021 +(1+262+1+1+250+1+1)*\$27.9 \\
+    % ExCamera             & chain, fan-out, fold   & 84s                  & $0.2*(1+16+15+15+14) + (6500+1500+350+4500+5000)*$0.0021+ (1+16+15+15+14)*$1.3942 + 15*2*$0.279+14*2*\$0.279 & 98s                  & $0.2*(16+16+1+16+15)+(6300+1400+2+5500+5300)*$0.0021+(1+16+16+1+1+16+1+1)*\$27.9      \\ \hline
+    % \end{tabular}
+  % \end{table}
 
 \begin{table*}[t]
-	\centering
-	\begin{tabular}{ll|rr|rr}
-		\hline
-		&                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
-		\textbf{Application} & \textbf{Pattern}       & \textit{\name{}} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
-		IoT Pipeline         & chain                  & 0.18       & 0.23       & 4.1       & 112.1   \\
-		Text Processing      & fan-out, fan-in        & 0.56       & 0.55       & 12.0      & 196.3   \\
-		Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
-		ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 37,289.1   & 110,494.7      \\ \hline
-	\end{tabular}
-	\caption{Latency and costs comparison between \name{} and Step Functions for
-		the macrobenchmark applications. Running applications on \name{} is 3.7x to
-		32.8x cheaper than on Step Functions. Furthermore, \name{} is faster than Step
-		Functions especially for workflows with high degrees of parallelism. Text
-		Processing is the only workflow which \name{} is marginally slower because
-		Step Functions creates parallel branches faster at low fan-out degrees as we
-		illustrated in Figure~\ref{fig:mapmicrolatency}.}
-	\label{table:macro}
+  \centering
+  \begin{tabular}{ll|rr|rr}
+    \hline
+    &                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
+    \textbf{Application} & \textbf{Pattern}       & \textit{\name{}} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
+    IoT Pipeline         & chain                  & 0.18       & 0.23       & 4.1       & 112.1   \\
+    Text Processing      & fan-out, fan-in        & 0.56       & 0.55       & 12.0      & 196.3   \\
+    Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
+    ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 37,289.1   & 110,494.7      \\ \hline
+  \end{tabular}
+  \caption{Latency and costs comparison between \name{} and Step Functions for
+    the macrobenchmark applications. Running applications on \name{} is 3.7x to
+    32.8x cheaper than on Step Functions. Furthermore, \name{} is faster than Step
+    Functions especially for workflows with high degrees of parallelism. Text
+    Processing is the only workflow which \name{} is marginally slower because
+    Step Functions creates parallel branches faster at low fan-out degrees as we
+    illustrated in Figure~\ref{fig:mapmicrolatency}.}
+  \label{table:macro}
 \end{table*}
 
 \begin{table}[]
-	\centering
-	\begin{tabular}{|r|r|}
-		\hline
-		& \textbf{Latency (seconds)} \\ \hline
-		\textbf{Original ExCamera}        & 76                         \\ \hline
-		\textbf{gg}                       & 90                         \\ \hline
-		\textbf{\name{}} & 84                         \\ \hline
-	\end{tabular}
-	\caption{\name{}'s implementation closely matches that of gg and the original
-		ExCamera where a task starts as soon as its input data becomes available. The
-		Step Functions implementation had to serialize the encoding and re-encoding
-		stages because the \texttt{Map} state in Step Functions requires all parallel
-		branches to complete before fan-in.}
-	\label{table:excamera}
+  \centering
+  \begin{tabular}{|r|r|}
+    \hline
+    & \textbf{Latency (seconds)} \\ \hline
+    \textbf{Original ExCamera}        & 76                         \\ \hline
+    \textbf{gg}                       & 90                         \\ \hline
+    \textbf{\name{}} & 84                         \\ \hline
+  \end{tabular}
+  \caption{\name{}'s implementation closely matches that of gg and the original
+    ExCamera where a task starts as soon as its input data becomes available. The
+    Step Functions implementation had to serialize the encoding and re-encoding
+    stages because the \texttt{Map} state in Step Functions requires all parallel
+    branches to complete before fan-in.}
+  \label{table:excamera}
 \end{table}
 
 In this section, we evaluate \name{}'s performance and costs with 4 real-world
@@ -404,25 +404,25 @@ work, covering a wide range of use cases and workflow patterns:
 
 \begin{itemize}
 
-	\item \textbf{IoT Pipeline} Adapted from a humidity control application in the
+  \item \textbf{IoT Pipeline} Adapted from a humidity control application in the
     AWS serverless repository~\cite{iot-pipeline}. The workflow consists of a
     chain of two functions where the first function processes time-series data
     on indoor climate and outputs a set of aggregate statistics. The second
     function makes a HVAC system control decision based on the statistics and
     adjusts the HVAC settings.
-	
-	\item \textbf{Text Processing} Adapted from the social networks application in
+
+  \item \textbf{Text Processing} Adapted from the social networks application in
     the DeathStarBench~\cite{deathstar}. The workflow consists of 5 functions
     that create a social network post by processing text data of user posts.
     It fans out to two branches that resolves user mentions and shortens URLs
     in parallel. Lastly, it fans in to a function that saves the post along
     with resolved user mentions and shortened URLs in a NoSQL database.
-	
+
     \item \textbf{Wordcount} Adapted from MapReduce word
     count~\cite{mapreduce}. Mappers and reducers execute as Lambda function.
     The workload uses 250 parallel mappers and reducers.
-	
-	\item \textbf{ExCamera} ExCamera~\cite{excamera} is a novel video encoder that
+
+  \item \textbf{ExCamera} ExCamera~\cite{excamera} is a novel video encoder that
     encodes large raw videos with thousands of parallel functions to achieve
     low latency. It breaks a large video into small chunks and runs expensive
     steps in parallel and fast steps in series. The workflow consists of three
@@ -434,7 +434,7 @@ work, covering a wide range of use cases and workflow patterns:
     the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete. The final
     \texttt{REBASE} runs in series and rebases each chunk on top of the state
     from the previous chunk.
-	
+
     We implement a \name{} version and a Step Functions version for ExCamera,
     using the same binaries in constituent functions as the original
     paper~\cite{excamera-binary}. The \name{} implementation closely matches
@@ -444,8 +444,8 @@ work, covering a wide range of use cases and workflow patterns:
     in Step Functions require all parallel branches to complete before fan-in.
     For this reason, we do not derive the \name{} version from a Step
     Functions definition with the frontend compiler. Instead, we hand-write
-	\name{} configurations for each unumized function.
-	
+  \name{} configurations for each unumized function.
+
     Furtheremore, we compare \name{}'s implementation against the original
     authors' implementation of ExCamera. The original authors build two
     version: a hand-optimized version in the original paper~\cite{excamera},
@@ -454,7 +454,7 @@ work, covering a wide range of use cases and workflow patterns:
     experiment in \texttt{gg}~\cite{gg-atc}, i.e., the same input video of the
     first 888 chunks of \texttt{sintel-4k} video, 16 chunks per batch and
     lambdas with 3GB of memory.
-	
+
 \end{itemize}
 
 \subsubsection{Latency Comparison}
