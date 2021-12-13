@@ -119,7 +119,7 @@ terms of both cost and latency.
 \begin{figure}[t!]
   \centering
   \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
-  \caption{\name{} latency of transitioning from the completion of a funtion
+  \caption{\name{} latency of transitioning from the completion of a function
     to the start of the next function. The transition involves a Lambda
     invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
     and a checkpoint read from data store (a DynamoDB GetItem call). Overall
@@ -173,8 +173,8 @@ orchestrator.
 
 \subsubsection{Single Transition Performance}
 
-Using the same experiment from the last section, we further breakdown the
-latency for \emph{a single transition} from one function to the next to
+Using the same experiment from the last section, we break the
+latency down further, for \emph{a single transition} from one function to the next, to
 understand where the overhead of orchestration comes from. In \name{}, this
 transition involves (1) the egress on the source function writing its output
 to a checkpoint, (2) the egress on the source function invoking the target
