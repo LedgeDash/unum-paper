@@ -147,13 +147,14 @@
 	\caption{The \name{} IR representation of common transition patterns.}
 	\label{fig:ir-examples}
 \end{figure*}
+\shadi{the paper suddenly jumps into details of the IR. we still haven't established how we are doing the decentralized orchestration, which is much more important than the IR syntax. I would first discuss the deorc, how the patterns are supported and then the IR.} \shadi{I like the high-level architecture, but this section forward has too much details too soon. We should have a discussion on the flow of this and the next section.}
 
 Before executing serverless workflows in a decentralized manner, a workflow
 definition first needs to be partitioned such that each function performs only
 the orchestration logic local to its subsection of the workflow. The \name{}
 intermediate representation solves this problem with a naming scheme that
 uniquely identifies each function instance in the workflow and a configuration
-language in JSON that encodes workflow transitions. Specifically, each
+language in JSON that encodes workflow transitions.\shadi{this is another instance of jumping to details without the big picture. you suddenly talk about naming structure and json without giving the details of what this config contains (the following sentences)} Specifically, each
 function is assigned a configuration that contains: i. \textit{which}
 function(s) to run next, ii. \textit{when} the next function(s) should run,
 iii. \textit{what} input should the next function(s) run with.
@@ -176,10 +177,12 @@ identify the source function that the configuration is co-located with, a
 identify which function to run, when and with what input.
 Figure~\ref{fig:ir-examples} shows examples on how to express common
 orchestration patterns such as branching, chaining, map, fan-out, fan-in and
-fold:
+fold: 
 
 \dhl{Sync with background. should have at least mentioned some of those patterns in
 the background.}
+
+\shadi{you suddenly jump into these patterns. why these? where did they come from? this might be the right place to have the apps discussed.}
 
 \paragraph{chain}
 

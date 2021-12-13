@@ -60,7 +60,7 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 
 	\item How to efficiently execute orchestration patterns that require data
 	sharing and synchronization across function instances (e.g., fan-in) in a
-	decentralized manner?
+	decentralized manner? \shadi{hard to understand the diff between 1 and 2. }
 
 	\item How to provide exactly-once execution semantics when the
 	orchestration logic is decentralized across function instances that can
@@ -69,15 +69,15 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 \end{enumerate}
 
 \name{} contributes an end-to-end system that solves the three challenges and
-delivers better performance and cost savings than a state-of-the-art
+delivers better\shadiS{->"comparable or improved"? we are not always better, are we?} performance and cost savings than a state-of-the-art
 production orchestrator (\S\ref{sec:eval}). Figure~\ref{fig:arch} depicts
 \name{}'s architecture and contrasts how \name{} executes workflows vs a
-centralized orchestrator.
+centralized orchestrator. \shadi{the contrast part is not very clear. is it essentially a vs b?} \shadi{if short on space, you can remove b altogether or move it to the side of a) and have them in one row. Then, separate c) into its own figure.  }
 
 \name{} solves the first challenge \emph{at compile time}, using a frontend
 compiler and an intermediate representation (IR). Given a workflow definition
 written in a high-level description language, the frontend compiler derives a
-directed graph representation where nodes are constituent functions of the
+directed graph representation where nodes are constituent \shadi{better name? "original"? "user-defined"?} functions of the
 workflow and edges represent workflow transitions between
 functions. Based on the directed graph, the compiler generates an IR in
 the form of configuration files, one file for each node in the graph. A
@@ -86,7 +86,7 @@ function in the workflow knows how to transition just to its immediate
 downstream nodes.
 
 With the configurations from the IR, \name{} solves the second challenge using
-a decentralized orchestrator (\deorc) that efficiently implements a set of
+a decentralized orchestrator (\deorc) \shadi{hard name. also, you don't have an orchestrator anymore, is this the best term? unum runtime, unum orchestrator, or unum-orch. is better in my opinion if so, at least use "deOrc" or "de-orc".} \shadi{a cosmetics point: using the texttt for so many keywords makes it hard to read. I would only use for code, function names, etc. not for unum or deorc.} that efficiently implements a set of
 workflow patterns in a decentralized manner and can run in-situ with the
 constituent user functions. In particular, the \deorc{} is a platform-specific
 runtime library made up of an ingress component and a egress component.
@@ -102,11 +102,11 @@ function aggregates the results of multiple upstream functions. Importantly,
 to avoid idle-billing (\S\ref{sec:bg}), we want the entire fan-in pattern to
 execute \emph{wait-free}, i.e., to invoke the sink function only when all its
 input upstream functions have completed. To this end, \name{} leverages a
-shared \emph{intermediary data store} that is a strongly consistent serverless
-storage (e.g., DynamoDB) with conditional store operations. Upstream functions
+shared \emph{intermediary data store} that is a strongly consistent \shadi{why? no motivation given} serverless
+storage (e.g., DynamoDB) with conditional store operations \shadi{why? no motivation given}. Upstream functions
 each writes user code output into and synchronizes over the intermediary data
 store such that faster functions simply terminate and only the last-to-finish
-function invokes the sink function.
+function invokes the sink function. \shadi{I would not talk about fan-in here. you have not mentioned why we need fan-in, it comes out of the blue.}
 
 \name{} leverages again the intermediary data store to also solve the third
 challenge and provide \emph{exactly-once} execution semantics. \name{} uses
@@ -114,13 +114,13 @@ checkpointing, where each function checkpoints its output to the intermediary
 data store, to limit the scope of retries when workflows crash mid-execution
 and guarantee that even if there are multiple instances of the same function,
 concurrent or not, only one instance's output is taken as the final result and
-propargates downstream.
+propargates downstream. \shadi{do we need to describe this here? if you move fan-in the data store is a bit out of the blue. it can work, but you can also just give fwd pointer in the 3 challenges at the beginning of the section.}
 
 In the rest of the section, we first describe how the \name{} IR encodes
 transitions between functions (\S\ref{sec:ir}), then explains how \deorc{}
 efficiently executes transitions in a decentralized manner, and finally we
 detail \name{}'s checkpointing mechanism and how it ensure exactly-once
-execution semantics.
+execution semantics. \shadi{do we want to have Ir first or second?}
 
 \input{ir-design}
 
@@ -133,7 +133,7 @@ execution semantics.
 	\scalebox{1}{\includegraphics[width=\columnwidth]{figures/deorc-patterns.pdf}}
 	\caption{\deorc{} implements transitions in a decentralized manner where
 the egress on the source function(s) and ingress on the target function(s)
-work together to execute the orchestration.}
+work together to execute the orchestration. \shadi{does this figure add value given you have Fig 1. you can probably combine the patterns there ans name them there and reuse that figure.}}
 	\label{fig:transition}
 \end{figure}
 
@@ -169,7 +169,7 @@ constituent user functions. \deorc{} transparently interposes on user code
 entry and exit so that it does not change how developers write application
 code.
 
-The primary purpose of \deorc is to interpret IR configurations and implement
+The primary purpose of \deorc{} is to interpret IR configurations and implement
 transitions with platform-specific APIs. In particular, \deorc{} implements
 transitions in a decentralized manner where the egress on the source
 function(s) and ingress on the target function(s) work together to execute the
@@ -183,7 +183,7 @@ asynchronous invocation of functions (e.g., AWS Lambda, Azure Functions,
 Google Cloud Funtions, Openwhisk) and ii. a strongly consistent data store
 that supports conditional write operations (e.g., DynamoDB, Cosmos DB).
 
-Figure~\ref{fig:transition} depicts how \deorc executes \texttt{chain},
+Figure~\ref{fig:transition} depicts how \deorc{} executes \texttt{chain},
 \texttt{map} and \texttt{fan-in}. The other patterns described in
 \S\ref{sec:ir} are variations of these three patterns.
 
@@ -198,7 +198,7 @@ invocation to avoid waiting and idle-billing and a particular input payload
 schema in JSON (Figure~\ref{fig:input-format}) that contains \name{} runtime
 metadata.
 
-When the target function is invoked, the input is first received by the \deorc
+When the target function is invoked, the input is first received by the \deorc{}
 ingress. The ingress uses the \texttt{Data} field to read the user function's
 input data. If the \texttt{Source} is \texttt{http}, the input data is
 directly embedded in the \texttt{Value} field. Otherwise,
