@@ -58,9 +58,9 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 	to partition its orchestration logic such that it can run in a
 	decentralized manner in-situ with user functions?
 
-	\item How to efficiently execute orchestration patterns that require data
-	sharing and synchronization across function instances (e.g., fan-in) in a
-	decentralized manner? \shadi{hard to understand the diff between 1 and 2. }
+	\item How to efficiently execute orchestration logic in a
+	decentralized manner, esp. when it requiers data sharing and
+	synchronization across function instances (e.g., fan-in)?
 
 	\item How to provide exactly-once execution semantics when the
 	orchestration logic is decentralized across function instances that can
@@ -69,21 +69,22 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 \end{enumerate}
 
 \name{} contributes an end-to-end system that solves the three challenges and
-delivers better\shadiS{->"comparable or improved"? we are not always better, are we?} performance and cost savings than a state-of-the-art
-production orchestrator (\S\ref{sec:eval}). Figure~\ref{fig:arch} depicts
-\name{}'s architecture and contrasts how \name{} executes workflows vs a
-centralized orchestrator. \shadi{the contrast part is not very clear. is it essentially a vs b?} \shadi{if short on space, you can remove b altogether or move it to the side of a) and have them in one row. Then, separate c) into its own figure.  }
+delivers significant cost savings and improved or comparable performance than
+a state-of-the-art production orchestrator (\S\ref{sec:eval}).
+Figure~\ref{fig:arch} depicts
+\name{}'s architecture. \shadi{the contrast part is not very clear. is it
+essentially a vs b?} \dhl{Can you elaborate on \emph{why} it is not clear? a
+is compile time. b and c are both runtime.}
 
 \name{} solves the first challenge \emph{at compile time}, using a frontend
 compiler and an intermediate representation (IR). Given a workflow definition
 written in a high-level description language, the frontend compiler derives a
-directed graph representation where nodes are constituent \shadi{better name? "original"? "user-defined"?} functions of the
-workflow and edges represent workflow transitions between
-functions. Based on the directed graph, the compiler generates an IR in
-the form of configuration files, one file for each node in the graph. A
-\name{} configuration encodes all the outgoing edges of a node such that each
-function in the workflow knows how to transition just to its immediate
-downstream nodes.
+directed graph representation where nodes are user functions and edges
+represent workflow transitions between functions. Based on the directed graph,
+the compiler generates an IR in the form of configuration files, one file for
+each node in the graph. A \name{} configuration encodes all the outgoing edges
+of a node such that each function in the workflow knows how to transition just
+to its immediate downstream nodes.
 
 With the configurations from the IR, \name{} solves the second challenge using
 a decentralized orchestrator (\deorc) \shadi{hard name. also, you don't have an orchestrator anymore, is this the best term? unum runtime, unum orchestrator, or unum-orch. is better in my opinion if so, at least use "deOrc" or "de-orc".} \shadi{a cosmetics point: using the texttt for so many keywords makes it hard to read. I would only use for code, function names, etc. not for unum or deorc.} that efficiently implements a set of
