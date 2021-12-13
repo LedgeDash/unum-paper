@@ -52,8 +52,6 @@ the following questions:
 
   % \end{itemize}
 
-\subsection{Experimental setup}
-
 We use a combination of both microbenchmarks and 4 real-world applications,
 for end-to-end analysis of \name{}. The micro-benchmarks target basic
 orchestration patterns such as chaining, fan-out and fan-in
@@ -61,29 +59,29 @@ orchestration patterns such as chaining, fan-out and fan-in
 serverless repositories and prior research work  that encompass a variety of
 orchestration patterns (\S\ref{sec:eval:realworld}).
 
-We run all experiments on AWS, region \texttt{us-west-1} and costs numbers
-reflect \texttt{us-west-1} pricing. We configure lambdas to 128MB memory size
-unless otherwise specified and use on-demand capacity mode for DynamoDB. To
-avoid function cold starts, we run the workflow a few dozen times before
-initial data collection.
 
-% S3 buckets all have Versioning turned on.
+\subsection{Experimental setup}
 
-We compare with Step Functions as the baseline. All applications in the
-evaluation are written as Step Functions state machines. For the Step
-Functions experiments, we run the workflow definitions directly on AWS Step
-Functions using the \emph{Standard}
-version~\cite{aws-step-functions-standard-vs-express}. For the \name{}
-experiments, we first compile the Step Functions state machines to unumized
-functions and then execute them as lambdas. The sole exception is ExCamera due
-to limitations of the AWS State Language which we discuss in
-\S~\ref{sec:eval:realworld}.
+We run all experiments on AWS Lambda and DynamoDB in the same region,
+\texttt{us-west-1}. All Lambda containers are configured with 128MB of memory
+unless otherwise noted. We use on-demand capacity provisioning for DynamoDB.
+Experiments that use Step Functions as baseline use Step Functions in the same
+region, as well. To avoid performance artifacts related to cold-starts in
+comparisons, we ensure all functions are warm by running each workflow several
+times before taking measurements.
 
-We choose to use the \emph{Standard} version of Step Function because, similar
-to \name{}, it persists execution states on every transition from one function
-to the next, and always returns exactly one response per workflow
-invocation~\cite{aws-step-functions-exec-gntee}.
-
+We wrote all applications as AWS Lambda functions and Step Function state
+machines to driver those functions.  For the Step Functions experiments, we run
+the workflow definitions as-is using AWS Step Functions in \emph{Standard}
+configuration~\cite{aws-step-functions-standard-vs-express}, which provides
+similarly strong execution guarantees as
+\name{}~\cite{aws-step-functions-exec-gntee}. For \name{} experiments, we first
+compile the Step Functions state machines to \name{} functions and then execute
+them directly as AWS Lambdas. A notable exception is our \name{} and Step
+Functions implementations of ExCamera, which differ due to a limitation in the
+AWS State Language. As a result, the more efficient \name{} implementation is
+written directly in \name{} IR instead of compiled from the Step Functions
+definition (\S~\ref{sec:eval:realworld}).
 
 % We do not consider Step Functions' Express Workflows in our comparison because
 % of its weaker execution guarantee, namely the same invocation could result in
