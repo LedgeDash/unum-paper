@@ -41,13 +41,13 @@ output of the user function as an iterable. \shadi{add sentence on fan-in}.
 			frame=single,
 			fontsize=\scriptsize
 			]{json}
-			{
-				"Name": "F",
-				"Next": {
-					"Name": "G",
-					"InputType": "Scalar"
-				}
-			}
+{
+	"Name": "F",
+	"Next": {
+		"Name": "G",
+		"InputType": "Scalar"
+	}
+}
 		\end{minted}
 		\caption{\texttt{chain} pattern that invokes function \texttt{G} with
 			\texttt{F}'s result}
@@ -59,13 +59,13 @@ output of the user function as an iterable. \shadi{add sentence on fan-in}.
 			frame=single,
 			fontsize=\scriptsize
 			]{json}
-			{
-				"Name": "F",
-				"Next": {
-					"Name": "G",
-					"InputType": "Map"
-				}
-			}
+{
+	"Name": "F",
+	"Next": {
+		"Name": "G",
+		"InputType": "Map"
+	}
+}
 		\end{minted}
 		\caption{\texttt{map} pattern that invokes a parallel instance of
 			\texttt{G} for each element of the vector output of \texttt{F}}
@@ -78,19 +78,19 @@ output of the user function as an iterable. \shadi{add sentence on fan-in}.
 			frame=single,
 			fontsize=\scriptsize
 			]{json}
-			{
-				"Name": "F",
-				"Next": [
-				{
-					"Name": "G",
-					"InputType": "Scalar"
-				},
-				{
-					"Name": "H",
-					"InputType": "Scalar"
-				}
-				]
-			}
+{
+	"Name": "F",
+	"Next": [
+	{
+		"Name": "G",
+		"InputType": "Scalar"
+	},
+	{
+		"Name": "H",
+		"InputType": "Scalar"
+	}
+	]
+}
 		\end{minted}
 		\caption{\texttt{fanOut} pattern that invokes function \texttt{G} and
 			\texttt{H} with the result of \texttt{F}}
@@ -102,19 +102,19 @@ output of the user function as an iterable. \shadi{add sentence on fan-in}.
 			frame=single,
 			fontsize=\scriptsize
 			]{json}
-			{
-				"Name": "F",
-				"Next": {
-					"Name": "G",
-					"InputType": {
-						"Fan-in": {
-							"Values": [
-							"F-unumIndex-*"
-							]
-						}
-					}
-				}
+{
+	"Name": "F",
+	"Next": {
+		"Name": "G",
+		"InputType": {
+			"Fan-in": {
+				"Values": [
+				"F-unumIndex-*"
+				]
 			}
+		}
+	}
+}
 		\end{minted}
 		\caption{\texttt{fanIn} pattern that invokes function \texttt{G} with
 			the result of all \texttt{F} instances of a \texttt{map}.}
