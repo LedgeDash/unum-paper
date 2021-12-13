@@ -1,5 +1,43 @@
 \section{Design}
 
+\begin{figure*}[t]
+	\centering
+	\begin{subfigure}[t]{0.8\textwidth}
+		       \includegraphics[width=\columnwidth]{figures/unum-arch-compile-time.pdf}
+		% \includegraphics[width=\columnwidth]{figures/architecture.png}
+		\caption{Stateful serverless computations form a directed graph. Nodes
+			are user defined FaaS functions and ingress and egress ``gadgets'' that perform the necessary data movement, synchronization, and checkpointing between user functions.}
+		\label{fig:arch:unum-compile-time}
+		% unum injects gadgets to functions at compile time. But more
+		% specifically, unum injects an encoding of gadgets at compile time.
+		% The encoding expresses control-flow transitions just like what the
+		% high-level workflow definition.
+	\end{subfigure}
+	\begin{subfigure}[b]{\columnwidth}
+		\centering
+		\includegraphics[width=0.8\columnwidth]{figures/unum-arch-centralized.pdf}
+		\caption{A typical stateful serverless system drives workflow logic
+			using a centralized controller that manages the computation's state-machine.}
+		\label{fig:arch:centralized}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{\columnwidth}
+		\centering
+		\includegraphics[width=.7\columnwidth]{figures/unum-arch-runtime.pdf}
+		\caption{At runtime, all \name{} control logic is decentralized and runs within the Faas 
+			functions executed on an unmodified serverless platform. For synchronization and checkpointing, \name{} relies exclusively on a
+			standard datastore of choice, such as DynamoDB or Cosmos DB.}
+		\label{fig:arch:unum-runtime}
+	\end{subfigure}
+	\caption{\name{} System Overview. Serverless computations form a directed
+		graph that encode sequential and data dependencies between functions. Workflow
+		orchestrators drive these graphs by centralizing control flow logic and
+		interposing on all communication between functions. \name{},
+		instead, decentralizes control flow logic among the functions with
+		no need for a separate orchestration system.}
+	\label{fig:arch}
+\end{figure*}
+
 To achieve the objectives in \S\ref{sec:bg}, \name{} utilizes a
 design/strategy we call ``\emph{decentralized orchestration}'' where instead
 of executing workflow orchestration logic entirely within a centralized
@@ -15,19 +53,15 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 
 	\item Given a workflow written in a high-level description language, how
 	to partition its orchestration logic such that it can run in a
-	decentralized manner in-situ with user functions?\dhl{Sync with
-	background, workflow definitions \emph{logically} expresses a directed
-	graph}
+	decentralized manner in-situ with user functions?
 
 	\item How to efficiently execute orchestration patterns that require data
 	sharing and synchronization across function instances (e.g., fan-in) in a
-	decentralized manner?\dhl{Sync with background. explain the challenges of
-	fan-in in background.}
+	decentralized manner?
 
 	\item How to provide exactly-once execution semantics when the
 	orchestration logic is decentralized across function instances that can
-	crash and retry at any point mid-execution?\dhl{Sync with background. Need
-	to have talked about retries and duplicates already.}
+	crash and retry at any point mid-execution?
 
 \end{enumerate}
 
@@ -78,14 +112,19 @@ and guarantee that even if there are multiple instances of the same function,
 concurrent or not, only one instance's output is taken as the final result and
 propargates downstream.
 
+In the rest of the section, we first describe how the \name{} IR encodes
+transitions between functions (\S\ref{sec:ir}), then explains how \deorc{}
+efficiently executes transitions in a decentralized manner, and finally we
+detail \name{}'s checkpointing mechanism and how it ensure exactly-once
+execution semantics.
 
-\input{architecture}
-\input{patterns}
+% \input{architecture}
+% \input{patterns}
 \input{ir-design}
 
 
 
-\subsection{\name{} Runtime}
+\subsection{Decentralized Orchestration with \deorc{}}
 
 \begin{figure}[]
     \begin{minted}[
