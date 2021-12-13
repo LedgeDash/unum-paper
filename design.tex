@@ -1,4 +1,39 @@
-\section{\name{'s} Design}
+\section{Design}
+
+To achieve the objectives in \S\ref{sec:bg}, \name{} utilizes a
+design/strategy we call ``\emph{decentralized orchestration}'' where instead
+of executing workflow orchestration logics entirely with a centralized
+orchestrator, a set of ``decentralized orchestrators'' run \emph{in-situ} with
+user functions and each performs only the orchestration logic \emph{local to
+its subsection} of the workflow.
+
+Efficiently implementing decentralized orchestration while also preserving the
+benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
+\name{} to solve three key problems:
+
+\begin{enumerate}
+
+	\item Given a workflow written in a high-level description language, how
+	to divide its orchestration logic such that it can run in a decentralized
+	manner in-situ with user functions?
+
+	\item How to efficiently execute orchestration patterns that requires data
+	sharing and synchronization across function instances (e.g., fan-in) in a
+	decentralized manner?\dhl{Sync with background. explain the challenges of
+	fan-in in background.}
+
+	\item How to provide exactly-once execution semantics when the
+	orchestration logic is decentralized across function instances that can
+	crash and retry at any point mid-execution?\dhl{Sync with background. Need
+	to have talked about retries and duplicates already.}
+
+\end{enumerate}
+
+\name{} solves the first challenge \emph{at compile time}, using a frontend
+compiler and an intermediate representation (IR). Given a workflow definition
+written in a high-level description language, the frontend compiler derives a
+directed graph from the high-level description and compile it into the \name{}
+IR.
 
 
 \input{architecture}
@@ -7,6 +42,16 @@
 
 
 
+
+
+
+Efficiently executing workflows in a
+decentralized manner requires solving three challenges.
+
+Most workflow language directly or indirectly express a directed graph
+(\S\ref{sec:bg}.\dhl{Sync with Background. make sure to explain this already}
+
+Instead of a centralized orchestrator executing workflows, \name{}
 
 
 
