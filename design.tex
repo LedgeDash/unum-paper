@@ -118,8 +118,8 @@ finally we detail \name{}'s checkpointing mechanism and how it ensure
 exactly-once execution semantics. \shadi{Does this match the new structure? update accordingly.}
 
 \input{patterns}
-\input{ir-design}
 \input{runtime}
+\input{ir-design}
 
 
 
@@ -131,24 +131,26 @@ An important characteristic of any workflow system is (a) how it deals with  a
 transient failure in a constituent step, and (b) what guarantees it makes in
 the presence of such faults.
  
-Many workflow systems durably persist progress to limit the scope of re-execution after faults
+Workflow systems typically persist progress to limit the scope of re-execution after faults
 \cite{aws-step-functions, durable-functions, netherite, google-workflows, kappa}.
-In \name{}, each function is checkpointed to storage after it
-completes. In particular, if a workflow experiences crashes mid-execution,
+Likewise, \name{} checkpoints each function to storage.
+ In particular, if a workflow experiences crashes mid-execution,
 \name{} does not retry from the beginning but from the node of failure only.
 
-\name{} guarantees \textbf{exactly-once execution}, meaning that each step of
-the workflow appears to execute exactly once. FaaS engines already
-support automatic retries for functions; however, they only guarantee at-least-once
-execution. Strengthening this guarantee requires dealing with the following
-subtleties:
+In terms of progress and consistency, \name{} guarantees \textbf{exactly-once semantics}, 
+meaning that the system records
+exactly one result for each step of the workflow. FaaS engines already
+support automatic retries for functions; this helps to ensure progress, as transient
+faults do not compromise progress. However, we still need to
+strengthen this at-least-once guarantee to an exactly-once guarantee, which 
+is nontrivial because of the following subtleties:
 
-\begin{itemize}
+\squishlist
 	\item Function executions are not always deterministic, each re-execution
 	may produce a different result.
 	\item Some FaaS engines may detect failures incorrectly, thus multiple
-	executions of a function can be in progress simultaneously.
-\end{itemize}
+	executions of a function can be in progress simultaneously, and may all run to completion.
+\squishend
 
 Fortunately, we found a way to handle these challenges by taking advantage of
 conditional store operations supported by strongly consistent data stores.
@@ -181,17 +183,11 @@ crashed after checkpointing but before running the downstream ingress node. \nam
 tolerate running a ingress/egress node more than once because of the same protection
 against duplicates.
 
-\paragraph{External Side Effects.} In the applications targeted by \name{},
-there is no need for functions to directly call external storage services.
-Rather, all functions are "side-effect-free": their only effect is to provide
-a result. 
-
-%Therefore, the "exactly-one-result" guarantee of the \name{} runtime
-%is in fact synonymous with exactly-once execution.
-
-Although it is not currently required by any of our applications, it is
-conceivable to extend \name{} in the future to support exactly-once execution even for workflows whose
-functions have additional side effects. For example, a store interposition
-mechanism (such as used in Beldi \cite{beldi}) could be added to support
-functions that require more complex storage interactions than obtaining an
-input and producing a result.
+\paragraph{External Side Effects.} Naturally, the
+exactly-once guarantee does not automatically extend to functions with external side effects, 
+i.e. functions that directly call external services. In such cases, retries can lead 
+to unexpected results. This issue is well known, and independent of 
+the orchestrator architecture (centralized vs. decentralized). 
+Thus, we consider the question of how to control such side effects to be
+orthogonal and beyond the scope of this paper.
+For example, a store interposition libary like Beldi \cite{beldi} can solve this problem. 
