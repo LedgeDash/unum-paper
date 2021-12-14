@@ -3,7 +3,8 @@
 
 
 We have identified six workflow transition patterns as the main building blocks to build arbitrary workflow compositions. These patterns are simple to use and yet expressive. These patterns include: \shadi{should we add sentence on how fold and for are unique?}
-\begin{itemize}
+
+\squishlist
 	\item \textit{\textbf{chain:} }
 		Chaining is a simple but most fundamental control-flow pattern, e.g.,  a function processing sensor data followed by a function adjusting an	actuator. The \texttt{chain} pattern connects the
 		two functions by invoking the target function with the source function's
@@ -33,8 +34,8 @@ function.
 	condition. \shadi{why do we call it branch? would conditional work?}
 }
 
+\squishend\vspace{-1ex}
 	
-\end{itemize}
 
 We found these to be sufficient to express all commonly used orchestrator systems including AWS Step
 Functions, \shadi{X, y, and Z} and in many cases they were a super-set of what was provided (e.g., Step functions does not support fold). In addition, we studied several real-world serverless applications and found that the above patterns are sufficient for expressing all.  Below we describe how four representative real-world applications, taken from serverless application repositories and prior research, map to these patterns. These applications represent a diverse set ranging from a simple 2-function IoT pipeline to a complex \shadi{1000s of} functions application.
