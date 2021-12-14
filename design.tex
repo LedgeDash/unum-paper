@@ -8,10 +8,10 @@
 		% \includegraphics[width=\columnwidth]{figures/architecture.png}
 		\caption{Serverless workflows form directed graphs. \name{}
 		partitions the graph into an intermediate representation where each
-		function is embedded with a configuration that encodes how to
+		function is embedded with an \name{} configuration that encodes how to
 		transition to its immediate downstream nodes. Developers package user
-		function, \name{} config and \name{}'s runtime library together to
-		create unumized functions.}
+		function, \name{} config and \name{}'s runtime library \shadiS{(a pair of ingress and egress nodes)} together to
+		create unumized functions. \shadi{mark ''unum runtime'' in the figure.}}
 		\label{fig:arch:unum-compile-time}
 
 	\end{subfigure}
@@ -69,9 +69,7 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 \name{} contributes an end-to-end system that solves the three challenges and
 delivers significant cost savings and improved or comparable performance than
 a state-of-the-art production orchestrator (\S\ref{sec:eval}).
-Figure~\ref{fig:arch} depicts \name{}'s architecture. \shadi{the contrast part
-is not very clear. is it essentially a vs b?} \dhl{Can you elaborate on
-\emph{why} it is not clear? a is compile time. b and c are both runtime.}
+Figure~\ref{fig:arch} depicts \name{}'s architecture. \shadi{we should reference a,b,c individually as some later parts in the text.  btw, isn't 1.a the architecture rather than 1?}
 
 \name{} solves the first challenge \emph{at compile time}, using a frontend
 compiler and an intermediate representation (IR). Given a workflow definition
@@ -79,14 +77,14 @@ written in a high-level description language, the frontend compiler derives a
 directed graph representation where nodes are user functions and edges
 represent workflow transitions between functions. Based on the directed graph,
 the compiler generates an IR in the form of configuration files, one file for
-each node in the graph. A \name{} configuration encodes all the outgoing edges
+each node in the graph. A \textit{\name{} configuration} encodes all the outgoing edges
 of a node such that each function in the workflow knows how to transition just
-to its immediate downstream nodes.
+to its immediate downstream node(s).
 
-With the configurations from the IR, \name{} solves the second challenge using
-a runtime library that efficiently implements a set of workflow patterns in a
+With the \name{} configurations from the IR, \name{} solves the second challenge using
+an \textit{\name{} runtime} library that efficiently implements a set of workflow patterns in a
 decentralized manner and can run in-situ with user functions. In particular,
-the \name{} runtime is made up of an ingress component and a egress component.
+the \name{} runtime is made up of an ingress component and an egress component.
 Developers package each user function with its assigned \name{} configuration
 and the \name{} runtime to create an \emph{unumized} function. When an
 unumized function executes, its entry point is no longer the user code but
@@ -100,11 +98,11 @@ the results of multiple upstream functions with a single ``sink'' function
 when all of the upstream fucntions complete (commonly called a ``fan-in''). To
 this end, \name{} leverages a shared \emph{intermediary data store} that is a
 strongly consistent serverless storage (e.g., DynamoDB). Upstream functions
-each writes user code output into and synchronizes over the intermediary data
-store such that faster functions simply terminate and only the last-to-finish
-function invokes the sink function.
+each write their output into the intermediary data
+store and use this data store to share data and  synchronize across each other. \name{} performs the synchronization in way that faster functions simply terminate and only the last-to-finish
+function invokes the sink function. \shadi{ maybe remove the last sentence?... seems out of place and too detailed for here}
 
-\name{} leverages again the intermediary data store to also solve the third
+\name{} also leverages the intermediary data store to solve the third
 challenge and provide a strong execution guarantee we call
 \emph{exactly-one-result}. \name{} uses a checkpointing mechansim to limit the
 scope of retries when workflows crash mid-execution and guarantee that even if
@@ -117,7 +115,7 @@ In the rest of the section, we first describe how the \name{} IR encodes
 transitions between functions (\S\ref{sec:ir}), then explains how the \name{}
 runtime efficiently executes transitions in a decentralized manner, and
 finally we detail \name{}'s checkpointing mechanism and how it ensure
-exactly-once execution semantics.
+exactly-once execution semantics. \shadi{Does this match the new structure? update accordingly.}
 
 \input{patterns}
 \input{ir-design}
