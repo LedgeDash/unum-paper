@@ -264,6 +264,13 @@ And Figure~\ref{fig:ir-examples} gives an example of a regular fan-in and
 using a combination of \texttt{Fan-in}, \texttt{Conditional} and \texttt{Next
 Payload Modifier} to express fold.
 
+The IR configuration is platform-agnostic. In particular, it does not specify
+how to launch the next function(s), and how to send input data to the next
+function(s). These details are left to the \name{} runtime library that can
+target specific platforms (for example, the runtime for AWS runs functions as
+lambdas and uses the Lambda asychronous invocation API to launch functions).
+Thus, workflows are portable across platforms by simply changing the runtime
+library.
 
 \subsubsection{Naming and Dynamic Runtime Behavior}\label{sec:ir:naming}
 
@@ -303,14 +310,6 @@ instead of all instances. The \texttt{Next Payload Modifiers} field allows
 expressions that can modify the runtime variables (e.g., \texttt{\$0=\$0+1}),
 which can implement fold or for loops~\ref{fig:gadget-examples-fold} when
 combined with a termination condition in \texttt{Conditional}.
-
-The IR configuration is platform-agnostic. In particular, it does not specify
-how to launch the next function(s), and how to send input data to the next
-function(s). These details are left to the \name{} runtime library that can
-target specific platforms (for example, the runtime for AWS runs functions as
-lambdas and uses the Lambda asychronous invocation API to launch functions).
-Thus, workflows are portable across platforms by simply changing the runtime
-library.
 
 % The \name{} frontend compiler can generate IR from workflow definitions
 % written in high-level description languages (e.g., AWS Step Functions), but
