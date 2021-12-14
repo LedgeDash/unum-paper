@@ -36,15 +36,16 @@ and control-flow operations. For each workflow transition in a serverless
 application, the orchestrator waits for currently running functions to complete,
 determines what to do with their results, and which function(s) to run
 next. All function invocations are initiated by the orchestrator, and all
-workflow states (e.g., function results) flow through the orchestrator. Using a 
-centralized orchestrator simplifies failure handling, as the entire workflow state resides
-in the orchestrator and can be easily checkpointed. However, it is also rather
-communication-intensive, as all control and data must flow back and forth between
-the orchestrator and the functions.
+workflow states (e.g., function results) flow through the orchestrator.
+
+Using a  centralized orchestrator simplifies failure handling, as the entire
+workflow state resides in the orchestrator and can be easily checkpointed.
+However, it is also rather communication-intensive, as all control and data must
+flow back and forth between the orchestrator and the functions.
 
 %Such centralized orchestrators enable new classes of serverless applications,
 %but requires an additional multi-tenant service to be maintained and operated
-%and adds additional contraints on performance and scalability.  
+%and adds additional constraints on performance and scalability.
 Another downside of many central orchestrators is that they are not serverless themselves.
 Commonly, the orchestrator functionality is provided by a separate stateful hosted service
 \cite{aws-step-functions, google-cloud-composer, google-workflows}. This requires
