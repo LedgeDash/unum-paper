@@ -20,24 +20,36 @@ require applications to handle individual function failures and retries
 gracefully, and driving complex control flows in a decentralized manner is both
 difficult to implement correctly and difficult to express.
 
-To meet this need, several workflow systems have emerged offering higher-level
-programming interfaces to express function interactions, a rich set of
-composition primitives that support chaining, branching, fan-out and fan-in, and
+To meet this need, several fault-tolerant workflow systems have emerged. These offer higher-level
+programming interfaces to express function interactions, suppporting a rich set of
+composition patterns that support chaining, branching, fan-out and fan-in, and
 exactly-once semantics for workflow execution~\cite{excamera, gg-atc,
 aws-step-functions, google-cloud-composer, google-workflows, durable-functions}.
-These systems require the addition of an orchestrater to existing serverless
-infrastructure: yet-another scalable, multi-tenant, centralized service.
+All of these systems rely on some form of \emph{orchestrator} to track workflow progress
+and retry individual steps in the caase of faults.
 
-An orchestrater is a stateful hosted service that centralizes execution states
+An orchestrator is a stateful component that centralizes execution states
 and control-flow operations. For each workflow transition in a serverless
-application, the orchestrater waits for currently running functions to complete,
+application, the orchestrator waits for currently running functions to complete,
 determines what to do with their results, and which function or functions to run
-next. All function invocations are initiated by the orchestrater and all
-workflow states (e.g., function results) flow through the orchestrater.
+next. All function invocations are initiated by the orchestrator, and all
+workflow states (e.g., function results) flow through the orchestrator. Using a 
+centralized orchestrator simplifies failure handling, as the entire workflow state resides
+in the orchestrator, where it can be easily checkpointed. However, it is also rather
+communication-intensive, as all control and data must flow back and forth between
+the orchestrator and the functions.
 
-Such centralized orchestraters enable new classes of serverless applications,
-but requires an additional multi-tenant service to be maintained and operated
-and adds additional contraints on performance and scalability.  While basic
+%Such centralized orchestraters enable new classes of serverless applications,
+%but requires an additional multi-tenant service to be maintained and operated
+%and adds additional contraints on performance and scalability.  
+Another downside of many central orchestrators is that they are not serverless themselves.
+Commonly, the orchestrator functionality is provided by a separate stateful hosted service
+\cite{aws-step-functions, google-cloud-composer, google-workflows}. This requires
+development and operation of yet another scalable, multi-tenant, fault-tolerant, 
+billable service, in addition to the already existing serverless compute and storage 
+infrastructure. 
+
+While basic
 serverless build blocks are the result of decades of research and engineering to
 achieve performant and scalable compute and storage infrastructure,
 orchestrators provide perform specialized functionality that must solve
