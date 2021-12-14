@@ -39,7 +39,7 @@ in the orchestrator, where it can be easily checkpointed. However, it is also ra
 communication-intensive, as all control and data must flow back and forth between
 the orchestrator and the functions.
 
-%Such centralized orchestraters enable new classes of serverless applications,
+%Such centralized orchestrators enable new classes of serverless applications,
 %but requires an additional multi-tenant service to be maintained and operated
 %and adds additional contraints on performance and scalability.  
 Another downside of many central orchestrators is that they are not serverless themselves.
@@ -54,26 +54,35 @@ serverless build blocks are the result of decades of research and engineering to
 achieve performant and scalable compute and storage infrastructure,
 orchestrators provide perform specialized functionality that must solve
 scalability and performance problems independently. Applications may suffer, for
-example, from scalability bottlenecks in the orchestrater even if storage and
+example, from scalability bottlenecks in the orchestrator even if storage and
 FaaS platforms can support much higher burst-scalability. Moreover, an
-orchestrater represents yet-another system for which platform providers must fix
+orchestrator represents yet-another system for which platform providers must fix
 bugs, maintain high availability, and provision resources.
 
 In this paper, we propose \name{}, a decentralized serverless workflow system
 that runs in-situ with user defined FaaS functions on existing, minimal,
 serverless infrastructure. \name{} supports the same class of applications as
-centralized orchestraters, has similar or better performance, and can achieve
-better scalability than some widely used centralized orchestraters. Compared to
+centralized orchestrators, has similar or better performance, and can achieve
+better scalability than some widely used centralized orchestrators. Compared to
 Step Functions, a representative set of applications cost up to 32.8x less, and
 run up to 4.5x faster using \name{}.
 
-Importantly, \name{}'s decentralization does not sacrifice properties important
-to complex serverless applications. It can provide the same set of execution
-guarantees as centralized orchestraters. Specifically, \name{} guarantees
-exactly-once execution semantics even if an application's constituent function
-fails and is retried or is otherwise run multiple times by the FaaS system.
-Even if some constituent functions execute multiple times, the final application
-states appear as if all functions executed once.
+Importantly, \name{}'s decentralization does not sacrifice any of the  
+fault tolerance and strong execution guarantees of 
+commonly used orchestrators \cite{aws-step-functions, durable-functions,
+ google-cloud-composer, google-workflows}. 
+Just like the latter, 
+\name{} guarantees that workflows do not get stuck (functions are retried if there are faults)
+and produce consistent results (for each constituent function, exactly one result is recorded).
+In particular, there is no risk of workflow divergence due to unanticipated function
+nondeterminism or concurrency, which is a common source of errors
+when developers attempt to compose serverless functions without the help
+of a workflow system.
+
+%In particular, for side-effect-free functions, this guaranteeThis matches the guarantees provided by central orchestrators, such as Step Functionsexecution semantics even if an application's constituent function
+%fails and is retried or is otherwise run multiple times by the FaaS system.
+%Even if some constituent functions execute multiple times, the final application
+%states appear as if all functions executed once.
 
 %\dhl{Design insights, highlights and overview}
 
@@ -120,7 +129,7 @@ This paper makes the following contributions:
   \item An end-to-end system that can take workflows written in higher-level
   language and execute them purely as FaaS functions.
 
-  \item A set of general algorithms, called gadgets, that implement all common
+  \item A set of general algorithms, called gadgets, \seb{confirm name} that support all common
   orchestration patterns (e.g., chaining, branching, fan-out, fan-in) with
   serverless functions and serverless storage.
 
