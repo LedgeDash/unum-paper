@@ -4,14 +4,14 @@
 	\centering
 	\begin{subfigure}[t]{0.8\textwidth}
 	\centering
-		       \includegraphics[width=0.8\columnwidth]{figures/unum-arch-compile-time.pdf}
+		\includegraphics[width=0.8\columnwidth]{figures/unum-arch-compile-time.pdf}
 		% \includegraphics[width=\columnwidth]{figures/architecture.png}
 		\caption{Serverless workflows form directed graphs. \name{}
 		partitions the graph into an intermediate representation where each
 		function is embedded with a configuration that encodes how to
 		transition to its immediate downstream nodes. Developers package user
-		function, \name{} config and \name{}'s runtime library (\deorc{})
-		together to create unumized functions.}
+		function, \name{} config and \name{}'s runtime library together to
+		create unumized functions.}
 		\label{fig:arch:unum-compile-time}
 
 	\end{subfigure}
@@ -35,9 +35,9 @@
 		\label{fig:arch:unum-runtime}
 	\end{subfigure}
 	\caption{\name{}'s Decentralized Orchestration. \name{} partitions
-	orchestration logic at compile time and a decentralized orchestrator
-	(\deorc{}) runs in-situ with user functions to perform only the
-	orchestration logic local to its subsection of the graph.}
+	orchestration logic at compile time and a \name{} runtime runs in-situ
+	with user functions to perform only the orchestration logic local to its
+	subsection of the graph.}
 	\label{fig:arch}
 \end{figure*}
 
