@@ -41,7 +41,7 @@
 	\label{fig:arch}
 \end{figure*}
 
-To achieve the objectives in \S\ref{sec:bg}, \name{} utilizes a
+To achieve the objectives in \S\ref{sec:goals}, \name{} utilizes a
 design/strategy we call ``\emph{decentralized orchestration}'' where instead
 of executing workflow orchestration logic entirely within a centralized
 orchestrator, a set of ``decentralized orchestrators'' run \emph{in-situ} with
@@ -85,197 +85,46 @@ of a node such that each function in the workflow knows how to transition just
 to its immediate downstream nodes.
 
 With the configurations from the IR, \name{} solves the second challenge using
-a decentralized orchestrator (\deorc) \shadi{hard name. also, you don't have an orchestrator anymore, is this the best term? unum runtime, unum orchestrator, or unum-orch. is better in my opinion if so, at least use "deOrc" or "de-orc".} \shadi{a cosmetics point: using the texttt for so many keywords makes it hard to read. I would only use for code, function names, etc. not for unum or deorc.} that efficiently implements a set of
-\seb{I agree with Shadi, would perhaps prefer avoiding "orchestrator" since we are doing "orchestration without an orchestrator". Many terms could work, e.g. ingress/egress gadget, continuation link, control flow connector, ... }
-workflow patterns in a decentralized manner and can run in-situ with the
-constituent user functions. In particular, the \deorc{} is a platform-specific
-runtime library made up of an ingress component and a egress component.
+a runtime library that efficiently implements a set of workflow patterns in a
+decentralized manner and can run in-situ with user functions. In particular,
+the \name{} runtime is made up of an ingress component and a egress component.
 Developers package each user function with its assigned \name{} configuration
-and the \deorc{} to create an \emph{unumized} function. When an unumized
-function executes, its entry point is no longer the user code but instead the
-\deorc{} ingress. And when user code completes, it returns its results to the
-\deorc{} egress which then interprets its co-located \name{} configuration and
-performs the workflow transition.
+and the \name{} runtime to create an \emph{unumized} function. When an
+unumized function executes, its entry point is no longer the user code but
+instead the \name{} ingress. And when user code completes, it returns its
+results to the \name{} egress which then interprets its co-located \name{}
+configuration and performs the workflow transition.
 
-A critical complexity is to enable fan-in patterns where a single ``sink''
-function aggregates the results of multiple upstream functions. Importantly,
-to avoid idle-billing (\S\ref{sec:bg}), we want the entire fan-in pattern to
-execute \emph{wait-free}, i.e., to invoke the sink function only when all its
-input upstream functions have completed. To this end, \name{} leverages a
-shared \emph{intermediary data store} that is a strongly consistent \shadi{why? no motivation given} serverless
-storage (e.g., DynamoDB) with conditional store operations \shadi{why? no motivation given}. Upstream functions
+A critical complexity is to enable data sharing and synchronization across
+functions in a workflow invocation. For example, applications might aggregate
+the results of multiple upstream functions with a single ``sink'' function
+when all of the upstream fucntions complete (commonly called a ``fan-in''). To
+this end, \name{} leverages a shared \emph{intermediary data store} that is a
+strongly consistent serverless storage (e.g., DynamoDB). Upstream functions
 each writes user code output into and synchronizes over the intermediary data
 store such that faster functions simply terminate and only the last-to-finish
-function invokes the sink function. \shadi{I would not talk about fan-in here. you have not mentioned why we need fan-in, it comes out of the blue.}
+function invokes the sink function.
 
 \name{} leverages again the intermediary data store to also solve the third
-challenge and provide \emph{exactly-once} execution semantics. \name{} uses
-checkpointing, where each function checkpoints its output to the intermediary
-data store, to limit the scope of retries when workflows crash mid-execution
-and guarantee that even if there are multiple instances of the same function,
-concurrent or not, only one instance's output is taken as the final result and
-propargates downstream. \shadi{do we need to describe this here? if you move fan-in the data store is a bit out of the blue. it can work, but you can also just give fwd pointer in the 3 challenges at the beginning of the section.}
+challenge and provide a strong execution guarantee we call
+\emph{exactly-one-result}. \name{} uses a checkpointing mechansim to limit the
+scope of retries when workflows crash mid-execution and guarantee that even if
+there are multiple instances of the same function, concurrent or not, only one
+instance's output is taken as the final result and propargates downstream.
+When user functions do not produce externally visible side-effects, \name{}'s
+exactly-one-result guarantee appears the same as exactly-once semantics.
 
 In the rest of the section, we first describe how the \name{} IR encodes
-transitions between functions (\S\ref{sec:ir}), then explains how \deorc{}
-efficiently executes transitions in a decentralized manner, and finally we
-detail \name{}'s checkpointing mechanism and how it ensure exactly-once
-execution semantics. \shadi{do we want to have Ir first or second?}
+transitions between functions (\S\ref{sec:ir}), then explains how the \name{}
+runtime efficiently executes transitions in a decentralized manner, and
+finally we detail \name{}'s checkpointing mechanism and how it ensure
+exactly-once execution semantics.
 
 \input{patterns}
+\input{runtime}
 \input{ir-design}
 
 
-
-\subsection{Decentralized Orchestration with \deorc{}}\label{sec:runtime}
-
-\begin{figure}[t!]
-	\centering
-	\scalebox{1}{\includegraphics[width=\columnwidth]{figures/deorc-patterns.pdf}}
-	\caption{\deorc{} implements transitions in a decentralized manner where
-the egress on the source function(s) and ingress on the target function(s)
-work together to execute the orchestration. \shadi{does this figure add value given you have Fig 1. you can probably combine the patterns there ans name them there and reuse that figure.}}
-	\label{fig:transition}
-\end{figure}
-
-\begin{figure}[]
-    \begin{minted}[
-    frame=single,
-    fontsize=\scriptsize
-  ]{json}
-{
-    "Data": {
-        "Source": "http | dynamodb | s3 | ...",
-        "Value": "<object> | [<pointers>]"
-    },
-    "Session": "uuid",
-    "Fan-out": {
-        "Index": "int",
-        "Size": "int",
-        "OuterLoop": {
-            "Index": "int",
-            "Size": "int"
-        }
-    }
-}
-    \end{minted}
-    \caption{\name{} runtime input payload schema}
-    \label{fig:input-format}
-\end{figure}
-
-The second challenge of \name{} is to efficiently implement decentralized
-orchestration. \name{} designs a decentralized orchestrator (\deorc) that
-consists of an ingress and an egress component and can run in-situ with
-constituent user functions. \deorc{} transparently interposes on user code
-entry and exit so that it does not change how developers write application
-code.
-
-The primary purpose of \deorc{} is to interpret IR configurations and implement
-transitions with platform-specific APIs. In particular, \deorc{} implements
-transitions in a decentralized manner where the egress on the source
-function(s) and ingress on the target function(s) work together to execute the
-transition.
-
-A key requirement of \deorc's design is to only use the basic serverless
-abstraction without relying on any specialized APIs. Therefore, we designed
-\deorc{} such that it only depends on two serverless components that are
-universally supported by all platforms: i. a FaaS system that supports
-asynchronous invocation of functions (e.g., AWS Lambda, Azure Functions,
-Google Cloud Funtions, Openwhisk) and ii. a strongly consistent data store
-that supports conditional write operations (e.g., DynamoDB, Cosmos DB).
-
-Figure~\ref{fig:transition} depicts how \deorc{} executes \texttt{chain},
-\texttt{map} and \texttt{fan-in}. The other patterns described in
-\S\ref{sec:ir} are variations of these three patterns.
-
-\paragraph{chain} 
-
-The \texttt{chain} pattern involves one egress on source function and one
-ingress on the target function. When the \texttt{Next} field of the source
-function's \name{} config contains a single object whose \texttt{InputType} is
-\texttt{Scalar}, the \deorc{} egress simply invokes the target function with
-the source function's user code's output. \deorc{} uses asynchronous
-invocation to avoid waiting and idle-billing and a particular input payload
-schema in JSON (Figure~\ref{fig:input-format}) that contains \name{} runtime
-metadata.
-
-When the target function is invoked, the input is first received by the \deorc{}
-ingress. The ingress uses the \texttt{Data} field to read the user function's
-input data. If the \texttt{Source} is \texttt{http}, the input data is
-directly embedded in the \texttt{Value} field. Otherwise,
-\name{} uses the pointers in \texttt{Value} to read the input data from the
-intermediary data store. Finally, ingress calls its user function and passes
-it the input.
-
-\paragraph{fan-out}
-
-The \texttt{fan-out} pattern involves one egress on the source function and
-many ingresses on the target functions.
-
-Similar to chaining, the egress asynchronously invoke each target and the
-ingresses on targets read the input data sent from the source and passes it to
-its user function.
-
-\texttt{map} is a simple variation of \texttt{fan-out} where the egress treats
-its user code output as an iterable. \texttt{branch} is another variation
-where the egress first evaluates the boolean condition in \texttt{Conditional}
-before invoke the target function in that branch.
-
-\paragraph{fan-in}
-
-The \texttt{fan-in} pattern involves one ingress node and many egress nodes.
-It is the main complexity of decentralized orchestration as we want to ensure
-that the transition is \emph{wait-free} to avoid idle-billing. In particular,
-we want to invoke the sink function only when all upstream functions have
-completed so that the sink function does have to be spun up ahead of time and
-wait for upstream functions to finish. Moreover, the upstream functions should
-simply terminates when done instead of waiting for each other either.
-
-To achieve this, the \deorc{} egress always writes the output of its user
-function to a data store when its \name{} config has a \texttt{InputType} of
-\texttt{Fan-in}. This serves two purposes: (1). it allows any of the upstream
-functions to access the output of other upstream functions (2). it signals the
-completion of a function. This way, each egress can simply writes its output
-and terminate. Other egress nodes can still access completed egress' data
-after they terminate. Any one of the egress can invoke the sink function. And
-any one of the egress can see if other egress has completed or not.
-
-Strongly consistent data store is important because it prevents the
-scenarios where all egress have written outputs but none of them sees that all
-have completed, which results in the sink function never invoked.
-
-Additionally, \texttt{fan-in} makes sure that when the sink function is
-invoked, it is invoked only once. \name{} achieves this by having the egress
-nodes synchronize with each other via the same data store such that only the
-last-to-finish egress invokes the sink function. Synchronization is done with
-atomic read-after-write over a single object. Specific implementation depends
-on the data store and we discuss the details in \S\ref{sec:impl}.
-
-The last-to-finish egress invokes the sink function with a vector of pointers
-to each upstream function's stored output. The pointers are the in same order
-as the vector of upstream function names. The ingress on the sink function
-dereferences each point by reading from the data store and passes a vector of
-output values to its user function.
-
-
-\subsubsection{Runtime Metadata}
-
-To support a rich variety of orchestration patterns, \name{} requires a
-specific input payload schema in JSON (Figure~\ref{fig:input-format}) that
-contains \name{} runtime metadata. In particular, \name{} uses the
-\texttt{Fan-out} field to store branch indexes. The \texttt{Fan-out} field
-contains a recursive \texttt{OuterLoop} field that \name{} uses to support
-nest fan-outs. The \texttt{\$0} and \texttt{\$size} variable in
-\name{} IR (\S\ref{sec:ir}) refers to the \texttt{Index}  and \texttt{Size}
-field of the top-level \texttt{Fan-out} field.
-
-The runtime additionally uses a \texttt{Session} field to support concurrent
-invocations of the same workflow. The \texttt{Session} field is a UUID string
-that is unique to a workflow invocation and shared by all constituent function
-instances in the invocation. Function checkpoint names
-(\S\ref{sec:exec-gntee}) are prefixed by the \texttt{Session} string so that
-concurrently invocations do not overwrite each other's data. We discuss
-\name{} checkpoints and execution guarantees details in the next section.
 
 
 \subsection{Execution Guarantees}\label{sec:exec-gntee}
