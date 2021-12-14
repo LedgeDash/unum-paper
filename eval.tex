@@ -85,6 +85,15 @@ configuration~\cite{aws-step-functions-standard-vs-express}, which provides
 similarly strong execution guarantees as
 \name{}~\cite{aws-step-functions-exec-gntee}.
 
+In general, we treat Step Functions as a black box as its internal design or
+implementation details are not public. While it is possible that different
+designs for a centralized orchestrator could yield better performance, our
+evaluation goal is merely to show that \name{}'s architecture and expression
+language result in performance and cost sufficient for practical use. We argue
+that if \name{} matches or improves over Step Functions, one of the most widely
+used centralized orchestrators today, its performance and costs are good enough
+for a wide variety of applications.
+
 % We do not consider Step Functions' Express Workflows in our comparison because
 % of its weaker execution guarantee, namely the same invocation could result in
 % multiple and potentially diverging results if any part of the workflow logic
@@ -99,12 +108,18 @@ similarly strong execution guarantees as
 % due to failures and retries, which is identical to \name{}. \shadi{this
   % paragraph is a bit confusing... }
 
-\subsection{Microbenchmarks}\label{sec:eval:micro}
+\subsection{Performance}\label{sec:eval:micro}
 
-In this section, we analyze \name{} on a series of micro-benchmark patterns in
-terms of both cost and latency.
+\name{}'s performance overhead results from orchestration logic run in each
+function as well as  storage and invocation APIs required to implement common
+patterns. We characterize these overheads by measuring the latency to execute
+various patterns in using \texttt{noop} functions as well as end-to-end
+performance of real applications. Overall we find that \name{} performs
+comparably or significantly better than Step Functions in most cases owing to
+higher parallelism and a more expressive orchestration language, with modest
+slow downs in the remaining cases due to implementation deficiencies.
 
-\subsubsection{Single Transition Performance}
+\subsubsection{Chaining}
 
 \begin{figure}[t]
   \centering
@@ -123,75 +138,75 @@ terms of both cost and latency.
   \label{fig:single-transition-latency-breakdown}
 \end{figure}
 
-Using the same experiment from the last section, we further breakdown the
-latency for \emph{a single transition} from one function to the next to
-understand where the overhead of orchestration comes from. In \name{}, this
-transition involves (1) the egress on the source function writing its output
-to a checkpoint, (2) the egress on the source function invoking the target
-function, and (3) the ingress on the target function checking whether a
-checkpoint already exists to ensure exactly-once semantics. In total, that is
-two storage accesses and one asynchronous invocation to Lambda. In order to
-honor the effect of payload data size on the latency of storage accesses and
-Lambda invocation, we measure across data sizes ranging between 0-255KB in 5KB
-increments\footnote{Lambda limits payload size to 256KB for asynchronous
-invocations.}.
+For the simple chaining pattern, the \name{} runtime adds to each execution of a
+function a storage write to checkpoint the function's result, a storage read to
+find a previous checkpoint, and an asynchronous function invocation to initiate
+the next function in the chain.
 
-Figure~\ref{fig:single-transition-latency-breakdown} shows the total single
-transition latency for \name{} and its breakdown to Lambda invocation,
-DynamoDB \texttt{PutItem} and \texttt{GetItem} API calls. Over 97.5\% of
-\name{}'s runtime overhead comes from the three APIs calls to the underlying
-serverless system. As a baseline,
-Figure~\ref{fig:single-transition-latency-breakdown} also shows the equivalent
-single transition latency for Step Functions. Overall, \name{} is up to 56ms
-faster than Step Functions, likely for the same reason of reduced number of
-network communications mentioned in the last section.
+Figure~\ref{fig:single-transition-latency-breakdown} shows time to perform each
+of these operations for different result sizes. As expected, storage operations
+are slower when checkpointed results are larger, but the total overhead from the
+\name{} runtime operations is consistently 50ms lower than an equivalent Step
+Function transition.
 
-While \name{}'s latency improvement over Step Functions is marginal,
-especially for workflows in which functions perform real and expensive
-computations, \name{}'s latency breakdown shows great potential for automatic
-future improvements as serverless gets faster. For instance, a
-faster NoSQL database or FaaS system will automatically reduce the bulk of
-\name{}'s latency without any modification to \name{} itself, since the majority of
-\name{}'s runtime overhead comes from APIs calls to Lambda and DynamoDB.
+\amit{We can keep Figure~\ref{chainmicrolatency} and explain briefly that this
+basically confirms the thing, \emph{but} for that to be the case, it should be
+the case that the difference between Step Functions and \name{} increases by
+50ms for each additional link in the chain. Is this the case? Otherwise, I
+think we can elide this figure.}
 
-\subsubsection{Chaining performance}\label{sec:eval:chain}
+The \name{} implementation of the IoT pipeline application benefits from this
+difference, with the \name{} version running 21\% faster than the Step Functions
+version (Table~\ref{table:macro}).
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
-  \caption{End-to-end latency of chaining N functions. All constituent
-    functions in the experiment only run for 1-2ms, so the results mostly
-    reflect the latency of the workflow systems. \name{} is marginally
-    (11-28\%) faster than Step Functions on average. The results show that
-    \name{} is basically as fast in the most fundamental orchestration
-    primitive of transitioning from one function to the next.}
-  \label{fig:chainmicrolatency}
-\end{figure}
+%\subsubsection{Chaining performance}\label{sec:eval:chain}
+%
+%\emph{Highlight: Maybe just a repeat of the previous point with a different experiment}
+%
+%
+%\begin{figure}[t]
+%  \centering
+%  \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
+%  \caption{End-to-end latency of chaining N functions. All constituent
+%    functions in the experiment only run for 1-2ms, so the results mostly
+%    reflect the latency of the workflow systems. \name{} is marginally
+%    (11-28\%) faster than Step Functions on average. The results show that
+%    \name{} is basically as fast in the most fundamental orchestration
+%    primitive of transitioning from one function to the next.}
+%  \label{fig:chainmicrolatency}
+%\end{figure}
+%
+%
+%We evaluate how \name{} performs on executing a series of functions in
+%sequence and then compare with Step Functions. We measure the end-to-end
+%latency of executing a chain of functions with varying chain lengths (2 to 10
+%functions). Our goal is to allow the end-to-end latency to maximally reflect
+%the performance of the workflow system, with minimum interference from the
+%latency of user code. Therefore, we use a constituent function that simply
+%returns its input without any computations to keep the user code runtime
+%intentionally short (less than 2ms).
+%
+%Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
+%Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
+%11-28\% faster in chaining than Step Functions. A plausible explanation for
+%the shorter latency is that a transition in \name{} from one function to the
+%next involves a single network communication to Lambda when the source
+%function calls the target function asynchronously. The same transition in Step
+%Functions, however, requires not only an invocation from the orchestrator to
+%Lambda but also a network communication from the source function to the
+%orchestrator to send back the function output first. \name{} reduces
+%the number of network communications because control-flow states and logic are
+%decentralized to constituent functions without being managed by a centralized
+%orchestrator.
 
+\subsubsection{Fan-out and fan-in}\label{sec:eval:fan-out}
 
-We evaluate how \name{} performs on executing a series of functions in
-sequence and then compare with Step Functions. We measure the end-to-end
-latency of executing a chain of functions with varying chain lengths (2 to 10
-functions). Our goal is to allow the end-to-end latency to maximally reflect
-the performance of the workflow system, with minimum interference from the
-latency of user code. Therefore, we use a constituent function that simply
-returns its input without any computations to keep the user code runtime
-intentionally short (less than 2ms).
-
-Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
-Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
-11-28\% faster in chaining than Step Functions. A plausible explanation for
-the shorter latency is that a transition in \name{} from one function to the
-next involves a single network communication to Lambda when the source
-function calls the target function asynchronously. The same transition in Step
-Functions, however, requires not only an invocation from the orchestrator to
-Lambda but also a network communication from the source function to the
-orchestrator to send back the function output first. \name{} reduces
-the number of network communications because control-flow states and logic are
-decentralized to constituent functions without being managed by a centralized
-orchestrator.
-
-\subsubsection{Fan-out and fan-in performance}\label{sec:eval:fan-out}
+\emph{Highlight: fan-out doesn't require any additional storage; fan-in requires
+additional reads and more expensive writes; compared to Step Functions, this
+overhead results in slower fan-out/fan-in patterns at low branching factor;
+conversely, \name{}'s parallelism is not limited by the orchestrator, so with
+large branching factors, \name{} is much faster than Step Functions as fan-out
+branches run in parallel.}
 
 \begin{figure}[t]
   \centering
@@ -207,46 +222,30 @@ orchestrator.
   \label{fig:mapmicrolatency}
 \end{figure}
 
-The ability to quickly launch parallel functions is important for serverless
-applications because many require high degrees of parallelism (e.g., ExCamera
-runs thousands of encoding lambdas in parallel) and migrate to serverless
-specifically for its fast autoscaling. In this section, we evaluate how
-\name{} performs on executing a number of tasks in parallel with the fan-out
-pattern, and compare with Step Functions.
+Fan-out requires the same number of storage operations as chaining and similar
+orchestration logic, but the \name{} runtime performs an additional asynchronous
+invocation at the source function for each branch. For fan-in patterns, each
+source branch performs an additional storage read to determine if it is the
+final branch to execute, and only the final branch performs the asynchronous
+invocation of the target function.
 
-We measure the end-to-end latency of launching a number of parallel branches
-and then aggregating the result of all branches in a single fan-in function.
-Similar to Section \ref{sec:eval:chain}, we use a function that performs no
-computation so that the end-to-end latency best indicates the performance of
-the workflow system.
+\amit{Why does \name{}'s latency grow at all in \ref{fig:mapmicrolatency}? If it
+can do all branches in parallel, shouldn't latency remain roughly constant?}
 
+Figure~\ref{fig:mapmicrolatency} shows the latency of a fan-out followed by a
+fan-in at varying branching degrees for both \name{} and Step Functions. At low
+branching degree, \name{}'s distributed fan-in algorithm incurs a modest
+overhead (up to 200ms) relative to Step Functions. However, at higher branching
+degrees (as low as 20 branches), Step Functions limits parallel invocation of
+concurrent fan-out branches~\cite{aws-step-functions-map-state} while \name{} is
+limited only by Lambda's scalability, resulting in over 4x lower latency with
+512 branches.
 
-Figure~\ref{fig:mapmicrolatency} shows the end-to-end latency (logscale) of
-fan-out and fan-in at varying degrees of parallelism. \name{} consistently
-outperforms Step Functions with 32 or more parallel branches, with an
-improvement in speed of up to 4.58 times that of Step Functions (achieved at
-512 parallel branches).
-
-At lower degrees of parallelism (2-16 parallel branches), \name{} is around
-100-200ms or 26-32\% slower than Step Functions. This is likely due to our
-Python implementation asynchronously invoking each branch in sequence, while
-Step Functions starts branches truly in parallel. That being said, Step
-Functions starts to throttle branch creations very quickly---we observe
-throttling starting around 20 parallel branches, although Step Functions
-documentation states that it might pause creating branches when the number
-exceeds 40~\cite{aws-step-functions-map-state}. Without such limitation,
-\name{} scales much faster when the degree of parallelism increases.
-
-Our results demonstrate that the added orchestrator can easily become a
-performance bottleneck, whether due to implementation or design restrictions,
-and its scalability problem has to be solved again independently for the
-end-to-end system to perform well, all of which are out of users' control.
-While we do not claim that centralized orchestrators fundamentally scale worse
-than \name{}'s decentralized design, we show that \name{} can leverage
-Lambda's fast autoscale capability without imposing any additional
-restrictions because we build entirely on top of the existing serverless
-components without introducing new services.
-
+These differences manifest in real workloads as well. Both the Text Processing
+and Word Count applications include an fan-out followed by a fan-in. Text
+Processing has low branching degree and, indeed, performs slightly worse on
+\name{} than on Step Functions (1.8\%). Conversely, Word Count is highly
+parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\ref{table:macro})
 
 % \subsubsection{Cost comparison}
 
@@ -344,22 +343,6 @@ components without introducing new services.
   % \end{itemize}
 
 
-
-
-\subsection{Real-World Applications}\label{sec:eval:realworld}
-
-% \begin{table}[]
-  % \begin{tabular}{llllll}
-    % \hline
-    %                      &                        & \multicolumn{2}{l}{\textbf{unum}}                                                                                                   & \multicolumn{2}{l}{\textbf{Step Functions}}                                                                     \\
-    % \textbf{Application} & Pattern                & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                                                 & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                             \\ \hline
-    % IoT Pipeline         & chain                  & 120.9ms              & $0.2*2+(73+28)*$0.0021+2*\$1.3942                                                                            & 226.52               & $0.2*2+ 4*$27.9                                                                          \\
-    % Text Processing      & fan-out, fan-in        & 562.69ms             & $0.2*6+ (105+149+70+68+144+100)*$0.0021 + 6*$1.3942+2*2*$0.279                                               & 552.46ms             & $0.2*5+7*$27.9                                                                           \\
-    % Wordcount            & chain, fan-out, fan-in & 410s                 & $0.2*(1+262+1+250+1) + (277+6264*262 + 348 + 667*250 +68)*$0.0021 +(1+262+1+250+1)*$1.3942 + 262*2*$0.279+ 250*2* $0.279    & 898s                 & $0.2*(1+262+1+250+1) + (5913*262 + 154 + 633*250 +5)*$0.0021 +(1+262+1+1+250+1+1)*\$27.9 \\
-    % ExCamera             & chain, fan-out, fold   & 84s                  & $0.2*(1+16+15+15+14) + (6500+1500+350+4500+5000)*$0.0021+ (1+16+15+15+14)*$1.3942 + 15*2*$0.279+14*2*\$0.279 & 98s                  & $0.2*(16+16+1+16+15)+(6300+1400+2+5500+5300)*$0.0021+(1+16+16+1+1+16+1+1)*\$27.9      \\ \hline
-    % \end{tabular}
-  % \end{table}
-
 \begin{table*}[t]
   \centering
   \begin{tabular}{ll|rr|rr}
@@ -381,6 +364,21 @@ components without introducing new services.
   \label{table:macro}
 \end{table*}
 
+
+\subsubsection{ExCamera}\label{sec:eval:excamera}
+
+% \begin{table}[]
+  % \begin{tabular}{llllll}
+    % \hline
+    %                      &                        & \multicolumn{2}{l}{\textbf{unum}}                                                                                                   & \multicolumn{2}{l}{\textbf{Step Functions}}                                                                     \\
+    % \textbf{Application} & Pattern                & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                                                 & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                             \\ \hline
+    % IoT Pipeline         & chain                  & 120.9ms              & $0.2*2+(73+28)*$0.0021+2*\$1.3942                                                                            & 226.52               & $0.2*2+ 4*$27.9                                                                          \\
+    % Text Processing      & fan-out, fan-in        & 562.69ms             & $0.2*6+ (105+149+70+68+144+100)*$0.0021 + 6*$1.3942+2*2*$0.279                                               & 552.46ms             & $0.2*5+7*$27.9                                                                           \\
+    % Wordcount            & chain, fan-out, fan-in & 410s                 & $0.2*(1+262+1+250+1) + (277+6264*262 + 348 + 667*250 +68)*$0.0021 +(1+262+1+250+1)*$1.3942 + 262*2*$0.279+ 250*2* $0.279    & 898s                 & $0.2*(1+262+1+250+1) + (5913*262 + 154 + 633*250 +5)*$0.0021 +(1+262+1+1+250+1+1)*\$27.9 \\
+    % ExCamera             & chain, fan-out, fold   & 84s                  & $0.2*(1+16+15+15+14) + (6500+1500+350+4500+5000)*$0.0021+ (1+16+15+15+14)*$1.3942 + 15*2*$0.279+14*2*\$0.279 & 98s                  & $0.2*(16+16+1+16+15)+(6300+1400+2+5500+5300)*$0.0021+(1+16+16+1+1+16+1+1)*\$27.9      \\ \hline
+    % \end{tabular}
+  % \end{table}
+
 \begin{table}[]
   \centering
   \begin{tabular}{|r|r|}
@@ -398,79 +396,36 @@ components without introducing new services.
   \label{table:excamera}
 \end{table}
 
-In this section, we evaluate \name{}'s performance and costs with 4 real-world
-workloads and compare with Step Functions. We use a diverse set of
-applications taken from serverless application repositories and prior research
-work, covering a wide range of use cases and workflow patterns:
+ExCamera~\cite{excamera} is a novel video encoder that encodes
+large raw videos with thousands of parallel functions to achieve low latency. It
+breaks a large video into small chunks and runs expensive steps in parallel and
+fast steps in series. The workflow consists of three stages, \texttt{ENCODE},
+\texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
+complex patterns. The first stage is a \texttt{map} that runs many
+\texttt{ENCODE} functions entirely in parallel, the second stage forms paralllel
+pipelines following the first stage where the $i^{th}$
+\texttt{ENCODE-GIVEN-STATE} branch starts when the $(i)^{th}$ and $(i-1)^{th}$
+\texttt{ENCODE} branch complete. The final \texttt{REBASE} runs in series and
+rebases each chunk on top of the state from the previous chunk.
 
-\begin{itemize}
+We implement a \name{} version and a Step Functions version for ExCamera,
+using the same binaries in constituent functions as the original
+paper~\cite{excamera-binary}. The \name{} implementation closely matches the
+original ExCamera where a task starts as soon as its input data becomes
+available. But the Step Functions implementation had to serialize the
+\texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} stages because fan-outs in Step
+Functions require all parallel branches to complete before fan-in.  For this
+reason, we do not derive the \name{} version from a Step Functions definition
+with the frontend compiler. Instead, we hand-write \name{} configurations for
+each unumized function.
 
-  \item \textbf{IoT Pipeline} Adapted from a humidity control application in the
-    AWS serverless repository~\cite{iot-pipeline}. The workflow consists of a
-    chain of two functions where the first function processes time-series data
-    on indoor climate and outputs a set of aggregate statistics. The second
-    function makes a HVAC system control decision based on the statistics and
-    adjusts the HVAC settings.
-
-  \item \textbf{Text Processing} Adapted from the social networks application in
-    the DeathStarBench~\cite{deathstar}. The workflow consists of 5 functions
-    that create a social network post by processing text data of user posts.
-    It fans out to two branches that resolves user mentions and shortens URLs
-    in parallel. Lastly, it fans in to a function that saves the post along
-    with resolved user mentions and shortened URLs in a NoSQL database.
-
-    \item \textbf{Wordcount} Adapted from MapReduce word
-    count~\cite{mapreduce}. Mappers and reducers execute as Lambda function.
-    The workload uses 250 parallel mappers and reducers.
-
-  \item \textbf{ExCamera} ExCamera~\cite{excamera} is a novel video encoder that
-    encodes large raw videos with thousands of parallel functions to achieve
-    low latency. It breaks a large video into small chunks and runs expensive
-    steps in parallel and fast steps in series. The workflow consists of three
-    stages, \texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE},
-    where functions interact in complex patterns. The first stage is a
-    \texttt{map} that runs many \texttt{ENCODE} functions entirely in
-    parallel, the second stage forms paralllel pipelines following the first
-    stage where the $i^{th}$ \texttt{ENCODE-GIVEN-STATE} branch starts when
-    the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete. The final
-    \texttt{REBASE} runs in series and rebases each chunk on top of the state
-    from the previous chunk.
-
-    We implement a \name{} version and a Step Functions version for ExCamera,
-    using the same binaries in constituent functions as the original
-    paper~\cite{excamera-binary}. The \name{} implementation closely matches
-    the original ExCamera where a task starts as soon as its input data
-    becomes available. But the Step Functions implementation had to serialize
-    the \texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} stages because fan-outs
-    in Step Functions require all parallel branches to complete before fan-in.
-    For this reason, we do not derive the \name{} version from a Step
-    Functions definition with the frontend compiler. Instead, we hand-write
-  \name{} configurations for each unumized function.
-
-    Furtheremore, we compare \name{}'s implementation against the original
-    authors' implementation of ExCamera. The original authors build two
-    version: a hand-optimized version in the original paper~\cite{excamera},
-    and a later version implemented with the \texttt{gg}
-    framework~\cite{gg-atc}. We use the exact same workload and setup as the
-    experiment in \texttt{gg}~\cite{gg-atc}, i.e., the same input video of the
-    first 888 chunks of \texttt{sintel-4k} video, 16 chunks per batch and
-    lambdas with 3GB of memory.
-
-\end{itemize}
-
-\subsubsection{Latency Comparison}
-
-Table~\ref{table:macro} compares the median end-to-end latency and costs (per 1
-million executions) of running the applications with \name{} and with Step
-Functions. Similar to our results in microbenchmarks (\S\ref{sec:eval:micro}),
-\name{} is around 50ms or 27.8\% faster in the chaining application---IoT
-Pipeline, and 2.2x faster in the highly-parallel application --- wordcount.
-Text Processing is the only application where \name{} is slower than Step
-Functions. We know from \S\ref{sec:eval:fan-out} that \name{} is around 100ms
-slower launching 2 parallel branches. However, with constituent  functions
-performing real computation and chaining of function in parallel branch,
-\name{}'s end-to-end latency is merely 10ms or 1.8\% slower than Step
-Functions.
+Furtheremore, we compare \name{}'s implementation against the original
+authors' implementation of ExCamera. The original authors build two version: a
+hand-optimized version in the original paper~\cite{excamera}, and a later
+version implemented with the \texttt{gg} framework~\cite{gg-atc}. We use the
+exact same workload and setup as the experiment in \texttt{gg}~\cite{gg-atc},
+i.e., the same input video of the first 888 chunks of \texttt{sintel-4k} video,
+16 chunks per batch and lambdas with 3GB of memory.
 
 While ExCamera process all 888 chunks in parallel, each batch is a
 \texttt{map} with only 16 branches. From the result in
@@ -503,7 +458,7 @@ number of network communications  explains why \name{} is slightly
 faster than \texttt{gg}.
 
 
-\subsubsection{Cost Comparison and Breakdown}
+\subsection{Cost}
 
 \begin{figure}[t!]
     \centering
