@@ -1,44 +1,81 @@
 \subsection{\name{'s} transition patterns}
 \label{sec:transition-patterns}
 
+We first highlight six workflow patterns that are supported in most workflow
+systems and also expressible in \name{}. Developers commonly use all or a
+subset of these patterns to compose complex serverless workflows. We describe
+each pattern and a set of real serverless applications that are built with one
+or a combination of multiple patterns.
 
-We have identified six workflow transition patterns as the main building blocks to build arbitrary workflow compositions. These patterns are simple to use and yet expressive. These patterns include: \shadi{should we add sentence on how fold and for are unique?}
+% We have identified six workflow transition patterns as the main building
+% blocks to build arbitrary workflow compositions. These patterns are simple to
+% use and yet expressive. These patterns include: \shadi{should we add sentence
+% on how fold and for are unique?}
 
-\squishlist
-	\item \textit{\textbf{chain:} }
-		Chaining is a simple but most fundamental control-flow pattern, e.g.,  a function processing sensor data followed by a function adjusting an	actuator. The \texttt{chain} pattern connects the
-		two functions by invoking the target function with the source function's
-		result. 
+% \squishlist
+\begin{itemize}
+    \item \textit{\textbf{chain:} }
+    Chaining is a simple but fundamental orchestration pattern. For example,
+    an application might include a function (the source) that processes input
+    data from a sensor followed by another function (the target) that adjusts
+    an actuator based on the processed input. The \texttt{chain} pattern
+    connects the two functions by invoking the target function with the source
+    function's result.
 
-	\item \textit{\textbf{fan out:}} 
-	A common pattern to create parallel processing,  e.g.,  an social network application processing a new user post by, in parallel, performing
-	 URL shortening
-	and resolving users tagged. 
-	The fan-out pattern
-	launches a vector of functions (branches) with the output of a single
-	source function. 
-	\item \textit{\textbf{map: }} Map is a simple interface to create parallelism of an identical function, e.g.,  a photo management application performing the same "compression" function on
-	each of the images in a unzipped folder.  The map pattern invokes the same
-function, once for each element, in a vector of outputs from a single source
-function.
-	\item \textit{\textbf{fan in:}} is a common pattern to join back multiple parallel functions, e.g., a video encoder that has encoded video chunks each in parallel might want to concatenate all the encoded
-	chunks together. The fan-in pattern invokes a single ``sink''
-	function with the outputs from a vector of functions (the fan-in branches).
-	
-	\item \textit{\textbf{fold:}}  \shadiS{is an advanced pattern that is supported by few
-		systems~\cite{azure-functions}. Fold sequentially applies the same function on the outputs of a vector of source functions, while aggregating with the intermediate results of running the function so far. An example of fold would be concatenating several video chunks in order: concatenating chunk 1 and 2, then concatenating chunk 3 to chunk [1--2], and so on.
-	}
-	
-	\item \textit{\textbf{branch:}} \shadiS{ is a new pattern supported by \name{} where any  transition pattern can also be conditional, i.e., only execute when the conditions are met. Branch is simple construct with powerful implications, e.g.,  \shadi{@David: example? something in line of "selecting the ML model to run on an image based on the size of the image"}. It also it allows building complex patterns such as ``while'' loops and recursion by using branch as the condition to end the while-loop or recursion. The
-	branch pattern selects a next function based on some boolean
-	condition. \shadi{why do we call it branch? would conditional work?}
-}
+    \item \textit{\textbf{fan out:}} 
+    Another common pattern processes the output of a function in different
+    ways in parallel. For example, an social network application might perform
+    several independent functions given a new user post, such as URL
+    shortening and resolving other users mentioned in the post. The
+    \texttt{fan-out} pattern launches a vector of functions (branches) each
+    with the output of the same source function.
 
-\squishend\vspace{-1ex}
-	
+	\item \textit{\textbf{map: }}
+    An application may also perform the same function on multiple outputs of a
+    source function. For example, a photo management application might unpack an
+    archive of high-resolution images in one function and perform compression on
+    each of the resulting images. The \texttt{map} pattern invokes the same
+    function once for each element in a vector of outputs from the source
+    function.
 
-We found these to be sufficient to express all commonly used orchestrator systems including AWS Step
-Functions, \shadi{X, y, and Z} and in many cases they were a super-set of what was provided (e.g., Step functions does not support fold). In addition, we studied several real-world serverless applications and found that the above patterns are sufficient for expressing all.  Below we describe how four representative real-world applications, taken from serverless application repositories and prior research, map to these patterns. These applications represent a diverse set ranging from a simple 2-function IoT pipeline to a complex \shadi{1000s of} functions application.
+	\item \textit{\textbf{fan in:}}
+    After processing data with many parallel branches, applications commonly
+    want to aggregate results. For example, to build an index of a large
+    corpus, the application might process a chunks in parallel and the
+    aggregate the results. \texttt{fan-in} is a common pattern to join back
+    multiple parallel functions, by invokeing a single ``sink'' function with
+    the outputs from a vector of functions (the fan-in branches).
+
+    \item \textit{\textbf{branch:}}
+    An application may decide to take a different branch of the workflow graph
+    based on runtime behavior (e.g., the output of a function). For instance,
+    an ML application might use a function to first characterize the data and
+    then select a model based on the features. The \texttt{branch} pattern
+    selects a next function based on some boolean condition.
+
+	\item \textit{\textbf{fold:}}
+    \texttt{fold} sequentially applies the same function on the outputs of
+    a vector of source functions, while aggregating with the intermediate
+    results of running the function so far. For example, a video encoding
+    application might encode chunks in parallel and then concatenate the
+    results in order: concatenating chunk 1 and 2, then concatenating
+    chunk 3 to chunk [1--2], and so on. \texttt{fold} is an advanced
+    pattern that is not supported by all existing systems (e.g., AWS Step
+    Functions do not support \texttt{fold}) but is expressible in \name{}.
+% \squishend
+\end{itemize}
+
+% \vspace{-1ex}
+
+
+Developers have built a variety of serverless workflows using these patterns,
+ranging from simple 2-function chains to complex 1000s-of-functions
+applications that aggregate large amounts of data from parallel pipelines.
+Below we describe how four representative real-world applications, taken from
+serverless application repositories and prior research, and them map to these
+patterns.
+
+
 
 \noindent\underline{\textit{IoT Pipeline:}} A HVAC control application (in
 	AWS serverless repository~\cite{iot-pipeline}) consisting  of a
@@ -63,15 +100,7 @@ Functions, \shadi{X, y, and Z} and in many cases they were a super-set of what w
 	The workflow consists of three
 	stages. First, an ``encode'' stage  that chunks the video and runs multiple encoding functions entirely in parallel shown as individual branches in Figure~\ref{fig:excamera}, shown as a map followed by chain pattern. Next, each branch $i$ combines results from the previous branch $(i-1)$ to \shadi{david:?? encode the video based on the previous chunk?}
 	. This step involves a series of fan-outs and fan-ins. Finally, all encoded video chunks are concatiated into the a single video stream using a fold and fan-in pattern.
-%	
-%	 \texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE},
-%	where functions interact in complex patterns. The first stage is a
-%	\texttt{map} that runs many \texttt{ENCODE} functions entirely in
-%	parallel, shown as individual branches in Figure~\ref{fig:excamera}. The second stage forms parallel pipelines following the first
-%	stage where the $i^{th}$ \texttt{ENCODE-GIVEN-STATE} branch starts when
-%	the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete. The final
-%	\texttt{REBASE} runs in series and rebases each chunk on top of the state
-%	from the previous chunk (the last fold and fan-in steps).
+
 
  \name{'s} set of 6 patterns are sufficient to express a wide range of real-world applications. In the following section, we will describe  how we execute each pattern in a completely decentralized manner.
 
