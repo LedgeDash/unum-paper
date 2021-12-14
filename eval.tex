@@ -360,11 +360,9 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
     gg                       & 90                         \\ \hline
     Step Functions & 98                         \\ \hline
   \end{tabular}
-  \caption{\name{}'s implementation closely matches that of gg and the original
-    ExCamera where a task starts as soon as its input data becomes available. The
-    Step Functions implementation had to serialize the encoding and re-encoding
-    stages because the \texttt{Map} state in Step Functions requires all parallel
-    branches to complete before fan-in.}
+  \caption{\name{}'s implementation closely matches the original
+    ExCamera. Conversely, the Step Functions implementation must serialize the encoding and re-encoding
+    stages resulting in less parallelism.}
   \label{table:excamera}
 \end{table}
 
