@@ -227,26 +227,28 @@ Next Payload Modifiers: ["$0=$0+1"]
 
 Before executing serverless workflows in a decentralized manner, a workflow
 definition first needs to be partitioned such that each function performs only
-a subsection of the workflow. The system needs to decide where to make the
-partition, how big each parition is and how to assign partitions to user
-functions. \shadi{this whole description "partition" seems like adding an unnecessary new term and detail. can we just use the terms used so far? also, can we just refer back to patterns?}
-
-\name{} partitions a workflow by converting it into an intermediate
+a subsection of the workflow (and the corresponding transitions).
+% 
+% The system needs to decide where to make the
+%partition, how big each parition is and how to assign partitions to user
+%functions. \shadi{this whole description "partition" seems like adding an unnecessary new term and detail. can we just use the terms used so far? also, can we just refer back to patterns?}
+%
+\name{} partitions a workflow by converting it into a platform-agnostic intermediate
 representation. From a high-level workflow definition, \name{} first derives a
 directed graph representation where nodes are user functions and edges are
 workflow transitions between functions. Then each function is assigned to
-perform just the transitions of its node's outgoing edges. \shadi{can we maybe call this "unum config" to be consistent with architecture?}
+perform just the transitions of its node's outgoing edges. 
 
 Compared with workflow definitions where developers compose functions with
 higher-level building blocks such as patterns, the \name{} IR encodes workflow
 transitions with low-level primitives. In particular, the IR is made up of a
-set of configurations, one for each function in the workflow, that just
+set of \textit{\name{} configs}, one for each function in the workflow, that just
 specifies i. \textit{which} function(s) to run next, ii. \textit{when} the
 next function(s) should run, iii. \textit{what} input should the next
 function(s) run with. Figure~\ref{fig:ir-schema} shows the main primitives in
 the \name{} IR language for expressing workflow transitions.
 
-With these primitives, the IR can express all common workflow patterns
+With these \name{} configs, the IR can express all common workflow patterns
 (\S\ref{sec:transition-patterns}) using just a few lines of code for simple
 patterns and a combination of the primitives for more complex interactions.
 For instances, a chain from function \texttt{F} to \texttt{G} can be expressed
@@ -264,7 +266,7 @@ And Figure~\ref{fig:ir-examples} gives an example of a regular fan-in and
 using a combination of \texttt{Fan-in}, \texttt{Conditional} and \texttt{Next
 Payload Modifier} to express fold.
 
-The IR configuration is platform-agnostic. In particular, it does not specify
+\name{} IR  is platform-agnostic--it does not specify
 how to launch the next function(s), and how to send input data to the next
 function(s). These details are left to the \name{} runtime library that can
 target specific platforms (for example, the runtime for AWS runs functions as

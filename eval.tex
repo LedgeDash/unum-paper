@@ -394,7 +394,7 @@ with the original hand-optimized implementation and another implementation,
 gg, by the same author.
 
 Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
-the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
+the \texttt{sintel-4k}~\cite{sintel} video using 16 chunks per batch and
 Lambdas configured with 3GB of memory in all cases. \name{}'s is 7.1\% faster
 than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera. The
 original ExCamera pre-loads raw video chunks into lambdas before starting,
@@ -475,27 +475,11 @@ input.}
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/AppCostBreakdown.pdf}
-    \caption{\dhl{I'm trying to figure out how the figure should look like. So
-    trying a couple of things in this draft graph here. The top row splits
-    \name{} breakdown and Step Functions breakdown to 2 graphs. The top left is
-    the \name{} breakdown for just IoT Pipeline and Text Processing and no
-    Wordcount or ExCamera. The top right is the Step Functions breakdown. The
-    bottom row puts unum breakdown and Step Functions breakdown side-by-sdie.
-    The bottom left is Wordcount and bottom right is ExCamera. Another
-    thought: if percentage is the only thing we care about, should just pie
-    charts instead? Esp. give that we already have Table~\ref{table:macro}.}
-    \seb{I don't prefer pie charts. But i would perhaps normalize the cost 
-    for each benchmark (e.g., define 1 = total cost of step functions) 
-    and then put all 8 columns in a single double-tall chart. unum is going 
-    to be a ridiculously short column but that may help to really make our point very visible.}
-    Step Functions state transitions dominate the total costs of running
-    applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and
-    over 99\% in IoT Pipeline and Text Processing. While \name{} runtime and
-    checkpoint costs are also the majority in IoT Pipeline (87.2\%) and Text
-    Processing (89\%), for large-scale workflows, \name{} only accounts for
-    18.1\% of the costs in ExCamera and 24.8\% in Wordcount. Most of \name{}'s
-    costs come from reading and writing checkpoints to DynamoDB. A cheaper
-    data store can significantly reduce the cost of using \name{}.}
+    \caption{Step Functions state transitions dominate the total costs for all
+    applications. While \name{} runtime and checkpoint costs are also the
+    majority in IoT Pipeline (87.2\%) and Text Processing (89\%), for
+    large-scale workflows, \name{} accounts for a much smaller proportion of
+    the total cost (18.1\% in ExCamera and 24.8\% in Wordcount).}
     \label{fig:cost-breakdown}
 \end{figure}
 
