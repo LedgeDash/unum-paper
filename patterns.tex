@@ -2,11 +2,11 @@
 \label{sec:transition-patterns}
 
 
-We have identified six workflow transition patterns as the main building blocks to build arbitrary workflow compositions. These patterns are simple to use and yet expressive. We found these to be sufficient to express all commonly used orchestrator systems including AWS Step
-Functions, \shadi{X, y, and Z} and all serverless applications we encountered \shadi{cites}. \shadi{should we add sentence on how fold and for are unique?}
-\begin{itemize}
+We have identified six workflow transition patterns as the main building blocks to build arbitrary workflow compositions. These patterns are simple to use and yet expressive. These patterns include: \shadi{should we add sentence on how fold and for are unique?}
+
+\squishlist
 	\item \textit{\textbf{chain:} }
-		Chaining is a simple but most fundamental control-flow pattern, e.g.,  a function processing sensor data followed by another function adjusting an	actuator. The \texttt{chain} pattern connects the
+		Chaining is a simple but most fundamental control-flow pattern, e.g.,  a function processing sensor data followed by a function adjusting an	actuator. The \texttt{chain} pattern connects the
 		two functions by invoking the target function with the source function's
 		result. 
 
@@ -17,7 +17,7 @@ Functions, \shadi{X, y, and Z} and all serverless applications we encountered \s
 	The fan-out pattern
 	launches a vector of functions (branches) with the output of a single
 	source function. 
-	\item \textit{\textbf{map: }} Map is a simple interface to create parallelism of an identical function, e.g.,  a photo management application performs the same "compression" function on
+	\item \textit{\textbf{map: }} Map is a simple interface to create parallelism of an identical function, e.g.,  a photo management application performing the same "compression" function on
 	each of the images in a unzipped folder.  The map pattern invokes the same
 function, once for each element, in a vector of outputs from a single source
 function.
@@ -25,21 +25,55 @@ function.
 	chunks together. The fan-in pattern invokes a single ``sink''
 	function with the outputs from a vector of functions (the fan-in branches).
 	
-	\item \textit{\textbf{branch:}} \shadiS{ is a new pattern supported by \name{} where any  transition pattern can also be conditional, i.e., only execute when the conditions are met. Branch is simple construct with powerful implications, e.g.,  \shadi{@David: example? something in line of "selecting the ML model to run on an image based on the size of the image"}. It also it allows building complex patterns such as ``while'' loops and recursion by using branch as the condition to end the while-loop or recursion The
-	branch pattern selects a next function based on some boolean
-	condition.
-}
-
 	\item \textit{\textbf{fold:}}  \shadiS{is an advanced pattern that is supported by few
-	systems~\cite{azure-functions}. Fold sequentially applies the same function on the outputs of a vector of functions, while aggregating with the result of running the function outputs so far. An example of fold would be concatenating several video chunks in order: concatenating chunk 1 and 2, then concatenating chunk 3 to chunk 1+2, and so on.
+		systems~\cite{azure-functions}. Fold sequentially applies the same function on the outputs of a vector of source functions, while aggregating with the intermediate results of running the function so far. An example of fold would be concatenating several video chunks in order: concatenating chunk 1 and 2, then concatenating chunk 3 to chunk [1--2], and so on.
 	}
 	
-\end{itemize}
+	\item \textit{\textbf{branch:}} \shadiS{ is a new pattern supported by \name{} where any  transition pattern can also be conditional, i.e., only execute when the conditions are met. Branch is simple construct with powerful implications, e.g.,  \shadi{@David: example? something in line of "selecting the ML model to run on an image based on the size of the image"}. It also it allows building complex patterns such as ``while'' loops and recursion by using branch as the condition to end the while-loop or recursion. The
+	branch pattern selects a next function based on some boolean
+	condition. \shadi{why do we call it branch? would conditional work?}
+}
 
-These four patterns  can express a rich variety of workflows
-efficiently, including a superset of workflows expressible in AWS Step
-Functions and all workflows we encountered. In the next section we describe how we execute these pattern with no orchestrator involved.
+\squishend\vspace{-1ex}
+	
 
+We found these to be sufficient to express all commonly used orchestrator systems including AWS Step
+Functions, \shadi{X, y, and Z} and in many cases they were a super-set of what was provided (e.g., Step functions does not support fold). In addition, we studied several real-world serverless applications and found that the above patterns are sufficient for expressing all.  Below we describe how four representative real-world applications, taken from serverless application repositories and prior research, map to these patterns. These applications represent a diverse set ranging from a simple 2-function IoT pipeline to a complex \shadi{1000s of} functions application.
+
+\noindent\underline{\textit{IoT Pipeline:}} A HVAC control application (in
+	AWS serverless repository~\cite{iot-pipeline}) consisting  of a
+	two functions connected with a simple chain pattern: a function that aggregates  a time-series data
+	on indoor climate readings,  followed by a HVAC system control function that
+	adjusts the HVAC settings based on the aggregate climate data.
+	
+	\noindent \underline{\textit{Text Processing:}} A social network application (adapted from
+	the DeathStarBench~\cite{deathstar}) that post-processes a new social network posted by a user.  The workflow consists of 5 functions, following the overall structure of Figure \ref{fig:arch:unum-compile-time}.
+	It fans out to two branches that resolves user mentions and shortens URLs
+	in parallel. \shadi{what does the chain do?} Lastly, it fans in to a function that saves the post along
+	with resolved user mentions and shortened URLs in a NoSQL database.
+	
+	 \noindent \underline{\textit{MapReduce:}} A word count application (from MapReduce 
+	count~\cite{mapreduce}) counting the number of each word in a dataset. The workflow consists of 250 parallel mappers functions each counting words in a subset of the dataset (map) followed by \shadi{one} reducer function aggregating all counts (fan-in).
+	
+	\noindent\underline{\textit{ExCamera:}} is a novel video encoder ~\cite{excamera} that
+	encodes large raw videos with thousands of parallel functions to achieve
+	low latency. This application has a complex workflow with use of multiple patterns, as shown in Figure~\ref{fig:excamera} .
+%		It breaks a large video into small chunks and runs expensive
+%	steps in parallel and fast steps in series. 
+	The workflow consists of three
+	stages. First, an ``encode'' stage  that chunks the video and runs multiple encoding functions entirely in parallel shown as individual branches in Figure~\ref{fig:excamera}, shown as a map followed by chain pattern. Next, each branch $i$ combines results from the previous branch $(i-1)$ to \shadi{david:?? encode the video based on the previous chunk?}
+	. This step involves a series of fan-outs and fan-ins. Finally, all encoded video chunks are concatiated into the a single video stream using a fold and fan-in pattern.
+%	
+%	 \texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE},
+%	where functions interact in complex patterns. The first stage is a
+%	\texttt{map} that runs many \texttt{ENCODE} functions entirely in
+%	parallel, shown as individual branches in Figure~\ref{fig:excamera}. The second stage forms parallel pipelines following the first
+%	stage where the $i^{th}$ \texttt{ENCODE-GIVEN-STATE} branch starts when
+%	the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete. The final
+%	\texttt{REBASE} runs in series and rebases each chunk on top of the state
+%	from the previous chunk (the last fold and fan-in steps).
+
+ \name{'s} set of 6 patterns are sufficient to express a wide range of real-world applications. In the following section, we will describe  how we execute each pattern in a completely decentralized manner.
 
 \begin{figure}[t!]
 	\centering
