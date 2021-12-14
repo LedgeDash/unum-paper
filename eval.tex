@@ -57,7 +57,7 @@ for end-to-end analysis of \name{}. The micro-benchmarks target basic
 orchestration patterns such as chaining, fan-out and fan-in
 (\S\ref{sec:eval:micro}). The real-world apps consist of applications from
 serverless repositories and prior research work  that encompass a variety of
-orchestration patterns (\S\ref{sec:eval:realworld}).
+orchestration patterns (\S\ref{sec:transition-patterns}).
 
 
 \subsection{Experimental setup}
@@ -71,13 +71,13 @@ comparisons, we ensure all functions are warm by running each workflow several
 times before taking measurements.
 
 We wrote all but one applications as AWS Lambda functions and Step Function
-state machines to driver those functions and either ran them directly for Step
-Function experiments, or compiled them to \name{} IR first for \name{}
-experiments. The notable exception is our \name{} and Step Functions
-implementations of ExCamera, which differ due to a limitation in the AWS State
-Language. As a result, the more efficient \name{} implementation is written
-directly in \name{} IR instead of compiled from the Step Functions definition
-(\S~\ref{sec:eval:realworld}).
+state machines that drive those functions and either ran them directly for
+Step Function experiments, or compiled them to unumized functions first and
+executed them as lambdas for \name{} experiments. The notable exception is our
+\name{} and Step Functions implementations of ExCamera, which differ due to a
+limitation in the AWS State Language. As a result, the more efficient \name{}
+implementation is written directly in \name{} IR instead of compiled from the
+Step Functions definition (\S~\ref{sec:eval:realworld}).
 
 For the Step Functions experiments, we run the workflow definitions using AWS
 Step Functions in \emph{Standard}
@@ -88,11 +88,11 @@ similarly strong execution guarantees as
 In general, we treat Step Functions as a black box as its internal design or
 implementation details are not public. While it is possible that different
 designs for a centralized orchestrator could yield better performance, our
-evaluation goal is merely to show that \name{}'s architecture and expression
-language result in performance and cost sufficient for practical use. We argue
-that if \name{} matches or improves over Step Functions, one of the most widely
-used centralized orchestrators today, its performance and costs are good enough
-for a wide variety of applications.
+evaluation goal is to show that \name{}'s architecture and expression language
+result in performance and cost sufficient for practical use. We argue that if
+\name{} matches or improves over Step Functions, one of the most widely used
+centralized orchestrators today, its performance and costs are good enough for
+a wide variety of applications.
 
 % We do not consider Step Functions' Express Workflows in our comparison because
 % of its weaker execution guarantee, namely the same invocation could result in
@@ -111,40 +111,41 @@ for a wide variety of applications.
 \subsection{Performance}\label{sec:eval:micro}
 
 \name{}'s performance overhead results from orchestration logic run in each
-function as well as  storage and invocation APIs required to implement common
+function as well as storage and invocation APIs required to implement common
 patterns. We characterize these overheads by measuring the latency to execute
-various patterns in using \texttt{noop} functions as well as end-to-end
+various patterns consists of \texttt{noop} functions as well as end-to-end
 performance of real applications. Overall we find that \name{} performs
 comparably or significantly better than Step Functions in most cases owing to
 higher parallelism and a more expressive orchestration language, with modest
 slow downs in the remaining cases due to implementation deficiencies.
 
-\subsubsection{Chaining}
+\subsubsection{Chaining}\label{sec:eval:chain}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
   \caption{An orchestrator incurs a latency on each transition between
 functions. \name{}'s overhead is due to storage operations to ensure
-exactly-once semantics, invocation API overhead to enqueue the next function to
-run, and additional code running in the function instance itself for the
-orchestration logic. \name{}'s overhead compares favorably to that of the Step
-Function's orchestrator for simple, chain, transitions.}
+exactly-one-result semantics, Lambda invocation API overhead to enqueue the
+next function to run, and additional \name{} runtime code in the function
+instance itself for the orchestration logic. \name{}'s overhead compares
+favorably to that of the Step Function's orchestrator for simple, chain,
+transitions.}
   \label{fig:single-transition-latency-breakdown}
 \end{figure}
 
-For the simple chaining pattern, the \name{} runtime adds to each execution of a
-function a storage write to checkpoint the function's result, a storage read to
-find a previous checkpoint, and an asynchronous function invocation to initiate
-the next function in the chain.
+For the simple chaining pattern, the \name{} runtime adds to each execution of
+a function a storage read to check whether a checkpoint already exists, a
+storage write to checkpoint the function's result, and an asynchronous
+function invocation to initiate the next function in the chain.
 
 Figure~\ref{fig:single-transition-latency-breakdown} shows time to perform each
 of these operations for different result sizes. As expected, storage operations
 are slower when checkpointed results are larger, but the total overhead from the
-\name{} runtime operations is consistently 50ms lower than an equivalent Step
+\name{} runtime operations is consistently lower than an equivalent Step
 Function transition.
 
-\amit{We can keep Figure~\ref{chainmicrolatency} and explain briefly that this
+\amit{We can keep Figure~\ref{fig:chainmicrolatency} and explain briefly that this
 basically confirms the thing, \emph{but} for that to be the case, it should be
 the case that the difference between Step Functions and \name{} increases by
 50ms for each additional link in the chain. Is this the case? Otherwise, I
@@ -159,7 +160,7 @@ version (Table~\ref{table:macro}).
 %\emph{Highlight: Maybe just a repeat of the previous point with a different experiment}
 %
 %
-%\begin{figure}[t]
+% \begin{figure}[t]
 %  \centering
 %  \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
 %  \caption{End-to-end latency of chaining N functions. All constituent
@@ -169,7 +170,7 @@ version (Table~\ref{table:macro}).
 %    \name{} is basically as fast in the most fundamental orchestration
 %    primitive of transitioning from one function to the next.}
 %  \label{fig:chainmicrolatency}
-%\end{figure}
+% \end{figure}
 %
 %
 %We evaluate how \name{} performs on executing a series of functions in
@@ -368,31 +369,32 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
   \label{table:excamera}
 \end{table}
 
-The ExCamera~\cite{excamera} video encoder applications encodes large raw videos
-with thousands of concurrent functions. It breaks a large video into small
-chunks and attempts to runs expensive steps in parallel and fast steps in
-series. The original ExCamera design~\cite{excamera} used a custom centralized
-orchestrator that implemented specialized workflow patterns which Step Functions
-is unable to express efficiently.
+The ExCamera~\cite{excamera} video encoder applications encodes large raw
+videos with thousands of concurrent functions. It breaks a large video into
+small chunks and attempts to runs expensive steps in parallel and fast steps
+in series. The original ExCamera design~\cite{excamera} used a custom
+centralized orchestrator that implemented specialized workflow patterns which
+Step Functions is unable to express efficiently.
 
 The workflow consists of three stages, \texttt{ENCODE},
 \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
 complex patterns. The first stage is a \texttt{map} that runs many
-\texttt{ENCODE} functions entirely in parallel, the second stage forms paralllel
-pipelines following the first stage where the $i^{th}$
-\texttt{ENCODE-GIVEN-STATE} branch starts when the $(i)^{th}$ and $(i-1)^{th}$
-\texttt{ENCODE} branch complete. The final \texttt{REBASE} runs in series and
-rebases each chunk on top of the state from the previous chunk.
+\texttt{ENCODE} functions entirely in parallel, the second stage fans-in
+adjacent branches of \texttt{ENCODE} into a \texttt{ENCODE-GIVEN-STATE} branch
+in parallel. In particular, the $i^{th}$ \texttt{ENCODE-GIVEN-STATE} branch
+starts when the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete.
+The final \texttt{REBASE} runs a fold pattern rebases each chunk on top of the
+state from the previous chunk.
 
-However, in Step Functions, all concurrent fan-out branches must complete before
-any fan-in starts. As a result, a Step Functions implementation must serialize
-the \texttt{ENCODE} and \texttt{ENCODE-GIVEN-STATE} stages.  Conversely,
-\name{}'s IR is flexible enough to support ExCamera's original pattern where
-tasks start as soon as their input data becomes available.
+However, in Step Functions, all concurrent fan-out branches must complete
+before any fan-in starts. As a result, a Step Functions implementation must
+serialize the \texttt{ENCODE} and \texttt{ENCODE-GIVEN-STATE} stages.
+Conversely, \name{}'s IR is flexible enough to support ExCamera's original
+pattern where tasks start as soon as their input data becomes available.
 
-Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
-the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
-Lambdas configured with 3GB of memory in all cases.
+% Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
+% the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
+% Lambdas configured with 3GB of memory in all cases.
 
 %While ExCamera process all 888 chunks in parallel, each batch is a
 %\texttt{map} with only 16 branches. From the result in
@@ -411,18 +413,18 @@ inputs are available, whereas Step Functions fan-in first requires all
 branches to complete even if a branch is not part of the fan-in function's
 input.}
 
-Table~\ref{table:excamera} compares \name{}'s implementation of ExCamera with
-the original implementation and \texttt{gg}'s version. \name{}'s is 7.1\%
-faster than gg and 10.5\% slower than the original ExCamera. The original
-ExCamera pre-loads raw video chunks into lambdas before starting, while
-\name{} and \texttt{gg} do not. The original authors attributes the
-comparatively slower performance of \texttt{gg} to the lack of pre-loading
-which is likely also the reason for \name{}'s slower performance. But
-different from \texttt{gg}, \name{} executes control-flow logic in a
-decentralized manner while \texttt{gg} has a centralized coordinator on EC2
-that proxies inter-function communications and invokes lambdas. The reduced
-number of network communications  explains why \name{} is slightly
-faster than \texttt{gg}.
+Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
+the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
+Lambdas configured with 3GB of memory in all cases. \name{}'s is 7.1\% faster
+than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera. The
+original ExCamera pre-loads raw video chunks into lambdas before starting,
+while \name{} and gg do not. The original authors attributes the comparatively
+slower performance of \texttt{gg} to the lack of pre-loading which is likely
+also the reason for \name{}'s slower performance. But different from gg,
+\name{} executes control-flow logic in a decentralized manner while gg has a
+centralized coordinator on EC2 that proxies inter-function communications and
+invokes lambdas. The reduced number of network communications  explains why
+\name{} is slightly faster than gg.
 
 
 \subsection{Cost}
