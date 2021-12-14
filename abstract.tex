@@ -1,18 +1,18 @@
 Server workflow systems have emerged to meet the demands of large-scale
-serverless applications. High-level programming interfaces, rich composition
-semantics and strong execution guarantees enable applications with 10s or 100s
-of functions and complex interactions. However, current designs rely on
-centralized orchestrators that require addition engineering, maintenance and
-resources, and serve as an additional bottleneck for scalability and
-performance.
+serverless applications, offering high-level programming interfaces, rich
+composition semantics and strong execution guarantees that enable applications
+with 10s or 100s of functions and complex interactions. However, current
+designs rely on centralized orchestrators that require additional engineering,
+and resources, and can undermine the cost and scalability advantages of
+serverless.
 
-This paper presents \name{}, a \emph{decentralized} serverless workflow system.
-In \name{}, a two-stage compiler distributes high-level orchestration logic to
-constituent functions at compile-time.  This allows workflows to execute using
-only minimal serverless infrastructure services.
-\name{} provides strong execution guarantees and has performance and cost similar or better to existing centralized workflow systems.
-and minimizes re-executions under faults.
+This paper presents \name{}, a \emph{decentralized} serverless workflow
+system. \name{} partitions workflows written in high-level languages at
+compile-time, and executes orchestration logic in-situ with user functions in
+a decentralized manner. \name{} can run a minimal serverless infrastructure
+services while provides strong execution guarantees, performance and cost
+similar or better to existing centralized workflow systems.
 
 We show that \name{} can support a superset of applications expressible using
-AWS's Step Functions, run up to 4.58x faster, and cost signficantly less when
-running with \name{}.
+AWS Step Functions, while run up to 4.58x faster, and cost over an
+order-of-magnitude less when running with \name{}.

@@ -1,15 +1,14 @@
 \section{Implementation}\label{sec:impl}
 
 We implement a prototype of \name{} that runs Python functions on AWS Lambda
-with DynamoDB or S3 as the intermediary data store. The frontend compiler
+with DynamoDB as the intermediary data store. The frontend compiler
 supports workflows written as AWS Step Functions state machines. The compiler
 is written in Python with 1,277 lines of code.
 % \dhl{How the frontend compiler
 %transforms a Step Functions state machine to a directed graph and then
 %transforms it to the \name{} IR is beyond the scope of this paper}. 
-The
-runtime are written in Python with 2,957 lines of code. We also integrate our
-toolchain with AWS SAM to build and deploy \name{} workflows as Amazon
+The runtime are written in Python with 2,957 lines of code. We also integrate
+our toolchain with AWS SAM to build and deploy \name{} workflows as Amazon
 CloudFormation stacks, which automates the development process. Developers can
 list all resources in a workflow, including the intermediary data store, and
 deploy them with one simple command.
@@ -26,11 +25,11 @@ operation with consistent reads.
 tables where applications are charged by the amount of read and write it
 performs instead of a fixed hourly rate.
 
-One important implementation detail is that synchronization among
-\texttt{fanIn} egress nodes much be idempotent because functions can crash and
-retries will execute synchronization logic again. Therefore, many common
-synchronization data structures, such as an atomic counter where parallel
-functions increments the counter to signal completion, cannot be used.
-Instead, \name{} uses an array of booleans initialized to all false. Each
-egress node set the value to true at the array index that is equal to the
-node's branch index, because setting an object to a fixed value is idempotent.
+One important implementation detail is that synchronization among fan-in
+functions must be idempotent because functions can crash and retries might
+execute synchronization logic again. Therefore, many common synchronization
+data structures, such as an atomic counter where parallel functions increments
+the counter to signal completion, cannot be used. Instead, \name{} uses an
+array of booleans initialized to all false. The egress runtime on each fan-in
+function sets the value to true at the array index that is equal to the node's
+branch index.
