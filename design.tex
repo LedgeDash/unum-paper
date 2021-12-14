@@ -10,8 +10,8 @@
 		partitions the graph into an intermediate representation where each
 		function is embedded with an \name{} configuration that encodes how to
 		transition to its immediate downstream nodes. Developers package user
-		function, \name{} config and \name{}'s runtime library \shadiS{(a pair of ingress and egress nodes)} together to
-		create unumized functions. \shadi{mark ''unum runtime'' in the figure.}}
+		function, \name{} config and \name{}'s runtime library (a pair of
+		ingress and egress components) together to create unumized functions.}
 		\label{fig:arch:unum-compile-time}
 
 	\end{subfigure}
@@ -41,12 +41,12 @@
 	\label{fig:arch}
 \end{figure*}
 
-To achieve the objectives in \S\ref{sec:goals}, \name{} utilizes a
-design/strategy we call ``\emph{decentralized orchestration}'' where instead
-of executing workflow orchestration logic entirely within a centralized
-orchestrator, a set of ``decentralized orchestrators'' run \emph{in-situ} with
-user functions and each performs only the orchestration logic \emph{local to
-its subsection} of the workflow.
+To achieve the objectives in \S\ref{sec:goals}, \name{} utilizes a strategy we
+call ``\emph{decentralized orchestration}'' where instead of executing
+workflow orchestration logic entirely within a centralized orchestrator, a set
+of ``decentralized orchestrators'' run \emph{in-situ} with user functions and
+each performs only the orchestration logic \emph{local to its subsection} of
+the workflow.
 
 Efficiently implementing decentralized orchestration while also preserving the
 benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
@@ -95,12 +95,12 @@ configuration and performs the workflow transition.
 A critical complexity is to enable data sharing and synchronization across
 functions in a workflow invocation. For example, applications might aggregate
 the results of multiple upstream functions with a single ``sink'' function
-when all of the upstream fucntions complete (commonly called a ``fan-in''). To
+when all of the upstream functions complete (commonly called a ``fan-in''). To
 this end, \name{} leverages a shared \emph{intermediary data store} that is a
 strongly consistent serverless storage (e.g., DynamoDB). Upstream functions
-each write their output into the intermediary data
-store and use this data store to share data and  synchronize across each other. \name{} performs the synchronization in way that faster functions simply terminate and only the last-to-finish
-function invokes the sink function. \shadi{ maybe remove the last sentence?... seems out of place and too detailed for here}
+each write their output into the intermediary data store and use this data
+store to share data and  synchronize across each other.
+
 
 \name{} also leverages the intermediary data store to solve the third
 challenge and provide a strong execution guarantee we call
@@ -111,11 +111,15 @@ instance's output is taken as the final result and propargates downstream.
 When user functions do not produce externally visible side-effects, \name{}'s
 exactly-one-result guarantee appears the same as exactly-once semantics.
 
-In the rest of the section, we first describe how the \name{} IR encodes
-transitions between functions (\S\ref{sec:ir}), then explains how the \name{}
-runtime efficiently executes transitions in a decentralized manner, and
-finally we detail \name{}'s checkpointing mechanism and how it ensure
-exactly-once execution semantics. \shadi{Does this match the new structure? update accordingly.}
+In the rest of the section, we first highlight a set of common workflow
+patterns that \name{} supports (\S~\ref{sec:transition-patterns}), then
+describe how the \name{} runtime efficiently executes workflows in a
+decentralized manner (\S~\ref{sec:runtime}). Next, we show how the \name{} IR
+encodes transitions between functions (\S\ref{sec:ir}) and allows partitioning
+of workflows written as a high-level description. Finally, we detail \name{}'s
+checkpointing mechanism and how it ensures strong execution guarantee
+(\S~\ref{sec:exec-gntee}).
+
 
 \input{patterns}
 \input{runtime}
