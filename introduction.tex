@@ -67,13 +67,22 @@ better scalability than some widely used centralized orchestrators. Compared to
 Step Functions, a representative set of applications cost up to 32.8x less, and
 run up to 4.5x faster using \name{}.
 
-Importantly, \name{}'s decentralization does not sacrifice properties important
-to complex serverless applications. It can provide the same set of execution
-guarantees as centralized orchestrators. Specifically, \name{} guarantees
-exactly-once execution semantics even if an application's constituent function
-fails and is retried or is otherwise run multiple times by the FaaS system.
-Even if some constituent functions execute multiple times, the final application
-states appear as if all functions executed once.
+Importantly, \name{}'s decentralization does not sacrifice any of the  
+fault tolerance and strong execution guarantees of 
+commonly used orchestrators \cite{aws-step-functions, durable-functions,
+ google-cloud-composer, google-workflows}. 
+Just like the latter, 
+\name{} guarantees that workflows do not get stuck (functions are retried if there are faults)
+and produce consistent results (for each constituent function, exactly one result is recorded).
+In particular, there is no risk of workflow divergence due to unanticipated function
+nondeterminism or concurrency, which is a common source of errors
+when developers attempt to compose serverless functions without the help
+of a workflow system.
+
+%In particular, for side-effect-free functions, this guaranteeThis matches the guarantees provided by central orchestrators, such as Step Functionsexecution semantics even if an application's constituent function
+%fails and is retried or is otherwise run multiple times by the FaaS system.
+%Even if some constituent functions execute multiple times, the final application
+%states appear as if all functions executed once.
 
 %\dhl{Design insights, highlights and overview}
 
@@ -120,7 +129,7 @@ This paper makes the following contributions:
   \item An end-to-end system that can take workflows written in higher-level
   language and execute them purely as FaaS functions.
 
-  \item A set of general algorithms, called gadgets, that implement all common
+  \item A set of general algorithms, called gadgets, \seb{confirm name} that support all common
   orchestration patterns (e.g., chaining, branching, fan-out, fan-in) with
   serverless functions and serverless storage.
 
