@@ -34,15 +34,15 @@
     \label{fig:input-format}
 \end{figure}
 
-\shadiS{
-In this section, we describe how \name{}  efficiently implements
-orchestration and the six transition patterns in a decentralized manner.  \name{} adds a  \name{} runtime to each  user function to perform the transitions. The \name{} runtime consists
-of an ingress and an egress component.
-}
-During execution, the egress on the source function(s) and ingress on the
-target function(s) work together to execute the transition. The egress
-interprets its \name{} configuration to learn what transition it needs to perform.
-The ingress reads and formats input data sent by egress so that
+
+In this section, we describe how \name{} efficiently implements orchestration
+and the six transition patterns in a decentralized manner. \name{} adds a
+runtime library to each  user function to perform the transitions. The \name{}
+runtime consists of an ingress and an egress component. During execution, the
+egress on the source function(s) and ingress on the target function(s) work
+together to execute the transition. The egress interprets its \name{}
+configuration to learn what transition it needs to perform. The ingress reads
+and formats input data sent by egress so that
 \name{} orchestration logic can happen transparently without any change to the
 user code.
 
@@ -97,22 +97,25 @@ completed so that the sink function does not have to be spun up ahead of time an
 wait for upstream functions to finish. Moreover, the upstream functions should
 simply terminate when done instead of waiting for each other.
 
-\shadiS{To achieve this, \name{} relies on a strongly consistent data store with conditional writes}. \name{} egress always writes the output of the fan-in source
-functions to an intermediary data store. The write not only signals the
-completion of a function, but also allows any of the source functions in a fan-in to
-access the output of each other. This way, each egress can simply write its
-output and terminate, and the last-to-finish source function will invoke the
-sink function.
-\name{} requires this data store to be ``strongly consistent''. This is needed to prevent the
-scenarios where all egress have written outputs but none of them sees that all
-have completed, which results in the sink function never invoked.
+To achieve this, \name{} relies on a strongly consistent data store with
+conditional writes. \name{} egress always writes the output of the fan-in
+source functions to an intermediary data store. The write not only signals the
+completion of a function, but also allows any of the source functions in a
+fan-in to access the output of each other. This way, each egress can simply
+write its output and terminate, and the last-to-finish source function will
+invoke the sink function.
+\name{} requires this data store to be ``strongly consistent''. This is needed
+to prevent the scenarios where all egress have written outputs but none of
+them sees that all have completed, which results in the sink function never
+invoked.
 
 Additionally, fan-in makes sure that the sink function is only invoked once.
 \name{} achieves this by having the egress nodes synchronize with each other
 via intermediary data store such that only the last-to-finish egress invokes
 the sink function. Synchronization is done with atomic read-after-write over a
-single object \shadiS{(which requires the conditional write ability from the data store)}. Specific implementation depends on the data store and we
-discuss the details in \S\ref{sec:impl}.
+single object, which requires the conditional write ability from the data
+store. Specific implementation depends on the data store and we discuss the
+details in \S\ref{sec:impl}.
 
 The last-to-finish egress invokes the sink function with a vector of pointers
 to each upstream function's stored output. The pointers are the in same order
