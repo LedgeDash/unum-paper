@@ -406,7 +406,7 @@ Lambdas configured with 3GB of memory in all cases.
 %enable ``partial fan-in''.
 
 \dhl{Sync with Design. Explain the difference between unum fan-in and Step
-Functions fan-in in design already. Specifically, unum fan-in starts when all
+Functions fan-in in design already. Specifically,
 inputs are available, whereas Step Functions fan-in first requires all
 branches to complete even if a branch is not part of the fan-in function's
 input.}
@@ -453,8 +453,8 @@ faster than \texttt{gg}.
     \includegraphics[width=\columnwidth]{figures/AppCostBreakdown.pdf}
     \caption{\dhl{I'm trying to figure out how the figure should look like. So
     trying a couple of things in this draft graph here. The top row splits
-    unum breakdown and Step Functions breakdown to 2 graphs. The top left is
-    the unum breakdown for just IoT Pipeline and Text Processing and no
+    \name{} breakdown and Step Functions breakdown to 2 graphs. The top left is
+    the \name{} breakdown for just IoT Pipeline and Text Processing and no
     Wordcount or ExCamera. The top right is the Step Functions breakdown. The
     bottom row puts unum breakdown and Step Functions breakdown side-by-sdie.
     The bottom left is Wordcount and bottom right is ExCamera. Another
@@ -475,64 +475,95 @@ faster than \texttt{gg}.
     \label{fig:cost-breakdown}
 \end{figure}
 
-Moreover, \name{} is consistently cheaper than Step Functions for all
-workloads with up to 27.3x costs savings. All costs numbers in
-Table~\ref{table:macro} are calculated based on public pricing information for
-AWS \texttt{us-west-1} region. We do not ``measure'' the costs of running
-workflows because AWS does not provide real-time billing results for all
-services.
+One of the main attractions of building appliactions on serverless platforms is
+lower cost (or better resource utilization). In particular, because resources
+are easy to reclaim, applications are charged only for resources used to respond
+to actual events or requests. Thus, applications with potential for high
+burst-parallelism, or with intermittant bursts of concurrent requests, can
+achieve high performance without incurring the cost of long-term provisioning
+for max capacity. As a result, the \emph{cost} of orchestration overhead matters
+as well performance.
 
-For Step Functions, the total costs of running an application consists of i.
-Lambda duration billing for running user code, ii. Lambda invocation billing
-for starting functions and iii. Step Functions state transition
-charges~\cite{aws-step-functions-pricing}. Step Functions charges a fixed rate
-of \$27.9 $ \times 10^{-6}$ per state transition. A state transition equates
-to an edge in the workflow graph in the case of chaining and fan-out. But
-fan-in only counts as one state transition. Additionally, Step Functions adds
-a \texttt{Start} and \texttt{End} state to each workflow that counts towards
-state transitions.
+The source of costs for \name{} and Step Functions is quite different. Step
+Functions imposes a cost to developers, in addition to running Lambda functions,
+for each workflow transition. This abstracts the underlying, likely shared,
+costs to run the Step Functions servers, persist state and checkpoint data.
+Conversely, \name
+incurs costs directly from those services: additional Lambda compute time and
+DynamoDB storage on AWS.
 
-The total costs of running an application with \name{} consists of i. Lambda
-duration billing for running the \emph{unumized} functions, that is both the
-user code and \name{} runtime code, ii. Lambda invocation billing for starting
-functions, and iii. data store reads and writes for checkpoints. DynamoDB
-charges $1.3942 \times 10^{-6}$ for writing and $0.279
-\times 10^{-6}$ for reading 1KB of data. We do not count the costs of storing
-the data in DynamoDB because after a workflow execution, users can immediately
-delete the checkpoints or move them to cheaper storage.
+Figure~\ref{fig:cost-breakdown} shows the cost to run each application using
+\name{} broken down to each component: storage costs for checkpointing, Lambda
+invocation, and Lambda CPU-time for both the \name{} runtime and user function.
+Storage costs, using DynamoDB, are the largest portion of overall cost. The
+majority of \name{}'s costs come from reading and writing checkpoints to
+DynamoDB.
 
-Figure~\ref{fig:cost-breakdown} shows the cost breakdown for the applications
-in \name{} and Step Functions.
+Nonetheless, \name{} is consistently cheaper than Step Functions for all
+applications we tested. Table~\ref{table:macro} shows the price to run each of
+the applications we implemented based on public pricing information for AWS in
+the \texttt{us-west-1} region using \name{} and Step Functions.
 
-\dhl{Need to sync with Intro. If we say anything about billing schemes or predicted
-cheaper costs. Not sure what to highlight atm.}
 
-Step Functions state transitions dominate the total costs of running
-applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and over
-99\% in IoT Pipeline and Text Processing. While \name{} runtime and checkpoint
-costs are also the majority in IoT Pipeline (87.2\%) and Text Processing
-(89\%), for large-scale workflows, \name{} only accounts for 18.1\% of the
-costs in ExCamera and 24.8\% in Wordcount.
+%Table~\ref{table:macro} are calculated based on public pricing information for
+%AWS \texttt{us-west-1} region. We do not ``measure'' the costs of running
+%workflows because AWS does not provide real-time billing results for all
+%services.
+%
+%For Step Functions, the total costs of running an application consists of i.
+%Lambda duration billing for running user code, ii. Lambda invocation billing
+%for starting functions and iii. Step Functions state transition
+%charges~\cite{aws-step-functions-pricing}. Step Functions charges a fixed rate
+%of \$27.9 $ \times 10^{-6}$ per state transition. A state transition equates
+%to an edge in the workflow graph in the case of chaining and fan-out. But
+%fan-in only counts as one state transition. Additionally, Step Functions adds
+%a \texttt{Start} and \texttt{End} state to each workflow that counts towards
+%state transitions.
+%
+%The total costs of running an application with \name{} consists of i. Lambda
+%duration billing for running the \emph{unumized} functions, that is both the
+%user code and \name{} runtime code, ii. Lambda invocation billing for starting
+%functions, and iii. data store reads and writes for checkpoints. DynamoDB
+%charges $1.3942 \times 10^{-6}$ for writing and $0.279
+%\times 10^{-6}$ for reading 1KB of data. We do not count the costs of storing
+%the data in DynamoDB because after a workflow execution, users can immediately
+%delete the checkpoints or move them to cheaper storage.
 
-The majority of \name{}'s costs come from reading and writing checkpoints to
-DynamoDB. A cheaper data store that supports strong consistency and
-conditional updates can significantly reduce the cost of using \name{}. For
-instance, Cosmos DB charges $0.279 \times 10^{-6}$ (or one fifth of the write
-cost of DynamoDB) per 1KB for both reads and writes~\cite{cosmosdb-pricing}.
+%Step Functions state transitions dominate the total costs of running
+%applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and over
+%99\% in IoT Pipeline and Text Processing. While \name{} runtime and checkpoint
+%costs are also the majority in IoT Pipeline (87.2\%) and Text Processing
+%(89\%), for large-scale workflows, \name{} only accounts for 18.1\% of the
+%costs in ExCamera and 24.8\% in Wordcount.
+%
+% A cheaper data store that supports strong consistency and
+%conditional updates can significantly reduce the cost of using \name{}. For
+%instance, Cosmos DB charges $0.279 \times 10^{-6}$ (or one fifth of the write
+%cost of DynamoDB) per 1KB for both reads and writes~\cite{cosmosdb-pricing}.
 
-While pricing of a particular service can change based on a multitude of
-factors, the amount of developement efforts and the size of going workloads
-that has already gone into Lambda and multi-tenant storage systems likely
-means that they are much more resource efficient than a specialized
-orchestrator service such as Step Functions. The resource efficiency advantage
-is likely going to persist given the bigger pool of users and applications for
-Lambda and DynamoDB as they are more fundamental services. Therefore,
-\name{}'s cost benefits are likely going to continue and become even larger as
-FaaS systems and serverless data stores continue to improve.
+%While pricing of a particular service can change based on a multitude of
+%factors, the amount of developement efforts and the size of going workloads
+%that has already gone into Lambda and multi-tenant storage systems likely
+%means that they are much more resource efficient than a specialized
+%orchestrator service such as Step Functions. The resource efficiency advantage
+%is likely going to persist given the bigger pool of users and applications for
+%Lambda and DynamoDB as they are more fundamental services. Therefore,
+%\name{}'s cost benefits are likely going to continue and become even larger as
+%FaaS systems and serverless data stores continue to improve.
 
-\dhl{Disccusion?: Building a cost-effective data store has long been
-identified as an important issue for serverless computing~\cite{pocket}}
+Of course, developer-facing pricing does not necessarily reflect \emph{actual}
+costs and is only a weak proxy for resource utilization. However, it is clear
+that, in practice, \name{}'s overheads do not result in unreasonable costs and,
+in fact, often results in lower costs to the developer than Step
+Functions---AWS's native workflow orchestrator. This suggests that at least
+applications that currently run on Step Functions could afford to run using
+\name{} instead.
 
+Moreover, \name{} costs benefits from improvements to underlying infrastructure
+or different pricing schemes. For example, Azure's Cosmos DB provides similar
+performance and consistency guarantees to DynamoDB but charges 5x less to
+perform a write operation (the dominant constituent of \name{} storage cost on
+AWS).
 
 % \subsubsection{Questions}
 
