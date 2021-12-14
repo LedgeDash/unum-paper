@@ -88,6 +88,7 @@ to its immediate downstream nodes.
 
 With the configurations from the IR, \name{} solves the second challenge using
 a decentralized orchestrator (\deorc) \shadi{hard name. also, you don't have an orchestrator anymore, is this the best term? unum runtime, unum orchestrator, or unum-orch. is better in my opinion if so, at least use "deOrc" or "de-orc".} \shadi{a cosmetics point: using the texttt for so many keywords makes it hard to read. I would only use for code, function names, etc. not for unum or deorc.} that efficiently implements a set of
+\seb{I agree with Shadi, would perhaps prefer avoiding "orchestrator" since we are doing "orchestration without an orchestrator". Many terms could work, e.g. ingress/egress gadget, continuation link, control flow connector, ... }
 workflow patterns in a decentralized manner and can run in-situ with the
 constituent user functions. In particular, the \deorc{} is a platform-specific
 runtime library made up of an ingress component and a egress component.
@@ -123,6 +124,7 @@ efficiently executes transitions in a decentralized manner, and finally we
 detail \name{}'s checkpointing mechanism and how it ensure exactly-once
 execution semantics. \shadi{do we want to have Ir first or second?}
 
+\input{patterns}
 \input{ir-design}
 
 

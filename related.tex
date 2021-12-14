@@ -1,96 +1,145 @@
 \section{Related Work}\label{sec:related}
 
-\paragraph{Destination and triggers}
+\paragraph{Serverless Workflows}
 
-Compare with continuations in unum.
+Many systems have recognized the need to augment serverless computing with
+support for composing functions to build larger and more complex applications.
+AWS Step Functions~\cite{aws-step-functions} defines serverless workflows as
+state machines using a JSON schema. Google Workflows~\cite{google-workflows}
+uses a YAML-based interface to list steps in a workflow sequentially and
+allows jumps among steps. Azure Durable Functions~\cite{durable-functions}
+uses a ``workflow-as-code'' approach, similar to driver functions, where the
+workflow logic is written in a programming language (e.g., C\#, Python).
+Kappa~\cite{kappa} addresses the lack of coordination between function and
+function timeout limits when executing large applications. Similar to Durable
+Functions, it also exposes a high-level programming language interface.
 
+All of the above solutions require adding to the serverless infrastructure
+supplemental services that executes workflow definition, manages workflow
+states or proxy communication between functions. \name{} proposes a novel
+decentralized orchestration strategy and runs entirely on the basic serverless
+abstraction without adding any services.
 
+Cloudburst~\cite{cloudburst} uses a specialized key-value store to enable
+low-latency execution of serverless functions. Users can express workflows as
+static DAGs and an executor program runs the DAG by passing data and
+coordinate via the key-value store. ExCamera~\cite{excamera} is parallel video
+encoder running on Lambda. It is built with the mu framework which uses a
+long-running coordinator to command a fleet of lambdas, each of which executes
+a state machines where user functions are the states. gg~\cite{gg-atc}
+proposes a thunk abstraction where each thunk executes as a lambda that has no
+nondeterministic or nonidempotent behavior, and a way to program data
+dependencies between thunks. gg uses a standalone coordinator to receive thunk
+updates and lazily launch thunks when their inputs become available.
 
+Similarly, the above systems adds specialized services to enable execution
+while \name{} runs entirely on the basic serverless environment. Furthermore,
+they simply restart from the beginning when workflows crash mid-execution and
+do no provide exactly-once execution semantics. \name{} retries crashed
+execution at the point of failure to limit the scope of re-execution and
+utilizes checkpointing to ensure exactly-once semantics despite re-execution.
 
-Overall characteristics of orchestrator based engines: The orchestrator
-performs function invocations; functions send results back to correct the
-orchestrator instance.
-
-Why does this characterstics matter?
-
-Questions:
-
-\begin{itemize}
-	\item Is it pure serverless? What does pure serverless mean?
-	\item Any performance comparisons necessary?
-\end{itemize}
-
-\paragraph{gg}~\cite{gg-atc}
-
-\begin{itemize}
-	\item Target applications are what they call "everyday tasks", including code compilation, unit testing, video encoding and object recognition
-	\item A thunk = a x86-64 executable and its input data
-
-	A thunk is deterministic. Forcing a thunk multiple times will generate the same object.
-
-	Data objects are named (naming scheme 3.1.1). Reading an object might involve forcing a thunk to generate the object. A thunk's input can be references to other thunk's outputs. gg uses this mechanism to express computation graphs.
-
-	Forcing a thunk multiple time will always produce the same object with the same name. To run the same function with different input needs to define a different thunk (presumably a gg compiler can help simplify the step of defining thunks that have the same executable and different input. But the paper wasn't entirely clear on this and the source code shows application-specific compilation with limited programmability.).
-
-
-	duplicate functionalities that Lambda already provides: job scheduling, retry, timeouts.
-
-
-
-\end{itemize}
-
-
-\paragraph{Triggerflow}~\cite{triggerflow}
-See Section 4. implementation. Each workflow has its own workflow worker which is really a kubernetes pod. The workflow works process events and trigger actual FaaS functions.
-
-
-\paragraph{Kappa}~\cite{kappa}
-Tasks communicate with the coordinator through
-the remote procedure calls (RPCs) summarized in Table 2
-
-
-\paragraph{Cloudburst}~\cite{cloudburst}
-1. Orthogonal: They focus on building a data store with specialized APIs and consistency models for faas workflow
-2. Differennt programming interface (TODO: more details)
-3. Not built on real faas platform; can't run on aws, azure or google cloud
+Beldi~\cite{beldi} and Boki~\cite{boki} are two recent systems that provides
+exactly-once execution and transactions to stateful serverless applications.
+Developers use Beldi or Boki's library in user code when writing to a
+supported data store (e.g., DynamoDB) such that writes are executed only once.
+In comparison, \name{} does not change how developers write user code and
+ensures exactly-once semantics at the granularity of functions. In particular,
+if functions have external side effects (e.g., writing to websocket or
+database), an external observer can distinguish if the function executed more
+than once. \name{} users who want to ensure exactly-once when writing to
+DynamoDB can additionally use Beldi or Boki in their user code.
 
 
-\paragraph{mu and Excamera}~\cite{excamera}
 
-\paragraph{Boki}
+\paragraph{Programming Interface}
+
+Most serverless workflow systems require developers to write workflows with
+specialized interfaces. Some uses a declarative approach that defines
+workflows using JSON or YAML schemas (e.g., AWS Step
+Functions~\cite{aws-step-functions}, Google
+Workflows~\cite{google-workflows}). Others allows expressing workflow as code
+(e.g., Durable Functions~\cite{durable-functions}, Kappa\cite{kappa}, Fn
+Flow~\cite{fn-flow}).
+
+\name{} does not propose a new frontend for defining workflow. Instead,
+\name{} aims to support any existing frontend that explicitly or implicitly
+expresses a directed graph where nodes are functions and edges are transitions
+between functions. Developers using \name{} can choose the frontend that they
+prefer.
+
+Checkpointing technique?
 
 
-\paragraph{PyWren}~\cite{pywren}
+% \paragraph{gg}~\cite{gg-atc}
 
-\paragraph{Beldi}
+% \begin{itemize}
+% 	\item Target applications are what they call "everyday tasks", including code compilation, unit testing, video encoding and object recognition
+% 	\item A thunk = a x86-64 executable and its input data
 
-Target applications whose \emph{constituent} functions are stateful, basically meaning that they write to DynamoDB, and Beldi wrappers around those DynamoDB writes to provide transactional semantics.
+% 	A thunk is deterministic. Forcing a thunk multiple times will generate the same object.
 
-not an actual workflow system because there is not interface to write
-workflows. The system is really a library that provides transactions for
-functions if they write their data to DynamoDB. Functions import and use the
-Beldi library directly in their code. Here is an example:
-https://github.com/eniac/Beldi/blob/master/internal/media/core/movieId.go
+% 	Data objects are named (naming scheme 3.1.1). Reading an object might involve forcing a thunk to generate the object. A thunk's input can be references to other thunk's outputs. gg uses this mechanism to express computation graphs.
 
-To chain functions F->G, F's code has to include a invoke call to G. This is
-not too different from triggers and unstructured composition which leads to
-scattered control flow and spagetti code.
+% 	Forcing a thunk multiple time will always produce the same object with the same name. To run the same function with different input needs to define a different thunk (presumably a gg compiler can help simplify the step of defining thunks that have the same executable and different input. But the paper wasn't entirely clear on this and the source code shows application-specific compilation with limited programmability.).
 
-Also, it doesn't seem to provide a way to do aggregation. For example, how do
-you do fan-in or fold in Beldi.
 
-Boki is similar. There's no interface to define workflow
+% 	duplicate functionalities that Lambda already provides: job scheduling, retry, timeouts.
 
-https://github.com/ut-osa/boki-benchmarks/tree/main/experiments/workflow
+% \end{itemize}
 
-Execution guarantee comparison. Can provide exactly-once guarantee on some of
-the external operations, but not all.
 
-Even though they claim asyn invoke API is exactly-once, that's just not true.
-Lambda doesn't even guarantee exactly-once execution.
+% \paragraph{Triggerflow}~\cite{triggerflow}
+% See Section 4. implementation. Each workflow has its own workflow worker which is really a kubernetes pod. The workflow works process events and trigger actual FaaS functions.
 
-\name{} requries fewer features from the data store: don't need scan, filter
-or projection.
+
+% \paragraph{Kappa}~\cite{kappa}
+% Tasks communicate with the coordinator through
+% the remote procedure calls (RPCs) summarized in Table 2
+
+
+% \paragraph{Cloudburst}~\cite{cloudburst}
+% 1. Orthogonal: They focus on building a data store with specialized APIs and consistency models for faas workflow
+% 2. Differennt programming interface (TODO: more details)
+% 3. Not built on real faas platform; can't run on aws, azure or google cloud
+
+
+% \paragraph{mu and Excamera}~\cite{excamera}
+
+% \paragraph{Boki}
+
+
+% \paragraph{PyWren}~\cite{pywren}
+
+% \paragraph{Beldi}
+
+% Target applications whose \emph{constituent} functions are stateful, basically meaning that they write to DynamoDB, and Beldi wrappers around those DynamoDB writes to provide transactional semantics.
+
+% not an actual workflow system because there is not interface to write
+% workflows. The system is really a library that provides transactions for
+% functions if they write their data to DynamoDB. Functions import and use the
+% Beldi library directly in their code. Here is an example:
+% https://github.com/eniac/Beldi/blob/master/internal/media/core/movieId.go
+
+% To chain functions F->G, F's code has to include a invoke call to G. This is
+% not too different from triggers and unstructured composition which leads to
+% scattered control flow and spagetti code.
+
+% Also, it doesn't seem to provide a way to do aggregation. For example, how do
+% you do fan-in or fold in Beldi.
+
+% Boki is similar. There's no interface to define workflow
+
+% https://github.com/ut-osa/boki-benchmarks/tree/main/experiments/workflow
+
+% Execution guarantee comparison. Can provide exactly-once guarantee on some of
+% the external operations, but not all.
+
+% Even though they claim asyn invoke API is exactly-once, that's just not true.
+% Lambda doesn't even guarantee exactly-once execution.
+
+% \name{} requries fewer features from the data store: don't need scan, filter
+% or projection.
 
 
 % Google Cloud Composer uses Airflow.
@@ -169,13 +218,3 @@ or projection.
 % coordinator] updates the graph by replacing the references to the just-forced
 % thunk ... The thunks that become ready to execute are placed on a queue and
 % passed to the execution engines when their capacity permits."
-
-% Step Functions: TBA
-
-
-% unum's different: orchestration logic is distributed to each function. When a
-% function complete, instead of calling back to a long-lived coordinator, the
-% unum runtime on the Lambda decides what to do next. This design eliminates the
-% need for a separate long-running service that executes workflows. Saves a
-% communication trip back to the orchestrator.
-

@@ -109,7 +109,7 @@ terms of both cost and latency.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
-  \caption{\name{} latency of transitioning from the completion of a funtion
+  \caption{\name{} latency of transitioning from the completion of a function
     to the start of the next function. The transition involves a Lambda
     invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
     and a checkpoint read from data store (a DynamoDB GetItem call). Overall
@@ -517,6 +517,10 @@ faster than \texttt{gg}.
     The bottom left is Wordcount and bottom right is ExCamera. Another
     thought: if percentage is the only thing we care about, should just pie
     charts instead? Esp. give that we already have Table~\ref{table:macro}.}
+    \seb{I don't prefer pie charts. But i would perhaps normalize the cost 
+    for each benchmark (e.g., define 1 = total cost of step functions) 
+    and then put all 8 columns in a single double-tall chart. unum is going 
+    to be a ridiculously short column but that may help to really make our point very visible.}
     Step Functions state transitions dominate the total costs of running
     applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and
     over 99\% in IoT Pipeline and Text Processing. While \name{} runtime and

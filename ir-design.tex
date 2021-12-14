@@ -186,12 +186,12 @@ the background.}
 
 \paragraph{chain}
 
-Chaining is a simple but common orchestration pattern. For example, an
-application might include a function (the source) that processes input data
-from a sensor followed by another function (the target) that adjusts an
-actuator based on the processed input. The \texttt{chain} pattern connects the
-two functions by invoking the target function with the source function's
-result.
+%Chaining is a simple but common orchestration pattern. For example, an
+%application might include a function (the source) that processes input data
+%from a sensor followed by another function (the target) that adjusts an
+%actuator based on the processed input. The \texttt{chain} pattern connects the
+%two functions by invoking the target function with the source function's
+%result.
 
 Figure~\ref{fig:gadget-examples-chain} expresses a chain with a \texttt{Next}
 field that contains a single JSON object whose \texttt{InputType} is
@@ -203,12 +203,12 @@ transition should always take place whenever \texttt{F} produces a result.
 
 \paragraph{fan-out}
 
-Another common pattern processes the output of a function in different ways in
-parallel. For example, an social network application might perform several
-independent functions given a new user post, such as URL shortening and
-resolving other users mentioned in the post. The \texttt{fan-out} pattern
-launches a vector of functions (branches) each with the output of the same
-source function.
+%Another common pattern processes the output of a function in different ways in
+%parallel. For example, an social network application might perform several
+%independent functions given a new user post, such as URL shortening and
+%resolving other users mentioned in the post. The \texttt{fan-out} pattern
+%launches a vector of functions (branches) each with the output of the same
+%source function.
 
 Figure~\ref{fig:gadget-examples-fanout} expresses a fan-out with an array in
 the \texttt{Next} field. Each item of the array identifies a different target
@@ -218,12 +218,12 @@ source function's (i.e., \texttt{F}'s) output as a singular entity.
 
 \paragraph{map}
 
-An application may also perform the same function on multiple outputs of a
-source function. For example, a photo management application might unpack an
-archive of high-resolution images in one function and perform compression on
-each of the resulting images. The \texttt{map} pattern invokes the same
-function once for each element in a vector of outputs from the source
-function.
+%An application may also perform the same function on multiple outputs of a
+%source function. For example, a photo management application might unpack an
+%archive of high-resolution images in one function and perform compression on
+%each of the resulting images. The \texttt{map} pattern invokes the same
+%function once for each element in a vector of outputs from the source
+%function.
 
 Figure~\ref{fig:gadget-examples-map} expresses a \texttt{map} with a
 \texttt{Next} field that contains a single JSON object whose
@@ -234,11 +234,11 @@ as the input.
 
 \paragraph{fan-in}
 
-After processing data with many parallel branches, applications commonly want
-to aggregate results. For example, a video encoder might divide a large video
-into chunks, encode each in parallel and then concatenant all the encoded
-chunks together. The \texttt{fan-in} pattern invokes a single ``sink''
-function with the outputs from a vector of functions (the fan-in branches).
+%After processing data with many parallel branches, applications commonly want
+%to aggregate results. For example, a video encoder might divide a large video
+%into chunks, encode each in parallel and then concatenant all the encoded
+%chunks together. The \texttt{fan-in} pattern invokes a single ``sink''
+%function with the outputs from a vector of functions (the fan-in branches).
 
 Figure~\ref{fig:gadget-examples-fanin} expresses a \texttt{fan-in} with a
 \texttt{Next} field that contains a single JSON object whose
@@ -253,10 +253,10 @@ discuss how we support \texttt{fan-in} in \S\ref{sec:runtime}.
 
 \paragraph{branch}
 
-An application may decide to take a different branch of the workflow graph
-based on runtime behavior (e.g., the output of a function). The
-\texttt{branch} pattern selects a next function based on some boolean
-condition.
+%An application may decide to take a different branch of the workflow graph
+%based on runtime behavior (e.g., the output of a function). The
+%\texttt{branch} pattern selects a next function based on some boolean
+%condition.
 
 Figure~\ref{fig:gadget-examples-branch} expresses a \texttt{branch} with an
 array in the \texttt{Next} field where each branch has a \texttt{Conditional}.
