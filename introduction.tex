@@ -38,7 +38,7 @@ in the orchestrator and can be easily checkpointed. However, it is also rather
 communication-intensive, as all control and data must flow back and forth between
 the orchestrator and the functions.
 
-%Such centralized orchestraters enable new classes of serverless applications,
+%Such centralized orchestrators enable new classes of serverless applications,
 %but requires an additional multi-tenant service to be maintained and operated
 %and adds additional contraints on performance and scalability.  
 Another downside of many central orchestrators is that they are not serverless themselves.
@@ -68,12 +68,29 @@ better scalability than some widely used centralized orchestraters. Compared to
 Step Functions, a representative set of applications cost up to 32.8x less, and
 run up to 4.5x faster using \name{}.
 
-Importantly, \name{}'s decentralization does not sacrifice properties important
-to complex serverless applications. It can provide the same set of execution
-guarantees as centralized orchestrators. Specifically, \name{} guarantees
-exactly-once execution semantics: even if an application's constituent function
-fails,  is retried, or is otherwise ran multiple times, the final application
-states appear as if all functions executed once.
+%Importantly, \name{}'s decentralization does not sacrifice properties important
+%to complex serverless applications. It can provide the same set of execution
+%guarantees as centralized orchestrators. Specifically, \name{} guarantees
+%exactly-once execution semantics: even if an application's constituent function
+%fails,  is retried, or is otherwise ran multiple times, the final application
+%states appear as if all functions executed once.
+
+Importantly, \name{}'s decentralization does not sacrifice any of the  
+fault tolerance and strong execution guarantees of 
+commonly used orchestrators \cite{aws-step-functions, durable-functions,
+ google-cloud-composer, google-workflows}. 
+Just like the latter, 
+\name{} guarantees that workflows do not get stuck (functions are retried if there are faults)
+and produce consistent results (for each constituent function, exactly one result is recorded).
+In particular, there is no risk of workflow divergence due to unanticipated function
+nondeterminism or concurrency, which is a common source of errors
+when developers attempt to compose serverless functions without the help
+of a workflow system.
+
+%In particular, for side-effect-free functions, this guaranteeThis matches the guarantees provided by central orchestrators, such as Step Functionsexecution semantics even if an application's constituent function
+%fails and is retried or is otherwise run multiple times by the FaaS system.
+%Even if some constituent functions execute multiple times, the final application
+%states appear as if all functions executed once.
 
 %\dhl{Design insights, highlights and overview}
 

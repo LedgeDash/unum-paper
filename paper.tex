@@ -50,7 +50,8 @@ without an Orchestrator}
 Workflow systems  have emerged to meet the demands of large-scale serverless
 applications with higher-level programming interfaces, rich composition
 semantics and strong execution guarantees. However, current designs rely on
-supplemental hosted orchestrators to execute workflows and thus break out of
+%supplemental hosted 
+centralized orchestrators to execute workflows and thus break out of
 the serverless abstraction, compromising key serverless benefits such as fast
 auto-scaling, fine-grained billing and efficient resource multiplexing. 
 
@@ -62,7 +63,6 @@ execute purely as serverless functions.
 By checkpointing progress to a strongly consistent data store 
 of choice, \name{} provides strong execution guarantees 
 and minimizes re-executions under faults. 
-%\seb{re-execution is never completely avoidable.}
 
 We present and evaluate an implementation of \name{} that can compile Step
 Functions state machines and execute them purely as Lambda functions with
