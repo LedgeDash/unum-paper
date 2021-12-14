@@ -1,8 +1,7 @@
 \subsection{\name{} Runtime}\label{sec:runtime}
 
-% \begin{figure}[t!]
-% 	\centering
-% 	\scalebox{1}{\includegraphics[width=\columnwidth]{figures/deorc-patterns.pdf}}
+% \begin{figure}[t!]  % 	\centering %
+\scalebox{1}{\includegraphics[width=\columnwidth]{figures/deorc-patterns.pdf}}
 % 	\caption{\deorc{} implements transitions in a decentralized manner where
 % the egress on the source function(s) and ingress on the target function(s)
 % work together to execute the orchestration. \shadi{does this figure add value given you have Fig 1. you can probably combine the patterns there ans name them there and reuse that figure.}}
@@ -126,8 +125,8 @@ output values to its user function.
 
 \subsubsection{Runtime Metadata}
 
-To support a rich variety of orchestration patterns, \name{} requires a
-specific input payload schema in JSON (Figure~\ref{fig:input-format}) that
+To support a variety of orchestration patterns, \name{} uses a
+specific input payload schema (Figure~\ref{fig:input-format}) that
 contains \name{} runtime metadata. In particular, \name{} uses the
 \texttt{Fan-out} field to store branch indexes. The \texttt{Fan-out} field
 contains a recursive \texttt{OuterLoop} field that supports nested fan-outs.

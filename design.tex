@@ -53,17 +53,16 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 \name{} to solve three key challenges:
 
 \squishenum
-	\item Given a workflow written in a high-level description language, how
-	to partition its orchestration logic such that it can run in a
-	decentralized manner in-situ with user functions?
+	\item How to partition its orchestration logic such that it can run in a
+	decentralized manner in-situ with user functions given a high-level workflow description?
 
 	\item How to efficiently execute orchestration logic in a
 	decentralized manner, esp. when it requiers data sharing and
 	synchronization across function instances (e.g., fan-in)?
 
-	\item How to provide exactly-once execution semantics when the
-	orchestration logic is decentralized across function instances that can
-	crash and retry at any point mid-execution?
+	\item How to provide exactly-once semantics when the
+	orchestration logic is decentralized across function instances that may
+	crash or retry mid-execution?
 \squishenumend
 
 \name{} contributes an end-to-end system that solves the three challenges and
@@ -81,16 +80,16 @@ each node in the graph. A \textit{\name{} configuration} encodes all the outgoin
 of a node such that each function in the workflow knows how to transition just
 to its immediate downstream node(s).
 
-With the \name{} configurations from the IR, \name{} solves the second challenge using
-an \textit{\name{} runtime} library that efficiently implements a set of workflow patterns in a
-decentralized manner and can run in-situ with user functions. In particular,
-the \name{} runtime is made up of an ingress component and an egress component.
-Developers package each user function with its assigned \name{} configuration
-and the \name{} runtime to create an \emph{unumized} function. When an
-unumized function executes, its entry point is no longer the user code but
-instead the \name{} ingress. And when user code completes, it returns its
-results to the \name{} egress which then interprets its co-located \name{}
-configuration and performs the workflow transition.
+\name{} solves the second challenge using an \textit{\name{} runtime} library
+that efficiently implements a set of workflow patterns in a decentralized manner
+and can run in-situ with user functions. In particular, the \name{} runtime is
+made up of an ingress component and an egress component.  Developers package
+each user function with its assigned \name{} configuration and the \name{}
+runtime to create an \emph{unumized} function. When an unumized function
+executes, its entry point is no longer the user code but instead the \name{}
+ingress. And when user code completes, it returns its results to the \name{}
+egress which then interprets its co-located \name{} configuration and performs
+the workflow transition.
 
 A critical complexity is to enable data sharing and synchronization across
 functions in a workflow invocation. For example, applications might aggregate
@@ -194,4 +193,4 @@ to unexpected results if the effects are not idempotent. This issue is well know
 the orchestrator architecture (centralized vs. decentralized). 
 Thus, we consider the question of how to control such side effects to be
 orthogonal and beyond the scope of this paper.
-For example, a store interposition libary like Beldi \cite{beldi} can solve this problem. 
+For example, a store interposition libary like Beldi \cite{beldi} can solve this problem.

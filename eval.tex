@@ -128,9 +128,7 @@ slow downs in the remaining cases due to implementation deficiencies.
 functions. \name{}'s overhead is due to storage operations to ensure
 exactly-one-result semantics, Lambda invocation API overhead to enqueue the
 next function to run, and additional \name{} runtime code in the function
-instance itself for the orchestration logic. \name{}'s overhead compares
-favorably to that of the Step Function's orchestrator for simple, chain,
-transitions.}
+instance itself for the orchestration logic.}
   \label{fig:single-transition-latency-breakdown}
 \end{figure}
 
@@ -208,10 +206,8 @@ version (Table~\ref{table:macro}).
   \centering
   \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
   \caption{End-to-end latency of a fan-out and fan-in pattern with increasing
-branching degree. \name{} is 100-200ms slower at lower branching degrees due to
-the distributed fan-in algorithm overhead. \name{} significantly outperform Step
-Functions at moderate and high branching degree as the Step Function's
-orchestrator is a scalability bottleneck for fan-out.}
+branching degree. \name{} is slower at lower branching degrees but significantly
+outperform Step Functions at moderate and high branching degree.}
   \label{fig:mapmicrolatency}
 \end{figure}
 

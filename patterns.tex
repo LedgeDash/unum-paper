@@ -23,12 +23,12 @@ or a combination of multiple patterns.
     function's result.
 
     \item \textit{\textbf{fan out:}} 
-    Another common pattern processes the output of a function in different
-    ways in parallel. For example, an social network application might perform
-    several independent functions given a new user post, such as URL
-    shortening and resolving other users mentioned in the post. The
-    \texttt{fan-out} pattern launches a vector of functions (branches) each
-    with the output of the same source function.
+    Another common pattern processes output from a function multiple
+    ways in parallel. For example, a social network application might perform
+    several independent functions given a new user post, e.g.\ URL
+    shortening and resolving other users mentioned in the post. \texttt{fan-out}
+launches a vector of functions (branches) each with the output of the same
+source function.
 
 	\item \textit{\textbf{map: }}
     An application may also perform the same function on multiple outputs of a
@@ -47,7 +47,7 @@ or a combination of multiple patterns.
     the outputs from a vector of functions (the fan-in branches).
 
     \item \textit{\textbf{branch:}}
-    An application may decide to take a different branch of the workflow graph
+    An application may decide to take a different branches
     based on runtime behavior (e.g., the output of a function). For instance,
     an ML application might use a function to first characterize the data and
     then select a model based on the features. The \texttt{branch} pattern
@@ -77,12 +77,11 @@ patterns.
 
 
 
-\noindent\underline{\textit{IoT Pipeline:}} A HVAC control application (in
-AWS serverless repository~\cite{iot-pipeline}) consisting of two functions
-connected with a simple chain pattern: a function that aggregates
-time-series data on indoor climate readings, followed by a HVAC system
-control function that adjusts the HVAC settings based on the aggregate
-statistics.
+\noindent\underline{\textit{IoT Pipeline:}} A HVAC control application
+(~\cite{iot-pipeline}) consisting of two functions connected with a simple chain
+pattern: a function that aggregates time-series data on indoor climate readings,
+followed by a HVAC system control function that adjusts the HVAC settings based
+on the aggregate statistics.
 
 \noindent \underline{\textit{Text Processing:}} A component of the
 DeathStarBench~\cite{deathstar} social network application that processes

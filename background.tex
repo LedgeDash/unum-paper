@@ -306,16 +306,15 @@ In addition, we aim to preserve the best properties of existing centralized work
 
     \item \textbf{Exactly-once semantics.} The system must guarantee workflow 
     progress and consistency. Specifically, it must retry constituent functions on transient faults;
-    yet it must record exactly one result\footnote{The result recorded 
-    for a function may be an error result, such as when a retry or time limit is exceeded.} 
-    for each function, 
+    yet it must record exactly one result\footnote{The result recorded
+    for a function may be an error result, such as when a retry or time limit is exceeded.}
+    for each function,
     even if there are multiple executions due to retries.% or duplicate invocations.
 
-    \item \textbf{Comparable performance and costs.} The system should at least
-    have comparable costs and performance as the state-of-the-art workflow
-    orchestrators. Similarly, it should avoid idle-billing. Users should only pay
-    for the resources used rather than idle time wait for other functions to
-    return. 
+    \item \textbf{Comparable performance and costs.} The system should have
+comparable costs and performance as the state-of-the-art workflow orchestrators.
+Similarly, it should avoid idle-billing. Users should only pay for the resources
+used rather than idle time wait for other functions to return.
 
     \shadi{should we call it idle billing throughout the paper instead of
     double billing? It is not exactly double...}\dhl{Yeah, I like "idle
