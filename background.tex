@@ -300,24 +300,26 @@ Specifically, we aim for a system with the following objectives:
 
 \squishlist
 
-    \item \textbf{No new services: } The system should work within the
-    current serverless environment and not require adding any new services.
+    \item \textbf{No new services: } The system should work within a basic,
+    unmodified serverless environment and not require adding any new services.
     The system should execute workflows solely as event-driven serverless
     functions, and use serverless storage, when necessary, to enable stateful
     control-flow patterns (e.g., fan-in).
 
-    \item \textbf{Higher-level API \& support for common interactions}
+    \item \textbf{Higher-level API \& support for common interactions.}
     Developers should compose functions with high-level primitives similar to
     existing workflow orchestrators instead of ad-hoc mechanisms and be able
     to simply express common control-flow patterns such as chaining,
     branching, fan-out and fan-in.
 
-    \item \textbf{Exactly-once semantics} Even if a function executes multiple
-    times, due to retries or duplicate invocations, concurrently or
-    non-concurrently, the final state should appear that the execution
-    happened only once.
+    \item \textbf{Exactly-once semantics.} The system must guarantee workflow 
+    progress and consistency. Specifically, it must retry constituent functions on transient faults;
+    yet it must record exactly one result\footnote{The result recorded 
+    for a function may be an error result, such as when a retry or time limit is exceeded.} 
+    for each function, 
+    even if there are multiple executions due to retries.% or duplicate invocations.
 
-    \item \textbf{Comparable performance and costs} The system should at least
+    \item \textbf{Comparable performance and costs.} The system should at least
     have comparable costs and performance as the state-of-the-art workflow
     orchestrators. Similarly, it should avoid idle-billing. Users should only pay
     for the resources used rather than idle time wait for other functions to
