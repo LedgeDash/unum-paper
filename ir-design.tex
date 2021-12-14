@@ -1,131 +1,127 @@
 \subsection{\name{} Intermediate Representation}\label{sec:ir}
 
-
-primitives for encoding the outgoing edges transitions from a source function
-to one or more target functions.
-
 % \begin{figure*}[t!]
-% 	\centering
-% 	\begin{subfigure}[t]{\columnwidth}
-% 		\centering
-% 		\begin{minted}[
-% 			frame=single,
-% 			fontsize=\scriptsize
-% 			]{json}
+%     \centering
+%     \begin{subfigure}[t]{\columnwidth}
+%         \centering
+%         \begin{minted}[
+%             frame=single,
+%             fontsize=\scriptsize
+%             ]{json}
 % {
-% 	"Name": "F",
-% 	"Next": {
-% 		"Name": "G",
-% 		"InputType": "Scalar",
-% 		"Conditional": true,
-% 	}
+%     "Name": "F",
+%     "Next": {
+%         "Name": "G",
+%         "InputType": "Scalar",
+%         "Conditional": true,
+%     }
 % }
-% 		\end{minted}
-% 		\caption{\texttt{chain} pattern that invokes function \texttt{G} with
-% 			\texttt{F}'s result}
-% 		\label{fig:gadget-examples-chain}
-% 	\end{subfigure}
-% 	\begin{subfigure}[t]{\columnwidth}
-% 		\centering
-% 		\begin{minted}[
-% 			frame=single,
-% 			fontsize=\scriptsize
-% 			]{json}
+%         \end{minted}
+%         \caption{\texttt{chain} pattern that invokes function \texttt{G} with
+%             \texttt{F}'s result}
+%         \label{fig:gadget-examples-chain}
+%     \end{subfigure}
+%     \begin{subfigure}[t]{\columnwidth}
+%         \centering
+%         \begin{minted}[
+%             frame=single,
+%             fontsize=\scriptsize
+%             ]{json}
 % {
-% 	"Name": "M",
-% 	"Next": {
-% 		"Name": "N",
-% 		"InputType": "Map"
-% 	}
+%     "Name": "M",
+%     "Next": {
+%         "Name": "N",
+%         "InputType": "Map"
+%     }
 % }
-% 		\end{minted}
-% 		\caption{\texttt{map} pattern that invokes a parallel instance of
-% 			\texttt{N} for each element of the vector output of \texttt{M}}
-% 		\label{fig:gadget-examples-map}
-% 	\end{subfigure}
-% 	\hfill
-% 	\begin{subfigure}[t]{\columnwidth}
-% 		\centering
-% 		\begin{minted}[
-% 			frame=single,
-% 			fontsize=\scriptsize
-% 			]{json}
+%         \end{minted}
+%         \caption{\texttt{map} pattern that invokes a parallel instance of
+%             \texttt{N} for each element of the vector output of \texttt{M}}
+%         \label{fig:gadget-examples-map}
+%     \end{subfigure}
+%     \hfill
+%     \begin{subfigure}[t]{\columnwidth}
+%         \centering
+%         \begin{minted}[
+%             frame=single,
+%             fontsize=\scriptsize
+%             ]{json}
 % {
-% 	"Name": "G",
-% 	"Next": [
-% 	{
-% 		"Name": "H",
-% 		"InputType": "Scalar"
-% 	},
-% 	{
-% 		"Name": "M",
-% 		"InputType": "Scalar"
-% 	}
-% 	]
+%     "Name": "G",
+%     "Next": [
+%     {
+%         "Name": "H",
+%         "InputType": "Scalar"
+%     },
+%     {
+%         "Name": "M",
+%         "InputType": "Scalar"
+%     }
+%     ]
 % }
-% 		\end{minted}
-% 		\caption{\texttt{fan-out} pattern that invokes function \texttt{H} and
-% 			\texttt{M} with the result of \texttt{G}}
-% 		\label{fig:gadget-examples-fanout}
-% 	\end{subfigure}
-% 	\begin{subfigure}[t]{\columnwidth}
-% 		\centering
-% 		\begin{minted}[
-% 			frame=single,
-% 			fontsize=\scriptsize
-% 			]{json}
+%         \end{minted}
+%         \caption{\texttt{fan-out} pattern that invokes function \texttt{H} and
+%             \texttt{M} with the result of \texttt{G}}
+%         \label{fig:gadget-examples-fanout}
+%     \end{subfigure}
+%     \begin{subfigure}[t]{\columnwidth}
+%         \centering
+%         \begin{minted}[
+%             frame=single,
+%             fontsize=\scriptsize
+%             ]{json}
 % {
-% 	"Name": "N",
-% 	"Next": {
-% 		"Name": "S",
-% 		"InputType": {
-% 			"Fan-in": {
-% 				"Values": [
-% 				"N-unumIndex-*"
-% 				]
-% 			}
-% 		}
-% 	}
+%     "Name": "N",
+%     "Next": {
+%         "Name": "S",
+%         "InputType": {
+%             "Fan-in": {
+%                 "Values": [
+%                 "N-unumIndex-*"
+%                 ]
+%             }
+%         }
+%     }
 % }
-% 		\end{minted}
-% 		\caption{\texttt{fan-in} pattern that invokes function \texttt{S} with
-% 			the result of all \texttt{N} instances of a \texttt{map}.}
-% 		\label{fig:gadget-examples-fanin}
-% 	\end{subfigure}
+%         \end{minted}
+%         \caption{\texttt{fan-in} pattern that invokes function \texttt{S} with
+%             the result of all \texttt{N} instances of a \texttt{map}.}
+%         \label{fig:gadget-examples-fanin}
+%     \end{subfigure}
 
-% 	\begin{subfigure}[t]{\columnwidth}
-% 		\centering
-% 		\begin{minted}[
-% 			frame=single,
-% 			fontsize=\scriptsize
-% 			]{json}
+%     \begin{subfigure}[t]{\columnwidth}
+%         \centering
+%         \begin{minted}[
+%             frame=single,
+%             fontsize=\scriptsize
+%             ]{json}
 % {
-% 	"Name": "F",
-% 	"Next": [
-% 	{
-% 		"Name": "G",
-% 		"InputType": "Scalar",
-% 		"Conditional": "$ret < 0"
-% 	},
-% 	{
-% 		"Name": "H",
-% 		"InputType": "Scalar",
-% 		"Conditional": "$ret >= 0"
-% 	}
-% 	]
+%     "Name": "F",
+%     "Next": [
+%     {
+%         "Name": "G",
+%         "InputType": "Scalar",
+%         "Conditional": "$ret < 0"
+%     },
+%     {
+%         "Name": "H",
+%         "InputType": "Scalar",
+%         "Conditional": "$ret >= 0"
+%     }
+%     ]
 % }
-% 		\end{minted}
-% 		\caption{\texttt{F} branches on the user function's result by
-% 		combining \texttt{fan-out} with \texttt{Conditional}}
-% 		\label{fig:gadget-examples-branch}
-% 	\end{subfigure}
+%         \end{minted}
+%         \caption{\texttt{F} branches on the user function's result by
+%         combining \texttt{fan-out} with \texttt{Conditional}}
+%         \label{fig:gadget-examples-branch}
+%     \end{subfigure}
 
-% 	\begin{subfigure}[t]{\columnwidth}
-% 		\centering
-% 		\begin{minted}[
-% 			frame=single,
-% 			fontsize=\scriptsize
-% 			]{json}
+%     \begin{subfigure}[t]{\columnwidth}
+%         \centering
+%         \begin{minted}[
+%             frame=single,
+%             fontsize=\scriptsize
+%             ]{json}
 % {
 %     "Name": "F",
 %     "Next": {
@@ -142,44 +138,76 @@ to one or more target functions.
 %     },
 %     "Next Payload Modifiers": ["$0=$0+1"]
 % }
-% 		\end{minted}
-% 		\caption{\texttt{fold} pattern that folds \texttt{F} on the output of
-% 		a vector of \texttt{G} functions}
-% 		\label{fig:gadget-examples-fold}
-% 	\end{subfigure}
+%         \end{minted}
+%         \caption{\texttt{fold} pattern that folds \texttt{F} on the output of
+%         a vector of \texttt{G} functions}
+%         \label{fig:gadget-examples-fold}
+%     \end{subfigure}
 
-% 	\caption{The \name{} IR representation of common transition patterns.}
-% 	\label{fig:ir-examples}
+%     \caption{The \name{} IR representation of common transition patterns.}
+%     \label{fig:ir-examples}
 % \end{figure*}
 
 
 \begin{figure}[t!]
-	\centering
-	\begin{subfigure}[t]{\columnwidth}
-		\centering
-		\begin{minted}[
-			frame=single,
-			fontsize=\scriptsize
-			]{yaml}
+    \centering
+    \begin{minted}[
+        frame=single,
+        fontsize=\scriptsize
+        ]{yaml}
+Name: "Name of the source function"
+Next: "One or a list of transitions"
+    Name: "Name of the target function of this transition"
+    InputType: "Input type of this target function
+               Support the three different types below"
+        Scalar: "Target takes only the source's output
+                as an entire entity"
+        Map:    "Treat source's output as an iterable.
+                Send each element to an instance of
+                the target function"
+        Fan-in: "Target function take sources and other
+                functions' outputs as input. Run target
+                only when all functions in Values complete"
+            Values: "A list of function instances whose output
+                    the target function depends on as input"
+    Conditional: "Boolean expression. Run this
+                 transition only when true."
 
-Next: {
-    Name: "S",
+    \end{minted}
+    \caption{Primitives for encoding the outgoing edges transitions from a
+    source function to one or more target functions.}
+    \label{fig:ir-schema}
+\end{figure}
+
+
+
+\begin{figure}[t!]
+    \centering
+    \begin{subfigure}[t]{\columnwidth}
+        \centering
+        \begin{minted}[
+            frame=single,
+            fontsize=\scriptsize
+            ]{yaml}
+Name: "N"
+Next:
+    Name: "S"
     InputType: 
-    	Fan-in:
+        Fan-in:
             Values: ["N-unumIndex-*"]
-		\end{minted}
-		\caption{fan-in pattern that invokes function \texttt{S} with the
-			result of all \texttt{N} instances of a \texttt{map}.}
-		\label{fig:gadget-examples-fanin}
-	\end{subfigure}
+        \end{minted}
+        \caption{fan-in pattern that invokes function \texttt{S} with the
+            result of all \texttt{N} instances of a \texttt{map}.}
+        \label{fig:gadget-examples-fanin}
+    \end{subfigure}
 
-	\begin{subfigure}[t]{\columnwidth}
-		\centering
-		\begin{minted}[
-			frame=single,
-			fontsize=\scriptsize
-			]{yaml}
-
+    \begin{subfigure}[t]{\columnwidth}
+        \centering
+        \begin{minted}[
+            frame=single,
+            fontsize=\scriptsize
+            ]{yaml}
+Name: "F"
 Next:
     Name: "F"
     InputType:
@@ -187,14 +215,14 @@ Next:
             Values: ["F-unumIndex-$0","G-unumIndex-($0+1)"]
     Conditional: "$0 < $size-1"
 Next Payload Modifiers: ["$0=$0+1"]
-		\end{minted}
-		\caption{\texttt{fold} pattern that folds \texttt{F} on the output of
-		a vector of \texttt{G} functions}
-		\label{fig:gadget-examples-fold}
-	\end{subfigure}
+        \end{minted}
+        \caption{\texttt{fold} pattern that folds \texttt{F} on the output of
+        a vector of \texttt{G} functions}
+        \label{fig:gadget-examples-fold}
+    \end{subfigure}
 
-	\caption{The \name{} IR example of fan-in and fold.}
-	\label{fig:ir-examples}
+    \caption{The \name{} IR example of fan-in and fold.}
+    \label{fig:ir-examples}
 \end{figure}
 
 Before executing serverless workflows in a decentralized manner, a workflow
@@ -215,8 +243,8 @@ transitions with low-level primitives. In particular, the IR is made up of a
 set of configurations, one for each function in the workflow, that just
 specifies i. \textit{which} function(s) to run next, ii. \textit{when} the
 next function(s) should run, iii. \textit{what} input should the next
-function(s) run with. Table~\ref{tab:ir} lists the main primitives in the
-\name{} IR language.
+function(s) run with. Figure~\ref{fig:ir-schema} shows the main primitives in
+the \name{} IR language for expressing workflow transitions.
 
 With these primitives, the IR can express all common workflow patterns
 (\S\ref{sec:transition-patterns}) using just a few lines of code for simple
@@ -224,17 +252,17 @@ patterns and a combination of the primitives for more complex interactions.
 For instances, a chain from function \texttt{F} to \texttt{G} can be expressed
 simply as:
 \begin{minted}[
-			fontsize=\scriptsize
-			]{yaml}
+            fontsize=\scriptsize
+            ]{yaml}
 Name: "F"
 Next:
     Name: "G"
     InputType: "Scalar"
 \end{minted}
 
-And Figure~\ref{} gives an example of a regular fan-in and using a combination
-of \texttt{Fan-in}, \texttt{Conditional} and \texttt{Next Payload Modifier} to
-express fold.
+And Figure~\ref{fig:ir-examples} gives an example of a regular fan-in and
+using a combination of \texttt{Fan-in}, \texttt{Conditional} and \texttt{Next
+Payload Modifier} to express fold.
 
 A key design challenge of the \name{} IR is to support dynamic runtime
 behavior with statically generated configurations.
