@@ -186,7 +186,7 @@ against duplicates.
 \paragraph{External Side Effects.} Naturally, the
 exactly-once guarantee does not automatically extend to functions with external side effects, 
 i.e. functions that directly call external services. In such cases, retries can lead 
-to unexpected results. This issue is well known, and independent of 
+to unexpected results if the effects are not idempotent. This issue is well known, and independent of 
 the orchestrator architecture (centralized vs. decentralized). 
 Thus, we consider the question of how to control such side effects to be
 orthogonal and beyond the scope of this paper.

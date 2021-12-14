@@ -1,1 +1,21 @@
-\section{Discussion}\label{sec:dis}
+%\section{Limitations \& Future Work}\label{sec:limitations}
+%
+%\begin{itemize}
+%  \item Dynamic control structure
+%  \item Implementation currently only supports AWS
+%  \item Performance overhead for Step Functions probably inaccurate
+%  \item Pricing measurements limited
+%\end{itemize}
+
+\section{Conclusion}\label{sec:conclusion}
+
+Serverless platforms allow developers to construct applications from modular
+programming units that can scale quickly and independently, promising
+burst-scalability and fine-grained billing. Workflow orchestrators make building
+complex applications out of these event-driven, asynchronous functions
+reasonable, but may introduce performance, cost, scalability, and deployment
+overhead to developers and platform providers. We designed and implemented
+\name{}, a \emph{decentralized} workflow orchestrator that requires no
+additional infrastructure to deploy, imposes no additional limits on
+scalability, and performs as well as or better than centralized solutions while
+providing similar expressiveness and execution guarnatees.
