@@ -152,6 +152,51 @@ to one or more target functions.
 % 	\label{fig:ir-examples}
 % \end{figure*}
 
+
+\begin{figure}[t!]
+	\centering
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\scriptsize
+			]{yaml}
+
+Next: {
+    Name: "S",
+    InputType: 
+    	Fan-in:
+            Values: ["N-unumIndex-*"]
+		\end{minted}
+		\caption{fan-in pattern that invokes function \texttt{S} with the
+			result of all \texttt{N} instances of a \texttt{map}.}
+		\label{fig:gadget-examples-fanin}
+	\end{subfigure}
+
+	\begin{subfigure}[t]{\columnwidth}
+		\centering
+		\begin{minted}[
+			frame=single,
+			fontsize=\scriptsize
+			]{yaml}
+
+Next:
+    Name: "F"
+    InputType:
+        Fan-in:
+            Values: ["F-unumIndex-$0","G-unumIndex-($0+1)"]
+    Conditional: "$0 < $size-1"
+Next Payload Modifiers: ["$0=$0+1"]
+		\end{minted}
+		\caption{\texttt{fold} pattern that folds \texttt{F} on the output of
+		a vector of \texttt{G} functions}
+		\label{fig:gadget-examples-fold}
+	\end{subfigure}
+
+	\caption{The \name{} IR example of fan-in and fold.}
+	\label{fig:ir-examples}
+\end{figure}
+
 Before executing serverless workflows in a decentralized manner, a workflow
 definition first needs to be partitioned such that each function performs only
 a subsection of the workflow. The system needs to decide where to make the
@@ -170,15 +215,26 @@ transitions with low-level primitives. In particular, the IR is made up of a
 set of configurations, one for each function in the workflow, that just
 specifies i. \textit{which} function(s) to run next, ii. \textit{when} the
 next function(s) should run, iii. \textit{what} input should the next
-function(s) run with. Table~\ref{tab:ir} lists 
+function(s) run with. Table~\ref{tab:ir} lists the main primitives in the
+\name{} IR language.
 
 With these primitives, the IR can express all common workflow patterns
 (\S\ref{sec:transition-patterns}) using just a few lines of code for simple
 patterns and a combination of the primitives for more complex interactions.
-For instances, 
+For instances, a chain from function \texttt{F} to \texttt{G} can be expressed
+simply as:
+\begin{minted}[
+			fontsize=\scriptsize
+			]{yaml}
+Name: "F"
+Next:
+    Name: "G"
+    InputType: "Scalar"
+\end{minted}
 
-
-
+And Figure~\ref{} gives an example of a regular fan-in and using a combination
+of \texttt{Fan-in}, \texttt{Conditional} and \texttt{Next Payload Modifier} to
+express fold.
 
 A key design challenge of the \name{} IR is to support dynamic runtime
 behavior with statically generated configurations.
