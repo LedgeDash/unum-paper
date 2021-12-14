@@ -163,7 +163,7 @@ Finally, both ad-hoc approaches require developers to handle function crashes,
 retries and multiple invocations gracefully~\cite{aws-lambda-retry,
 azure-functions-retry, aws-lambda-async-invoke, azure-functions-exec-guarantee}.
 Application typically want to ensure ``exactly once'' semantics~\cite{netherite,
-beldi, boki, formal-foundation-exec-gtnee} for an entire call-graph, but both
+beldi, boki, formal-foundation-exec-gtnee, durable-semantics} for an entire call-graph, but both
 failing and multiple invocations of individual constituent functions can subvert
 this goal with careful consideration.
 
