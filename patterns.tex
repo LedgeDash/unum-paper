@@ -78,31 +78,41 @@ patterns.
 
 
 \noindent\underline{\textit{IoT Pipeline:}} A HVAC control application (in
-	AWS serverless repository~\cite{iot-pipeline}) consisting  of a
-	two functions connected with a simple chain pattern: a function that aggregates  a time-series data
-	on indoor climate readings,  followed by a HVAC system control function that
-	adjusts the HVAC settings based on the aggregate climate data.
-	
-	\noindent \underline{\textit{Text Processing:}} A social network application (adapted from
-	the DeathStarBench~\cite{deathstar}) that post-processes a new social network posted by a user.  The workflow consists of 5 functions, following the overall structure of Figure \ref{fig:arch:unum-compile-time}.
-	It fans out to two branches that resolves user mentions and shortens URLs
-	in parallel. \shadi{what does the chain do?} Lastly, it fans in to a function that saves the post along
-	with resolved user mentions and shortened URLs in a NoSQL database.
-	
-	 \noindent \underline{\textit{MapReduce:}} A word count application (from MapReduce 
-	count~\cite{mapreduce}) counting the number of each word in a dataset. The workflow consists of 250 parallel mappers functions each counting words in a subset of the dataset (map) followed by \shadi{one} reducer function aggregating all counts (fan-in).
-	
-	\noindent\underline{\textit{ExCamera:}} is a novel video encoder ~\cite{excamera} that
-	encodes large raw videos with thousands of parallel functions to achieve
-	low latency. This application has a complex workflow with use of multiple patterns, as shown in Figure~\ref{fig:excamera} .
-%		It breaks a large video into small chunks and runs expensive
-%	steps in parallel and fast steps in series. 
-	The workflow consists of three
-	stages. First, an ``encode'' stage  that chunks the video and runs multiple encoding functions entirely in parallel shown as individual branches in Figure~\ref{fig:excamera}, shown as a map followed by chain pattern. Next, each branch $i$ combines results from the previous branch $(i-1)$ to \shadi{david:?? encode the video based on the previous chunk?}
-	. This step involves a series of fan-outs and fan-ins. Finally, all encoded video chunks are concatiated into the a single video stream using a fold and fan-in pattern.
+AWS serverless repository~\cite{iot-pipeline}) consisting of two functions
+connected with a simple chain pattern: a function that aggregates
+time-series data on indoor climate readings, followed by a HVAC system
+control function that adjusts the HVAC settings based on the aggregate
+statistics.
+
+\noindent \underline{\textit{Text Processing:}} A component of the
+DeathStarBench~\cite{deathstar} social network application that processes
+user posts. The workflow consists of 5 functions, following the overall
+structure of Figure \ref{fig:arch:unum-compile-time}. It fans out to two
+branches that resolves user mentions and shortens URLs in parallel.
+Lastly, it fans in to a function that saves the post along with resolved
+user mentions and shortened URLs in a NoSQL database.
+
+ \noindent \underline{\textit{MapReduce wordcount:}} A word count
+application (from MapReduce~\cite{mapreduce}) counting the number of each
+word in a dataset. The workflow dynamically creates many mappers each
+processing a subsection of a dataset and then a fixed number of reducers
+the aggregates mapper outputs.
+
+\noindent\underline{\textit{ExCamera:}} is a novel video encoder
+~\cite{excamera} that encodes large raw videos with thousands of parallel
+functions to achieve low latency. This application has a complex workflow with
+use of multiple patterns, as shown in Figure~\ref{fig:excamera}. The workflow
+consists of three stages. First, an ``encode'' stage that chunks the video and
+runs multiple pipelines of encoding and decoding functions entirely in
+parallel. Next, each branch $i$ combines results from the previous branch to
+re-encode the video. This step involves a fan-ins between adjacent branches in
+the previous stage. Finally, all encoded video chunks are concatenated into
+the a single video stream using a fold pattern.
 
 
- \name{'s} set of 6 patterns are sufficient to express a wide range of real-world applications. In the following section, we will describe  how we execute each pattern in a completely decentralized manner.
+We implement all of the above applications with \name{} and evaluate their
+costs and performance in \S\ref{sec:eval}. In the following section, we will
+describe how we execute each pattern in a completely decentralized manner.
 
 \begin{figure}[t!]
 	\centering
