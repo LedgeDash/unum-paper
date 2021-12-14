@@ -124,17 +124,12 @@ slow downs in the remaining cases due to implementation deficiencies.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
-  \caption{\name{} latency of transitioning from the completion of a function
-    to the start of the next function. The transition involves a Lambda
-    invoke call, a checkpoint write to data store (a DynamoDB PutItem call)
-    and a checkpoint read from data store (a DynamoDB GetItem call). Overall
-    latency increases with data size due to more data written in the PutItem
-    call and sent to next function via the Lambda invoke call. Over 97.5\% of
-    the latency is the
-    \name{} runtime waiting for data store accesses and Lambda invoke API
-    calls to return. When the underlying platform improves (e.g., a faster
-    Lambda or data store), the bulk of \name{}'s performance will
-    automatically improve without any modification to \name{} itself.}
+  \caption{An orchestrator incurs a latency on each transition between
+functions. \name{}'s overhead is due to storage operations to ensure
+exactly-once semantics, invocation API overhead to enqueue the next function to
+run, and additional code running in the function instance itself for the
+orchestration logic. \name{}'s overhead compares favorably to that of the Step
+Function's orchestrator for simple, chain, transitions.}
   \label{fig:single-transition-latency-breakdown}
 \end{figure}
 
@@ -211,14 +206,11 @@ branches run in parallel.}
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
-  \caption{End-to-end latency of parallel fan-out and fan-in with varying
-    degrees of parallelism. All constituent functions in the experiment only
-    run for 1-2ms, so the results mostly reflect the latency of the workflow
-    systems. \name{} is around 100-200ms slower at lower degrees of
-    parallelism (2-16 parallel branches), but starts to outperform Step
-    Functions (2.37x faster) at even moderate parallelism level of 32 parallel
-    branches. \name{}'s advantage widens as the the degress of parallelism
-    increases, and is up to 4.58x at 512 parallel branches.}
+  \caption{End-to-end latency of a fan-out and fan-in pattern with increasing
+branching degree. \name{} is 100-200ms slower at lower branching degrees due to
+the distributed fan-in algorithm overhead. \name{} significantly outperform Step
+Functions at moderate and high branching degree as the Step Function's
+orchestrator is a scalability bottleneck for fan-out.}
   \label{fig:mapmicrolatency}
 \end{figure}
 
@@ -396,10 +388,10 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
   \label{table:excamera}
 \end{table}
 
-ExCamera~\cite{excamera} is a novel video encoder that encodes
-large raw videos with thousands of parallel functions to achieve low latency. It
-breaks a large video into small chunks and runs expensive steps in parallel and
-fast steps in series. The workflow consists of three stages, \texttt{ENCODE},
+ExCamera~\cite{excamera} is a novel video encoder that encodes large raw videos
+with thousands of parallel functions to achieve low latency. It breaks a large
+video into small chunks and runs expensive steps in parallel and fast steps in
+series. The workflow consists of three stages, \texttt{ENCODE},
 \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
 complex patterns. The first stage is a \texttt{map} that runs many
 \texttt{ENCODE} functions entirely in parallel, the second stage forms paralllel
