@@ -13,29 +13,28 @@ can make efficient use of hardware resources.
 Originally, serverless platforms targeted simple applications with one or a few
 functions and simple interaction patters. Recently, though, there has been
 emerging interest in using serverless platforms to build complex applications
-composed of many functions with rich interaction patterns~\cite{excamera,
+composed of many \shadiS{many -> 10s to 100s of} functions with rich interaction patterns~\cite{excamera,
 pywren, gg-atc, beldi, boki}. Unfortunately, building such applications using
-basic serverless building blocks is challenging. FaaS invocation semantics
-require applications to handle individual function failures and retries
-gracefully, and driving complex control flows in a decentralized manner is both
-difficult to implement correctly and difficult to express.
+basic serverless building blocks is challenging.  Handling complex control flows and large number of functions, in a decentralized \shadiS{ad-hoc} manner, is both
+difficult to  express and implement correctly. Additionally, FaaS invocation semantics
+requires applications \shadiS{developers} to gracefully handle individual function failures and retries. 
 
-To meet this need, several fault-tolerant workflow systems have emerged. These offer higher-level
-programming interfaces to express function interactions, suppporting a rich set of
-composition patterns that support chaining, branching, fan-out and fan-in, and
+To meet this need, several fault-tolerant workflow systems \shadiS{, that enable building serverless applications with large and complex ``workflows'' of functions, } have emerged. These offer high-level
+programming interfaces to express function interactions, supporting a rich set of
+composition patterns for chaining, branching, fan-out and fan-in, and
 exactly-once semantics for workflow execution~\cite{excamera, gg-atc,
 aws-step-functions, google-cloud-composer, google-workflows, durable-functions}.
-All of these systems rely on some form of \emph{orchestrator} to track workflow progress
-and retry individual steps in the caase of faults.
+All of these systems rely on some form of an \emph{orchestrator} to track workflow progress
+and retry individual steps in the case of faults.
 
 An orchestrator is a stateful component that centralizes execution states
 and control-flow operations. For each workflow transition in a serverless
 application, the orchestrator waits for currently running functions to complete,
-determines what to do with their results, and which function or functions to run
+determines what to do with their results, and which function(s) to run
 next. All function invocations are initiated by the orchestrator, and all
 workflow states (e.g., function results) flow through the orchestrator. Using a 
 centralized orchestrator simplifies failure handling, as the entire workflow state resides
-in the orchestrator, where it can be easily checkpointed. However, it is also rather
+in the orchestrator and can be easily checkpointed. However, it is also rather
 communication-intensive, as all control and data must flow back and forth between
 the orchestrator and the functions.
 
@@ -52,16 +51,18 @@ infrastructure.
 While basic
 serverless build blocks are the result of decades of research and engineering to
 achieve performant and scalable compute and storage infrastructure,
-orchestrators provide perform specialized functionality that must solve
+orchestrators perform specialized functionality that must solve
 scalability and performance problems independently. Applications may suffer, for
-example, from scalability bottlenecks in the orchestrater even if storage and
+example, from scalability bottlenecks in the orchestrator even if storage and
 FaaS platforms can support much higher burst-scalability. Moreover, an
-orchestrater represents yet-another system for which platform providers must fix
+orchestrator represents yet-another system for which platform providers must fix
 bugs, maintain high availability, and provision resources.
 
-In this paper, we propose \name{}, a decentralized serverless workflow system
-that runs in-situ with user defined FaaS functions on existing, minimal,
-serverless infrastructure. \name{} supports the same class of applications as
+In this paper, \shadiS{we ask a question: \textit{can we achieve the benefits of a workflow  orchestrator, namely ease-of-programming, complex compositions, and failure handling, without having an additional orchestrator service?}}.
+
+We propose \name{}, a \textit{decentralized} serverless workflow system
+that runs in-situ with user defined FaaS functions \textit{on existing, minimal,
+serverless infrastructure}. \name{} supports the same class of applications as
 centralized orchestraters, has similar or better performance, and can achieve
 better scalability than some widely used centralized orchestraters. Compared to
 Step Functions, a representative set of applications cost up to 32.8x less, and
@@ -69,10 +70,9 @@ run up to 4.5x faster using \name{}.
 
 Importantly, \name{}'s decentralization does not sacrifice properties important
 to complex serverless applications. It can provide the same set of execution
-guarantees as centralized orchestraters. Specifically, \name{} guarantees
-exactly-once execution semantics even if an application's constituent function
-fails and is retried or is otherwise run multiple times by the FaaS system.
-Even if some constituent functions execute multiple times, the final application
+guarantees as centralized orchestrators. Specifically, \name{} guarantees
+exactly-once execution semantics: even if an application's constituent function
+fails,  is retried, or is otherwise ran multiple times, the final application
 states appear as if all functions executed once.
 
 %\dhl{Design insights, highlights and overview}
@@ -117,20 +117,22 @@ This paper makes the following contributions:
 
 \squishlist
 
-  \item An end-to-end system that can take workflows written in higher-level
+  \item An end-to-end system that can take workflows written in high-level
   language and execute them purely as FaaS functions.
 
-  \item A set of general algorithms, called gadgets, that implement all common
-  orchestration patterns (e.g., chaining, branching, fan-out, fan-in) with
+  \item A \shadiS{decentralized design for}
+  %set of general algorithms, called gadgets, that implement
+   all common
+  orchestration patterns (e.g., chaining, branching, fan-out, fan-in) using \shadiS{only}
   serverless functions and serverless storage.
 
   \item An intermediate representation language that can express complex
-  workloads using these gadgets in a platform agnostic way, and a front-end
+  workloads in a platform agnostic way, and a front-end
   compiler that transforms Step Functions state machines to the IR.
 
-  \item An implementation of the \name{} runtime that execute workflows purely
-  as Lambda functions using either S3 or DynamoDB as the data store for enable
-  fan-in and provide exactly-once semantics.
+  \item An implementation of the \name{} runtime that executes workflows purely
+  as Lambda functions and uses either S3 or DynamoDB as the data store in order to enable
+  fan-in and provide exactly-once semantics. \shadi{this last bullet point is out of place. the first one already mentions system on FaaS. is it trying to highlight the exactly-once? the datastore? or the fact that we have an implementation? }
 
 \squishend
 % -------
