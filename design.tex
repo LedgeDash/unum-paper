@@ -57,7 +57,7 @@ benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
 	decentralized manner in-situ with user functions given a high-level workflow description?
 
 	\item How to efficiently execute orchestration logic in a
-	decentralized manner, esp. when it requiers data sharing and
+	decentralized manner, esp. when it requires data sharing and
 	synchronization across function instances (e.g., fan-in)?
 
 	\item How to provide exactly-once semantics when the
@@ -102,13 +102,13 @@ store to share data and  synchronize across each other.
 
 
 \name{} also leverages the intermediary data store to solve the third
-challenge and provide a strong execution guarantee we call
-\emph{exactly-one-result}. \name{} uses a checkpointing mechansim to limit the
-scope of retries when workflows crash mid-execution and guarantee that even if
-there are multiple instances of the same function, concurrent or not, only one
-instance's output is taken as the final result and propargates downstream.
-When user functions do not produce externally visible side-effects, \name{}'s
-exactly-one-result guarantee appears the same as exactly-once semantics.
+challenge and provide a strong exactly-once semantics. \name{} uses a
+checkpointing mechansim to limit the scope of retries when workflows crash
+mid-execution and guarantee that even if there are multiple instances of the
+same function, concurrent or not, only one instance's output is taken as the
+final result and propargates downstream. When user functions do not produce
+externally visible side-effects, \name{}'s exactly-once guarantee appears the
+same as exactly-once semantics.
 
 In the rest of the section, we first highlight a set of common workflow
 patterns that \name{} supports (\S~\ref{sec:transition-patterns}), then
@@ -154,6 +154,7 @@ is nontrivial because of the following subtleties:
 	\item Some FaaS engines may detect failures incorrectly, thus multiple
 	executions of a function can be in progress simultaneously, and may all run to completion.
 \squishend
+\vspace{1ex}
 
 Fortunately, we found a way to handle these challenges by taking advantage of
 conditional store operations supported by strongly consistent data stores.
@@ -163,9 +164,10 @@ the final result and propagates to the downstream ingress node(s). Other
 instances simply discard their results and terminate.
 
 \paragraph{Checkpoints and Synchronization.}%\name{} uses a similar checkpointing technique across all transition patterns. 
-After user code completes, the \name{} egress gadget immediately writes a checkpoint file that contains the user code
-results to the intermediary data store. The checkpoint is uniquely named with
-the instance's name (i.e., the name according the
+After user code completes, the \name{} egress immediately writes a checkpoint
+file that contains the user code results to the intermediary data store. The
+checkpoint is uniquely named with the instance's name (i.e., the name
+according the
 \name{}~IR's naming scheme (\S\ref{sec:ir:naming}), prefixed by the workflow
 invocation's unique session ID) such that the existence of a checkpoint
 implies the corresponding function has successfully completed its user
@@ -187,10 +189,11 @@ tolerate running a ingress/egress node more than once because of the same protec
 against duplicates.
 
 \paragraph{External Side Effects.} Naturally, the
-exactly-once guarantee does not automatically extend to functions with external side effects, 
-i.e. functions that directly call external services. In such cases, retries can lead 
-to unexpected results if the effects are not idempotent. This issue is well known, and independent of 
-the orchestrator architecture (centralized vs. decentralized). 
-Thus, we consider the question of how to control such side effects to be
-orthogonal and beyond the scope of this paper.
-For example, a store interposition libary like Beldi \cite{beldi} can solve this problem.
+exactly-once guarantee does not automatically extend to functions with
+external side effects, i.e. functions that directly call external services. In
+such cases, retries can lead to unexpected results if the effects are not
+idempotent. This issue is well known, and independent of the orchestrator
+architecture (centralized vs. decentralized). Thus, we consider the question
+of how to control such side effects to be orthogonal and beyond the scope of
+this paper. For example, a store interposition libary like Beldi \cite{beldi}
+can solve this problem.

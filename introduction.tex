@@ -16,8 +16,8 @@ emerging interest in using serverless platforms to build more complex
 applications composed of 10s to 100s functions with rich interaction
 patterns~\cite{excamera, pywren, gg-atc, beldi, boki}. Unfortunately, building
 such applications using basic serverless building blocks is challenging.
-Handling complex control flows and large numbers of functions, in a ad-hoc
-manner is difficult to both express and implement correctly.  Additionally, FaaS
+Handling complex control flows and large numbers of functions, in an ad-hoc
+manner is difficult to both express and implement correctly. Additionally, FaaS
 invocation semantics requires application developers to gracefully handle
 individual function failures and retries.
 
@@ -73,20 +73,17 @@ runs in-situ with user defined FaaS functions \textit{on existing, minimal,
 serverless infrastructure}. \name{} supports the same class of applications as
 centralized orchestrators, has similar or better performance, and can achieve
 better scalability than some widely used centralized orchestrators. Compared to
-Step Functions, a representative set of applications cost up to 32.8x less, and
+Step Functions, a representative set of applications cost up to 27.3x less, and
 run up to 4.5x faster using \name{}.
 
 Importantly, \name{}'s decentralization does not sacrifice any of the   fault
 tolerance and strong execution guarantees of  commonly used orchestrators
 \cite{aws-step-functions, durable-functions, google-cloud-composer,
-google-workflows}.  In particular, \name{} guarantees that workflows
-%
-% do not get stuck (functions are retried if there are faults) and
-%
-produce consistent results.  In particular, there is no risk of workflow
-divergence due to unanticipated function nondeterminism or concurrency---a
-common source of errors when developers attempt to compose serverless functions
-without the help of a workflow system.
+google-workflows}.  In particular, \name{} guarantees that workflows produce
+consistent results. There is no risk of workflow divergence due to
+unanticipated function nondeterminism or concurrency---a common source of
+errors when developers attempt to compose serverless functions without the
+help of a workflow system.
 
 %In particular, for side-effect-free functions, this guaranteeThis matches the guarantees provided by central orchestrators, such as Step Functionsexecution semantics even if an application's constituent function
 %fails and is retried or is otherwise run multiple times by the FaaS system.
@@ -135,18 +132,16 @@ This paper makes the following contributions:
 
 \squishlist
 
-  \item A decentralized orchestration system that runs in-situ with user-defined FaaS functions
+  \item A low-level intermediate representation that partitions workflow logic
+  to functions.
 
-  \item A low-level intermediate representation for expressing workflows for any
-serverless platform that meets minimal criteria
+  \item A runtime that implements common orchestration patterns
+  (e.g., chaining, branching, fan-out, fan-in) in a decentralized manner and
+  run in-situ with user-defined FaaS functions and
 
-  \item Decentralized algorithms for that implement common orchestration
-patterns (e.g., chaining, branching, fan-out, fan-in) using the low-level
-expression language
-
-  \item An implementation of the \name{} runtime AWS Lambda and either S3 or
-DynamoDB as well as a compiler from the AWS Step Functions orchestration
-language to \name{}'s low level IR
+  \item An implementation of the \name{} runtime for AWS Lambda and 
+DynamoDB as well as a compiler from the AWS Step Functions language to
+\name{}'s low level IR
 
 \squishend
 % -------
