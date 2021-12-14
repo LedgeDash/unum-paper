@@ -34,9 +34,11 @@
     \label{fig:input-format}
 \end{figure}
 
-In this section, we describe how the \name{} runtime efficiently implements
-orchestration in a decentralized manner. In particular, the runtime consists
-of an ingress and an egress component and runs in-situ with user functions.
+\shadiS{
+In this section, we describe how the \name{}  efficiently implements
+orchestration and the six transition patterns in a decentralized manner.  \name{} adds a  \name{} runtime to each  user function to perform the transitions. The \name{} runtime consists
+of an ingress and an egress component.
+}
 During execution, the egress on the source function(s) and ingress on the
 target function(s) work together to execute the transition. The egress
 interprets its IR configuration to learn what transition it needs to perform.
@@ -47,16 +49,14 @@ user code.
 A key requirement of \name{}'s design is to only use the basic serverless
 abstraction without relying on any specialized APIs. Therefore, we build the
 runtime such that it only depends on two serverless components that are
-universally supported by all platforms: i. a FaaS system that supports
+universally supported by all platforms: i. a FaaS system that supports \shadiS{remove "a FaaS system that supports"}
 asynchronous invocation of functions (e.g., AWS Lambda, Azure Functions,
 Google Cloud Funtions, Openwhisk) and ii. a strongly consistent data store
 that supports conditional write operations (e.g., DynamoDB, Cosmos DB).
-
 We describe how the \name{} runtime uses the two basic abstraction to support
 each common workflow pattern below:
 
-\paragraph{chain} 
-
+\noindent\textbf{chain} 
 The chain pattern involves one egress on source function and one ingress on
 the target function. The source egress simply invokes the target function with
 the source function's user code's output. \name{} uses asynchronous invocation
@@ -68,31 +68,26 @@ directly from the input payload or from a data store (e.g., if the
 asynchronous invocation is via a storage trigger). Finally, ingress calls its
 user function and passes it the input.
 
-\paragraph{fan-out}
-
+\noindent\textbf{fan-out}
 The fan-out pattern involves one egress on the source function and many
 ingresses on the target functions.
-
 Similar to chaining, the egress asynchronously invoke each target and the
 ingresses on targets read the input data sent from the source and passes it to
 its user function.
 
-\paragraph{map}
-
+\noindent\textbf{map}
 map is a simple variation of fan-out where the egress treats its user code
 output as an iterable. For each element in the iterable, the source egress
 invokes the same target function to launch a unique runtime instances and pass
 it the element.
 
-\paragraph{branch}
-
+\noindent\textbf{branch}
 Branch is similar to fan-out except that each branch has a condition attached
 and only executes when the condition evaluates to true. The egress first
 evaluates the boolean condition before invoke the target function in that
 branch.
 
-\paragraph{fan-in}
-
+\textbf{fan-in}
 The fan-in pattern involves one ingress node and many egress nodes.
 It is the main complexity of decentralized orchestration as we want to ensure
 that the transition is \emph{wait-free} to avoid idle-billing. In particular,
