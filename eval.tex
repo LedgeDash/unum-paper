@@ -70,18 +70,20 @@ region, as well. To avoid performance artifacts related to cold-starts in
 comparisons, we ensure all functions are warm by running each workflow several
 times before taking measurements.
 
-We wrote all applications as AWS Lambda functions and Step Function state
-machines to driver those functions.  For the Step Functions experiments, we run
-the workflow definitions as-is using AWS Step Functions in \emph{Standard}
+We wrote all but one applications as AWS Lambda functions and Step Function
+state machines to driver those functions and either ran them directly for Step
+Function experiments, or compiled them to \name{} IR first for \name{}
+experiments. The notable exception is our \name{} and Step Functions
+implementations of ExCamera, which differ due to a limitation in the AWS State
+Language. As a result, the more efficient \name{} implementation is written
+directly in \name{} IR instead of compiled from the Step Functions definition
+(\S~\ref{sec:eval:realworld}).
+
+For the Step Functions experiments, we run the workflow definitions using AWS
+Step Functions in \emph{Standard}
 configuration~\cite{aws-step-functions-standard-vs-express}, which provides
 similarly strong execution guarantees as
-\name{}~\cite{aws-step-functions-exec-gntee}. For \name{} experiments, we first
-compile the Step Functions state machines to \name{} functions and then execute
-them directly as AWS Lambdas. A notable exception is our \name{} and Step
-Functions implementations of ExCamera, which differ due to a limitation in the
-AWS State Language. As a result, the more efficient \name{} implementation is
-written directly in \name{} IR instead of compiled from the Step Functions
-definition (\S~\ref{sec:eval:realworld}).
+\name{}~\cite{aws-step-functions-exec-gntee}.
 
 % We do not consider Step Functions' Express Workflows in our comparison because
 % of its weaker execution guarantee, namely the same invocation could result in
@@ -102,19 +104,9 @@ definition (\S~\ref{sec:eval:realworld}).
 In this section, we analyze \name{} on a series of micro-benchmark patterns in
 terms of both cost and latency.
 
-\begin{figure}[t!]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
-  \caption{End-to-end latency of chaining N functions. All constituent
-    functions in the experiment only run for 1-2ms, so the results mostly
-    reflect the latency of the workflow systems. \name{} is marginally
-    (11-28\%) faster than Step Functions on average. The results show that
-    \name{} is basically as fast in the most fundamental orchestration
-    primitive of transitioning from one function to the next.}
-  \label{fig:chainmicrolatency}
-\end{figure}
+\subsubsection{Single Transition Performance}
 
-\begin{figure}[t!]
+\begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/TotalAdditionalLatencyNBreakdown.pdf}
   \caption{\name{} latency of transitioning from the completion of a funtion
@@ -130,46 +122,6 @@ terms of both cost and latency.
     automatically improve without any modification to \name{} itself.}
   \label{fig:single-transition-latency-breakdown}
 \end{figure}
-
-\begin{figure}[t!]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
-  \caption{End-to-end latency of parallel fan-out and fan-in with varying
-    degrees of parallelism. All constituent functions in the experiment only
-    run for 1-2ms, so the results mostly reflect the latency of the workflow
-    systems. \name{} is around 100-200ms slower at lower degrees of
-    parallelism (2-16 parallel branches), but starts to outperform Step
-    Functions (2.37x faster) at even moderate parallelism level of 32 parallel
-    branches. \name{}'s advantage widens as the the degress of parallelism
-    increases, and is up to 4.58x at 512 parallel branches.}
-  \label{fig:mapmicrolatency}
-\end{figure}
-
-\subsubsection{Chaining performance}\label{sec:eval:chain}
-
-We evaluate how \name{} performs on executing a series of functions in
-sequence and then compare with Step Functions. We measure the end-to-end
-latency of executing a chain of functions with varying chain lengths (2 to 10
-functions). Our goal is to allow the end-to-end latency to maximally reflect
-the performance of the workflow system, with minimum interference from the
-latency of user code. Therefore, we use a constituent function that simply
-returns its input without any computations to keep the user code runtime
-intentionally short (less than 2ms).
-
-Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
-Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
-11-28\% faster in chaining than Step Functions. A plausible explanation for
-the shorter latency is that a transition in \name{} from one function to the
-next involves a single network communication to Lambda when the source
-function calls the target function asynchronously. The same transition in Step
-Functions, however, requires not only an invocation from the orchestrator to
-Lambda but also a network communication from the source function to the
-orchestrator to send back the function output first. \name{} reduces
-the number of network communications because control-flow states and logic are
-decentralized to constituent functions without being managed by a centralized
-orchestrator.
-
-\subsubsection{Single Transition Performance}
 
 Using the same experiment from the last section, we further breakdown the
 latency for \emph{a single transition} from one function to the next to
@@ -202,7 +154,58 @@ faster NoSQL database or FaaS system will automatically reduce the bulk of
 \name{}'s latency without any modification to \name{} itself, since the majority of
 \name{}'s runtime overhead comes from APIs calls to Lambda and DynamoDB.
 
+\subsubsection{Chaining performance}\label{sec:eval:chain}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
+  \caption{End-to-end latency of chaining N functions. All constituent
+    functions in the experiment only run for 1-2ms, so the results mostly
+    reflect the latency of the workflow systems. \name{} is marginally
+    (11-28\%) faster than Step Functions on average. The results show that
+    \name{} is basically as fast in the most fundamental orchestration
+    primitive of transitioning from one function to the next.}
+  \label{fig:chainmicrolatency}
+\end{figure}
+
+
+We evaluate how \name{} performs on executing a series of functions in
+sequence and then compare with Step Functions. We measure the end-to-end
+latency of executing a chain of functions with varying chain lengths (2 to 10
+functions). Our goal is to allow the end-to-end latency to maximally reflect
+the performance of the workflow system, with minimum interference from the
+latency of user code. Therefore, we use a constituent function that simply
+returns its input without any computations to keep the user code runtime
+intentionally short (less than 2ms).
+
+Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
+Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
+11-28\% faster in chaining than Step Functions. A plausible explanation for
+the shorter latency is that a transition in \name{} from one function to the
+next involves a single network communication to Lambda when the source
+function calls the target function asynchronously. The same transition in Step
+Functions, however, requires not only an invocation from the orchestrator to
+Lambda but also a network communication from the source function to the
+orchestrator to send back the function output first. \name{} reduces
+the number of network communications because control-flow states and logic are
+decentralized to constituent functions without being managed by a centralized
+orchestrator.
+
 \subsubsection{Fan-out and fan-in performance}\label{sec:eval:fan-out}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/MapMicroLatency.pdf}
+  \caption{End-to-end latency of parallel fan-out and fan-in with varying
+    degrees of parallelism. All constituent functions in the experiment only
+    run for 1-2ms, so the results mostly reflect the latency of the workflow
+    systems. \name{} is around 100-200ms slower at lower degrees of
+    parallelism (2-16 parallel branches), but starts to outperform Step
+    Functions (2.37x faster) at even moderate parallelism level of 32 parallel
+    branches. \name{}'s advantage widens as the the degress of parallelism
+    increases, and is up to 4.58x at 512 parallel branches.}
+  \label{fig:mapmicrolatency}
+\end{figure}
 
 The ability to quickly launch parallel functions is important for serverless
 applications because many require high degrees of parallelism (e.g., ExCamera
@@ -247,7 +250,7 @@ components without introducing new services.
 
 % \subsubsection{Cost comparison}
 
-% \begin{figure}[t!]
+% \begin{figure}[t]
   %     \centering
   %     \includegraphics[width=\columnwidth]{figures/TotalCost.pdf}
   %     \caption{Total costs comparison of 1 million state transitions between
