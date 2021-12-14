@@ -10,9 +10,7 @@ uses a YAML-based interface to list steps in a workflow sequentially and
 allows jumps among steps. Azure Durable Functions~\cite{durable-functions}
 uses a ``workflow-as-code'' approach, similar to driver functions, where the
 workflow logic is written in a programming language (e.g., C\#, Python).
-Kappa~\cite{kappa} addresses the lack of coordination between function and
-function timeout limits when executing large applications. Similar to Durable
-Functions, it also exposes a high-level programming language interface.
+
 
 In all of these systems, orchestration is performed 
 by a \textbf{centralized orchestrator}. The nature and location of this component varies:
@@ -25,6 +23,9 @@ on the basic serverless
 compute and storage abstractions without adding any new services or new components.
 
 
+Kappa~\cite{kappa} addresses the lack of coordination between function and
+function timeout limits when executing large applications. Similar to Durable
+Functions, it also exposes a high-level programming language interface.
 Cloudburst~\cite{cloudburst} uses a specialized key-value store to enable
 low-latency execution of serverless functions. Users can express workflows as
 static DAGs and an executor program runs the DAG by passing data and
@@ -38,12 +39,13 @@ dependencies between thunks. gg uses a standalone coordinator to receive thunk
 updates and lazily launch thunks when their inputs become available.
 
 Similarly, the above systems rely on a centralized orchestrator program. As
-the orchestrator program is not executing in a hosted environment, 
+the orchestrator program is not itself executing in a hosted environment, 
 progress is not guaranteed when its host crashes, but requires manual restart.
-Also, progress is not checkpointed, so workflows must restart from the beginning in that situation.
+Also, progress is not checkpointed (except in Kappa), so workflows 
+must restart from the beginning in that situation.
 In contrast, \name{} relies only on a basic, highly available serverless platform. Thus, 
 it guarantees progress under all faults, including the orchestrator.
- Also, it checkpoints each functions to minimize
+And \name{} checkpoints each function result to minimize
 redundant computations when handling faults.
 
 Beldi~\cite{beldi} and Boki~\cite{boki} are two recent systems that provides
