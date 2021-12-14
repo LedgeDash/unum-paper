@@ -1,18 +1,21 @@
 \section{Background and Objectives}\label{sec:bg}
 
-\begin{table*}[]
+\begin{table}[]
 \centering
-\begin{tabular}{|l|l|l|l|l|}
+\scriptsize
+\resizebox{\linewidth}{!}{
+\begin{tabular}{|l|p{0.05\textwidth}<{\centering}|p{0.06\textwidth}<{\centering}|p{0.05\textwidth}<{\centering}|p{0.04\textwidth}<{\centering}|}
 \hline
- & \textbf{Trigger-based} & \textbf{Driver functions} & \textbf{Orchestrators} & \textbf{\name{}} \\ \hline
-\textit{No new services}   & \cmark & \cmark & \xmark & \cmark \\ \hline
+ & \textbf{Trigger-based} & \textbf{Driver functions} & \textbf{Orchestr-ators} & \textbf{\name{}} \\ \hline
+\textit{No new services}   &  \cmark & \cmark & \xmark & \cmark \\ \hline
 \textit{Higher-level interface}     & \xmark & \xmark & \cmark & \cmark \\ \hline
 \textit{Exactly-once semantics} & \xmark & \xmark & \cmark & \cmark \\ \hline
 \textit{Pay-for-what-you-use billing}       & \cmark & \xmark & \cmark & \cmark \\ \hline
 \end{tabular}
+}
 \caption{Comparison with existing approaches}
 \label{table:positioning}
-\end{table*}
+\end{table}
 
 
 %\begin{figure}[t!]
@@ -295,11 +298,10 @@ supplemental services)?}
 Table~\ref{table:positioning} compares the current solutions and \name{}.
 Specifically, we aim for a system with the following objectives:
 
-\begin{itemize}
+\squishlist
 
     \item \textbf{No new services: } The system should work within the
     current serverless environment and not require adding any new services.
-
     The system should execute workflows solely as event-driven serverless
     functions, and use serverless storage, when necessary, to enable stateful
     control-flow patterns (e.g., fan-in).
@@ -319,9 +321,7 @@ Specifically, we aim for a system with the following objectives:
     have comparable costs and performance as the state-of-the-art workflow
     orchestrators. Similarly, it should avoid idle-billing. Users should only pay
     for the resources used rather than idle time wait for other functions to
-    return. \shadi{@David: double-billing seems like a minor issue with only
-    driver functions. not at the same level of importance as the other goals. I
-    merged them into one bullet point. } \dhl{Yes, great point!}
+    return. 
 
     \shadi{should we call it idle billing throughout the paper instead of
     double billing? It is not exactly double...}\dhl{Yeah, I like "idle
@@ -330,7 +330,7 @@ Specifically, we aim for a system with the following objectives:
     the driver functions section, I think we can just define and explain the
     problem and then be done with it.}
 
-\end{itemize}
+\squishend
 
 \shadi{in the table, should we have double billing? maybe another term would
 be better?}\dhl{Changed it to pay-for-what-you-use billing}

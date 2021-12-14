@@ -6,9 +6,9 @@
 \newcommand{\cmark}{\ding{51}}%
 \newcommand{\xmark}{\ding{55}}%
 \usepackage{adjustbox}    % Auto-resize table content
-\usepackage{booktabs}
+%\usepackage{booktabs}
 \usepackage[outputdir=latex.out]{minted}
-%\usepackage{minted}
+\usepackage{minted}
 \usepackage{graphicx}
 \usepackage{listings}
 \usepackage{subcaption}
@@ -69,3 +69,42 @@
 \newcommand{\dhl}[1]{ {\note{\color{red} DHL: #1}} }
 \newcommand{\amit}[1]{ {\note{\color{purple} Amit: #1}} }
 \newcommand{\seb}[1]{ {\note{\color{darkgreen} Seb: #1}} }
+
+
+\newcommand{\squishlist}
+{
+ \vspace*{-0.1cm}
+ 	\begin{list}{$\bullet$}
+		{
+			\setlength{\itemsep}{0pt}      \setlength{\parsep}{3pt}
+			\setlength{\topsep}{3pt}       \setlength{\partopsep}{0pt}
+			\setlength{\leftmargin}{1.5em} \setlength{\labelwidth}{1em}
+			\setlength{\labelsep}{0.5em}
+		}
+	}
+	
+\newcommand{\squishend}
+	{
+	\end{list}  \vspace*{-0.2cm}
+}
+
+
+ \newcommand{\squishenum} %Indy
+ {
+	      \vspace*{-0.2cm}
+	      \begin{enumerate}
+		     {
+			         \setlength{\itemsep}{0pt}
+			         \setlength{\parsep}{3pt}
+			         \setlength{\topsep}{3pt}
+			         \setlength{\partopsep}{0pt}
+			         \setlength{\leftmargin}{1.5em}
+			         \setlength{\labelwidth}{1em}
+			         \setlength{\labelsep}{0.5em}
+			     }
+		 }
+	
+	 \newcommand{\squishenumend}
+	 {
+		     \end{enumerate} \vspace*{-0.2cm}
+	 }
