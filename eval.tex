@@ -335,6 +335,98 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
   % \end{itemize}
 
 
+
+\subsubsection{ExCamera}\label{sec:eval:excamera}
+
+% \begin{table}[]
+  % \begin{tabular}{llllll}
+    % \hline
+    %                      &                        & \multicolumn{2}{l}{\textbf{unum}}                                                                                                   & \multicolumn{2}{l}{\textbf{Step Functions}}                                                                     \\
+    % \textbf{Application} & Pattern                & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                                                 & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                             \\ \hline
+    % IoT Pipeline         & chain                  & 120.9ms              & $0.2*2+(73+28)*$0.0021+2*\$1.3942                                                                            & 226.52               & $0.2*2+ 4*$27.9                                                                          \\
+    % Text Processing      & fan-out, fan-in        & 562.69ms             & $0.2*6+ (105+149+70+68+144+100)*$0.0021 + 6*$1.3942+2*2*$0.279                                               & 552.46ms             & $0.2*5+7*$27.9                                                                           \\
+    % Wordcount            & chain, fan-out, fan-in & 410s                 & $0.2*(1+262+1+250+1) + (277+6264*262 + 348 + 667*250 +68)*$0.0021 +(1+262+1+250+1)*$1.3942 + 262*2*$0.279+ 250*2* $0.279    & 898s                 & $0.2*(1+262+1+250+1) + (5913*262 + 154 + 633*250 +5)*$0.0021 +(1+262+1+1+250+1+1)*\$27.9 \\
+    % ExCamera             & chain, fan-out, fold   & 84s                  & $0.2*(1+16+15+15+14) + (6500+1500+350+4500+5000)*$0.0021+ (1+16+15+15+14)*$1.3942 + 15*2*$0.279+14*2*\$0.279 & 98s                  & $0.2*(16+16+1+16+15)+(6300+1400+2+5500+5300)*$0.0021+(1+16+16+1+1+16+1+1)*\$27.9      \\ \hline
+    % \end{tabular}
+  % \end{table}
+
+\begin{table}[]
+  \centering
+  \begin{tabular}{|r|r|}
+    \hline
+    \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
+    Original        & 76                         \\ \hline
+    \name{} & 84                         \\ \hline
+    gg                       & 90                         \\ \hline
+    Step Functions & 98                         \\ \hline
+  \end{tabular}
+  \caption{\name{}'s implementation closely matches that of gg and the original
+    ExCamera where a task starts as soon as its input data becomes available. The
+    Step Functions implementation had to serialize the encoding and re-encoding
+    stages because the \texttt{Map} state in Step Functions requires all parallel
+    branches to complete before fan-in.}
+  \label{table:excamera}
+\end{table}
+
+The ExCamera~\cite{excamera} video encoder applications encodes large raw videos
+with thousands of concurrent functions. It breaks a large video into small
+chunks and attempts to runs expensive steps in parallel and fast steps in
+series. The original ExCamera design~\cite{excamera} used a custom centralized
+orchestrator that implemented specialized workflow patterns which Step Functions
+is unable to express efficiently.
+
+The workflow consists of three stages, \texttt{ENCODE},
+\texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
+complex patterns. The first stage is a \texttt{map} that runs many
+\texttt{ENCODE} functions entirely in parallel, the second stage forms paralllel
+pipelines following the first stage where the $i^{th}$
+\texttt{ENCODE-GIVEN-STATE} branch starts when the $(i)^{th}$ and $(i-1)^{th}$
+\texttt{ENCODE} branch complete. The final \texttt{REBASE} runs in series and
+rebases each chunk on top of the state from the previous chunk.
+
+However, in Step Functions, all concurrent fan-out branches must complete before
+any fan-in starts. As a result, a Step Functions implementation must serialize
+the \texttt{ENCODE} and \texttt{ENCODE-GIVEN-STATE} stages.  Conversely,
+\name{}'s IR is flexible enough to support ExCamera's original pattern where
+tasks start as soon as their input data becomes available.
+
+Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
+the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
+Lambdas configured with 3GB of memory in all cases.
+
+%While ExCamera process all 888 chunks in parallel, each batch is a
+%\texttt{map} with only 16 branches. From the result in
+%\S\ref{sec:eval:fan-out}, we know that \name{} is around 200ms slower than
+%Step Functions when launching 16 parallel branches. However, \name{} is able
+%to win back 14.24s or 17\% of latency performance because fan-in in \name{} is
+%wait-free. \name{} invokes the fan-in function whenever its input becomes
+%available, whereas Step Functions first requires all branches to complete even
+%if a branch is not part of the fan-in function's input, and lacks programming
+%constructs to express fine-grained data dependencies between branches that can
+%enable ``partial fan-in''.
+
+\dhl{Sync with Design. Explain the difference between unum fan-in and Step
+Functions fan-in in design already. Specifically,
+inputs are available, whereas Step Functions fan-in first requires all
+branches to complete even if a branch is not part of the fan-in function's
+input.}
+
+Table~\ref{table:excamera} compares \name{}'s implementation of ExCamera with
+the original implementation and \texttt{gg}'s version. \name{}'s is 7.1\%
+faster than gg and 10.5\% slower than the original ExCamera. The original
+ExCamera pre-loads raw video chunks into lambdas before starting, while
+\name{} and \texttt{gg} do not. The original authors attributes the
+comparatively slower performance of \texttt{gg} to the lack of pre-loading
+which is likely also the reason for \name{}'s slower performance. But
+different from \texttt{gg}, \name{} executes control-flow logic in a
+decentralized manner while \texttt{gg} has a centralized coordinator on EC2
+that proxies inter-function communications and invokes lambdas. The reduced
+number of network communications  explains why \name{} is slightly
+faster than \texttt{gg}.
+
+
+\subsection{Cost}
+
 \begin{table*}[t]
   \centering
   \begin{tabular}{ll|rr|rr}
@@ -356,109 +448,13 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
   \label{table:macro}
 \end{table*}
 
-
-\subsubsection{ExCamera}\label{sec:eval:excamera}
-
-% \begin{table}[]
-  % \begin{tabular}{llllll}
-    % \hline
-    %                      &                        & \multicolumn{2}{l}{\textbf{unum}}                                                                                                   & \multicolumn{2}{l}{\textbf{Step Functions}}                                                                     \\
-    % \textbf{Application} & Pattern                & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                                                 & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                             \\ \hline
-    % IoT Pipeline         & chain                  & 120.9ms              & $0.2*2+(73+28)*$0.0021+2*\$1.3942                                                                            & 226.52               & $0.2*2+ 4*$27.9                                                                          \\
-    % Text Processing      & fan-out, fan-in        & 562.69ms             & $0.2*6+ (105+149+70+68+144+100)*$0.0021 + 6*$1.3942+2*2*$0.279                                               & 552.46ms             & $0.2*5+7*$27.9                                                                           \\
-    % Wordcount            & chain, fan-out, fan-in & 410s                 & $0.2*(1+262+1+250+1) + (277+6264*262 + 348 + 667*250 +68)*$0.0021 +(1+262+1+250+1)*$1.3942 + 262*2*$0.279+ 250*2* $0.279    & 898s                 & $0.2*(1+262+1+250+1) + (5913*262 + 154 + 633*250 +5)*$0.0021 +(1+262+1+1+250+1+1)*\$27.9 \\
-    % ExCamera             & chain, fan-out, fold   & 84s                  & $0.2*(1+16+15+15+14) + (6500+1500+350+4500+5000)*$0.0021+ (1+16+15+15+14)*$1.3942 + 15*2*$0.279+14*2*\$0.279 & 98s                  & $0.2*(16+16+1+16+15)+(6300+1400+2+5500+5300)*$0.0021+(1+16+16+1+1+16+1+1)*\$27.9      \\ \hline
-    % \end{tabular}
-  % \end{table}
-
-\begin{table}[]
-  \centering
-  \begin{tabular}{|r|r|}
-    \hline
-    & \textbf{Latency (seconds)} \\ \hline
-    \textbf{Original ExCamera}        & 76                         \\ \hline
-    \textbf{gg}                       & 90                         \\ \hline
-    \textbf{\name{}} & 84                         \\ \hline
-  \end{tabular}
-  \caption{\name{}'s implementation closely matches that of gg and the original
-    ExCamera where a task starts as soon as its input data becomes available. The
-    Step Functions implementation had to serialize the encoding and re-encoding
-    stages because the \texttt{Map} state in Step Functions requires all parallel
-    branches to complete before fan-in.}
-  \label{table:excamera}
-\end{table}
-
-ExCamera~\cite{excamera} is a novel video encoder that encodes large raw videos
-with thousands of parallel functions to achieve low latency. It breaks a large
-video into small chunks and runs expensive steps in parallel and fast steps in
-series. The workflow consists of three stages, \texttt{ENCODE},
-\texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
-complex patterns. The first stage is a \texttt{map} that runs many
-\texttt{ENCODE} functions entirely in parallel, the second stage forms paralllel
-pipelines following the first stage where the $i^{th}$
-\texttt{ENCODE-GIVEN-STATE} branch starts when the $(i)^{th}$ and $(i-1)^{th}$
-\texttt{ENCODE} branch complete. The final \texttt{REBASE} runs in series and
-rebases each chunk on top of the state from the previous chunk.
-
-We implement a \name{} version and a Step Functions version for ExCamera,
-using the same binaries in constituent functions as the original
-paper~\cite{excamera-binary}. The \name{} implementation closely matches the
-original ExCamera where a task starts as soon as its input data becomes
-available. But the Step Functions implementation had to serialize the
-\texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} stages because fan-outs in Step
-Functions require all parallel branches to complete before fan-in.  For this
-reason, we do not derive the \name{} version from a Step Functions definition
-with the frontend compiler. Instead, we hand-write \name{} configurations for
-each unumized function.
-
-Furtheremore, we compare \name{}'s implementation against the original
-authors' implementation of ExCamera. The original authors build two version: a
-hand-optimized version in the original paper~\cite{excamera}, and a later
-version implemented with the \texttt{gg} framework~\cite{gg-atc}. We use the
-exact same workload and setup as the experiment in \texttt{gg}~\cite{gg-atc},
-i.e., the same input video of the first 888 chunks of \texttt{sintel-4k} video,
-16 chunks per batch and lambdas with 3GB of memory.
-
-While ExCamera process all 888 chunks in parallel, each batch is a
-\texttt{map} with only 16 branches. From the result in
-\S\ref{sec:eval:fan-out}, we know that \name{} is around 200ms slower than
-Step Functions when launching 16 parallel branches. However, \name{} is able
-to win back 14.24s or 17\% of latency performance because fan-in in \name{} is
-wait-free. \name{} invokes the fan-in function whenever its input becomes
-available, whereas Step Functions first requires all branches to complete even
-if a branch is not part of the fan-in function's input, and lacks programming
-constructs to express fine-grained data dependencies between branches that can
-enable ``partial fan-in''.
-
-\dhl{Sync with Design. Explain the difference between unum fan-in and Step
-Functions fan-in in design already. Specifically, unum fan-in starts when all
-inputs are available, whereas Step Functions fan-in first requires all
-branches to complete even if a branch is not part of the fan-in function's
-input.}
-
-Table~\ref{table:excamera} compares \name{}'s implementation of ExCamera with
-the original implementation and \texttt{gg}'s version. \name{}'s is 7.1\%
-faster than gg and 10.5\% slower than the original ExCamera. The original
-ExCamera pre-loads raw video chunks into lambdas before starting, while
-\name{} and \texttt{gg} do not. The original authors attributes the
-comparatively slower performance of \texttt{gg} to the lack of pre-loading
-which is likely also the reason for \name{}'s slower performance. But
-different from \texttt{gg}, \name{} executes control-flow logic in a
-decentralized manner while \texttt{gg} has a centralized coordinator on EC2
-that proxies inter-function communications and invokes lambdas. The reduced
-number of network communications  explains why \name{} is slightly
-faster than \texttt{gg}.
-
-
-\subsection{Cost}
-
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/AppCostBreakdown.pdf}
     \caption{\dhl{I'm trying to figure out how the figure should look like. So
     trying a couple of things in this draft graph here. The top row splits
-    unum breakdown and Step Functions breakdown to 2 graphs. The top left is
-    the unum breakdown for just IoT Pipeline and Text Processing and no
+    \name{} breakdown and Step Functions breakdown to 2 graphs. The top left is
+    the \name{} breakdown for just IoT Pipeline and Text Processing and no
     Wordcount or ExCamera. The top right is the Step Functions breakdown. The
     bottom row puts unum breakdown and Step Functions breakdown side-by-sdie.
     The bottom left is Wordcount and bottom right is ExCamera. Another
@@ -479,64 +475,95 @@ faster than \texttt{gg}.
     \label{fig:cost-breakdown}
 \end{figure}
 
-Moreover, \name{} is consistently cheaper than Step Functions for all
-workloads with up to 27.3x costs savings. All costs numbers in
-Table~\ref{table:macro} are calculated based on public pricing information for
-AWS \texttt{us-west-1} region. We do not ``measure'' the costs of running
-workflows because AWS does not provide real-time billing results for all
-services.
+One of the main attractions of building appliactions on serverless platforms is
+lower cost (or better resource utilization). In particular, because resources
+are easy to reclaim, applications are charged only for resources used to respond
+to actual events or requests. Thus, applications with potential for high
+burst-parallelism, or with intermittant bursts of concurrent requests, can
+achieve high performance without incurring the cost of long-term provisioning
+for max capacity. As a result, the \emph{cost} of orchestration overhead matters
+as well performance.
 
-For Step Functions, the total costs of running an application consists of i.
-Lambda duration billing for running user code, ii. Lambda invocation billing
-for starting functions and iii. Step Functions state transition
-charges~\cite{aws-step-functions-pricing}. Step Functions charges a fixed rate
-of \$27.9 $ \times 10^{-6}$ per state transition. A state transition equates
-to an edge in the workflow graph in the case of chaining and fan-out. But
-fan-in only counts as one state transition. Additionally, Step Functions adds
-a \texttt{Start} and \texttt{End} state to each workflow that counts towards
-state transitions.
+The source of costs for \name{} and Step Functions is quite different. Step
+Functions imposes a cost to developers, in addition to running Lambda functions,
+for each workflow transition. This abstracts the underlying, likely shared,
+costs to run the Step Functions servers, persist state and checkpoint data.
+Conversely, \name
+incurs costs directly from those services: additional Lambda compute time and
+DynamoDB storage on AWS.
 
-The total costs of running an application with \name{} consists of i. Lambda
-duration billing for running the \emph{unumized} functions, that is both the
-user code and \name{} runtime code, ii. Lambda invocation billing for starting
-functions, and iii. data store reads and writes for checkpoints. DynamoDB
-charges $1.3942 \times 10^{-6}$ for writing and $0.279
-\times 10^{-6}$ for reading 1KB of data. We do not count the costs of storing
-the data in DynamoDB because after a workflow execution, users can immediately
-delete the checkpoints or move them to cheaper storage.
+Figure~\ref{fig:cost-breakdown} shows the cost to run each application using
+\name{} broken down to each component: storage costs for checkpointing, Lambda
+invocation, and Lambda CPU-time for both the \name{} runtime and user function.
+Storage costs, using DynamoDB, are the largest portion of overall cost. The
+majority of \name{}'s costs come from reading and writing checkpoints to
+DynamoDB.
 
-Figure~\ref{fig:cost-breakdown} shows the cost breakdown for the applications
-in \name{} and Step Functions.
+Nonetheless, \name{} is consistently cheaper than Step Functions for all
+applications we tested. Table~\ref{table:macro} shows the price to run each of
+the applications we implemented based on public pricing information for AWS in
+the \texttt{us-west-1} region using \name{} and Step Functions.
 
-\dhl{Need to sync with Intro. If we say anything about billing schemes or predicted
-cheaper costs. Not sure what to highlight atm.}
 
-Step Functions state transitions dominate the total costs of running
-applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and over
-99\% in IoT Pipeline and Text Processing. While \name{} runtime and checkpoint
-costs are also the majority in IoT Pipeline (87.2\%) and Text Processing
-(89\%), for large-scale workflows, \name{} only accounts for 18.1\% of the
-costs in ExCamera and 24.8\% in Wordcount.
+%Table~\ref{table:macro} are calculated based on public pricing information for
+%AWS \texttt{us-west-1} region. We do not ``measure'' the costs of running
+%workflows because AWS does not provide real-time billing results for all
+%services.
+%
+%For Step Functions, the total costs of running an application consists of i.
+%Lambda duration billing for running user code, ii. Lambda invocation billing
+%for starting functions and iii. Step Functions state transition
+%charges~\cite{aws-step-functions-pricing}. Step Functions charges a fixed rate
+%of \$27.9 $ \times 10^{-6}$ per state transition. A state transition equates
+%to an edge in the workflow graph in the case of chaining and fan-out. But
+%fan-in only counts as one state transition. Additionally, Step Functions adds
+%a \texttt{Start} and \texttt{End} state to each workflow that counts towards
+%state transitions.
+%
+%The total costs of running an application with \name{} consists of i. Lambda
+%duration billing for running the \emph{unumized} functions, that is both the
+%user code and \name{} runtime code, ii. Lambda invocation billing for starting
+%functions, and iii. data store reads and writes for checkpoints. DynamoDB
+%charges $1.3942 \times 10^{-6}$ for writing and $0.279
+%\times 10^{-6}$ for reading 1KB of data. We do not count the costs of storing
+%the data in DynamoDB because after a workflow execution, users can immediately
+%delete the checkpoints or move them to cheaper storage.
 
-The majority of \name{}'s costs come from reading and writing checkpoints to
-DynamoDB. A cheaper data store that supports strong consistency and
-conditional updates can significantly reduce the cost of using \name{}. For
-instance, Cosmos DB charges $0.279 \times 10^{-6}$ (or one fifth of the write
-cost of DynamoDB) per 1KB for both reads and writes~\cite{cosmosdb-pricing}.
+%Step Functions state transitions dominate the total costs of running
+%applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and over
+%99\% in IoT Pipeline and Text Processing. While \name{} runtime and checkpoint
+%costs are also the majority in IoT Pipeline (87.2\%) and Text Processing
+%(89\%), for large-scale workflows, \name{} only accounts for 18.1\% of the
+%costs in ExCamera and 24.8\% in Wordcount.
+%
+% A cheaper data store that supports strong consistency and
+%conditional updates can significantly reduce the cost of using \name{}. For
+%instance, Cosmos DB charges $0.279 \times 10^{-6}$ (or one fifth of the write
+%cost of DynamoDB) per 1KB for both reads and writes~\cite{cosmosdb-pricing}.
 
-While pricing of a particular service can change based on a multitude of
-factors, the amount of developement efforts and the size of going workloads
-that has already gone into Lambda and multi-tenant storage systems likely
-means that they are much more resource efficient than a specialized
-orchestrator service such as Step Functions. The resource efficiency advantage
-is likely going to persist given the bigger pool of users and applications for
-Lambda and DynamoDB as they are more fundamental services. Therefore,
-\name{}'s cost benefits are likely going to continue and become even larger as
-FaaS systems and serverless data stores continue to improve.
+%While pricing of a particular service can change based on a multitude of
+%factors, the amount of developement efforts and the size of going workloads
+%that has already gone into Lambda and multi-tenant storage systems likely
+%means that they are much more resource efficient than a specialized
+%orchestrator service such as Step Functions. The resource efficiency advantage
+%is likely going to persist given the bigger pool of users and applications for
+%Lambda and DynamoDB as they are more fundamental services. Therefore,
+%\name{}'s cost benefits are likely going to continue and become even larger as
+%FaaS systems and serverless data stores continue to improve.
 
-\dhl{Disccusion?: Building a cost-effective data store has long been
-identified as an important issue for serverless computing~\cite{pocket}}
+Of course, developer-facing pricing does not necessarily reflect \emph{actual}
+costs and is only a weak proxy for resource utilization. However, it is clear
+that, in practice, \name{}'s overheads do not result in unreasonable costs and,
+in fact, often results in lower costs to the developer than Step
+Functions---AWS's native workflow orchestrator. This suggests that at least
+applications that currently run on Step Functions could afford to run using
+\name{} instead.
 
+Moreover, \name{} costs benefits from improvements to underlying infrastructure
+or different pricing schemes. For example, Azure's Cosmos DB provides similar
+performance and consistency guarantees to DynamoDB but charges 5x less to
+perform a write operation (the dominant constituent of \name{} storage cost on
+AWS).
 
 % \subsubsection{Questions}
 
