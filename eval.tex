@@ -77,7 +77,7 @@ executed them as lambdas for \name{} experiments. The notable exception is our
 \name{} and Step Functions implementations of ExCamera, which differ due to a
 limitation in the AWS State Language. As a result, the more efficient \name{}
 implementation is written directly in \name{} IR instead of compiled from the
-Step Functions definition (\S~\ref{sec:eval:realworld}).
+Step Functions definition (\S~\ref{sec:eval:excamera}).
 
 For the Step Functions experiments, we run the workflow definitions using AWS
 Step Functions in \emph{Standard}
@@ -197,12 +197,12 @@ version (Table~\ref{table:macro}).
 
 \subsubsection{Fan-out and fan-in}\label{sec:eval:fan-out}
 
-\emph{Highlight: fan-out doesn't require any additional storage; fan-in requires
-additional reads and more expensive writes; compared to Step Functions, this
-overhead results in slower fan-out/fan-in patterns at low branching factor;
-conversely, \name{}'s parallelism is not limited by the orchestrator, so with
-large branching factors, \name{} is much faster than Step Functions as fan-out
-branches run in parallel.}
+% \emph{Highlight: fan-out doesn't require any additional storage; fan-in requires
+% additional reads and more expensive writes; compared to Step Functions, this
+% overhead results in slower fan-out/fan-in patterns at low branching factor;
+% conversely, \name{}'s parallelism is not limited by the orchestrator, so with
+% large branching factors, \name{} is much faster than Step Functions as fan-out
+% branches run in parallel.}
 
 \begin{figure}[t]
   \centering
@@ -224,15 +224,18 @@ invocation of the target function.
 
 \amit{Why does \name{}'s latency grow at all in \ref{fig:mapmicrolatency}? If it
 can do all branches in parallel, shouldn't latency remain roughly constant?}
+\dhl{They are not. map invokes each branch in sequence. This is the reason for
+unum's worse performance.}
 
 Figure~\ref{fig:mapmicrolatency} shows the latency of a fan-out followed by a
-fan-in at varying branching degrees for both \name{} and Step Functions. At low
-branching degree, \name{}'s distributed fan-in algorithm incurs a modest
-overhead (up to 200ms) relative to Step Functions. However, at higher branching
-degrees (as low as 20 branches), Step Functions limits parallel invocation of
-concurrent fan-out branches~\cite{aws-step-functions-map-state} while \name{} is
-limited only by Lambda's scalability, resulting in over 4x lower latency with
-512 branches.
+fan-in at varying branching degrees for both \name{} and Step Functions. At
+low branching degree, \name{} incurs a modest overhead (up to 200ms) relative
+to Step Functions. This is mostly due to our Python implementation that
+invokes each branch in sequence, while Step Functions starts branches in
+parallel. However, at higher branching degrees (as low as 20 branches), Step
+Functions limits parallel invocation of concurrent fan-out
+branches~\cite{aws-step-functions-map-state} while \name{} is limited only by
+Lambda's scalability, resulting in over 4x lower latency with 512 branches.
 
 These differences manifest in real workloads as well. Both the Text Processing
 and Word Count applications include an fan-out followed by a fan-in. Text
@@ -369,28 +372,54 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
   \label{table:excamera}
 \end{table}
 
-The ExCamera~\cite{excamera} video encoder applications encodes large raw
-videos with thousands of concurrent functions. It breaks a large video into
-small chunks and attempts to runs expensive steps in parallel and fast steps
-in series. The original ExCamera design~\cite{excamera} used a custom
-centralized orchestrator that implemented specialized workflow patterns which
-Step Functions is unable to express efficiently.
+% The ExCamera~\cite{excamera} video encoder applications encodes large raw
+% videos with thousands of concurrent functions. It breaks a large video into
+% small chunks and attempts to runs expensive steps in parallel and fast steps
+% in series. The original ExCamera design~\cite{excamera} used a custom
+% centralized orchestrator that implemented specialized workflow patterns which
+% Step Functions is unable to express efficiently.
 
-The workflow consists of three stages, \texttt{ENCODE},
-\texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
-complex patterns. The first stage is a \texttt{map} that runs many
-\texttt{ENCODE} functions entirely in parallel, the second stage fans-in
-adjacent branches of \texttt{ENCODE} into a \texttt{ENCODE-GIVEN-STATE} branch
-in parallel. In particular, the $i^{th}$ \texttt{ENCODE-GIVEN-STATE} branch
-starts when the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete.
-The final \texttt{REBASE} runs a fold pattern rebases each chunk on top of the
-state from the previous chunk.
+% The workflow consists of three stages, \texttt{ENCODE},
+% \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
+% complex patterns. The first stage is a \texttt{map} that runs many
+% \texttt{ENCODE} functions entirely in parallel, the second stage fans-in
+% adjacent branches of \texttt{ENCODE} into a \texttt{ENCODE-GIVEN-STATE} branch
+% in parallel. In particular, the $i^{th}$ \texttt{ENCODE-GIVEN-STATE} branch
+% starts when the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete.
+% The final \texttt{REBASE} runs a fold pattern rebases each chunk on top of the
+% state from the previous chunk.
 
-However, in Step Functions, all concurrent fan-out branches must complete
-before any fan-in starts. As a result, a Step Functions implementation must
-serialize the \texttt{ENCODE} and \texttt{ENCODE-GIVEN-STATE} stages.
+We additionally compare the performance of executing ExCamera~\cite{excamera}
+with the original hand-optimized implementation and another implementation,
+gg, by the same author.
+
+Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
+the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
+Lambdas configured with 3GB of memory in all cases. \name{}'s is 7.1\% faster
+than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera. The
+original ExCamera pre-loads raw video chunks into lambdas before starting,
+while \name{} and gg do not. The original authors attributes the comparatively
+slower performance of \texttt{gg} to the lack of pre-loading which is likely
+also the reason for \name{}'s slower performance. But different from gg,
+\name{} executes control-flow logic in a decentralized manner while gg has a
+centralized coordinator on EC2 that proxies inter-function communications and
+invokes lambdas. The reduced number of network communications explains why
+\name{} is slightly faster than gg.
+
+An important limitation of Step Functions is that all concurrent fan-out
+branches must complete before any fan-in starts. This means the Step Functions
+implementation of ExCamera must serialize the encode and re-encode stages.
 Conversely, \name{}'s IR is flexible enough to support ExCamera's original
-pattern where tasks start as soon as their input data becomes available.
+pattern where tasks start as soon as their input data becomes available,
+because \name{}'s fan-in uses a low-level primitive to directly express data
+dependency between functions. Thus, the \name{} ExCamera allows more
+parallelism between branches and is 16.7\% faster than Step Functions.
+
+\dhl{Sync with Design. Explain the difference between unum fan-in and Step
+Functions fan-in in design already. Specifically,
+inputs are available, whereas Step Functions fan-in first requires all
+branches to complete even if a branch is not part of the fan-in function's
+input.}
 
 % Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
 % the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
@@ -407,24 +436,20 @@ pattern where tasks start as soon as their input data becomes available.
 %constructs to express fine-grained data dependencies between branches that can
 %enable ``partial fan-in''.
 
-\dhl{Sync with Design. Explain the difference between unum fan-in and Step
-Functions fan-in in design already. Specifically,
-inputs are available, whereas Step Functions fan-in first requires all
-branches to complete even if a branch is not part of the fan-in function's
-input.}
 
-Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
-the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
-Lambdas configured with 3GB of memory in all cases. \name{}'s is 7.1\% faster
-than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera. The
-original ExCamera pre-loads raw video chunks into lambdas before starting,
-while \name{} and gg do not. The original authors attributes the comparatively
-slower performance of \texttt{gg} to the lack of pre-loading which is likely
-also the reason for \name{}'s slower performance. But different from gg,
-\name{} executes control-flow logic in a decentralized manner while gg has a
-centralized coordinator on EC2 that proxies inter-function communications and
-invokes lambdas. The reduced number of network communications  explains why
-\name{} is slightly faster than gg.
+
+% Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
+% the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
+% Lambdas configured with 3GB of memory in all cases. \name{}'s is 7.1\% faster
+% than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera. The
+% original ExCamera pre-loads raw video chunks into lambdas before starting,
+% while \name{} and gg do not. The original authors attributes the comparatively
+% slower performance of \texttt{gg} to the lack of pre-loading which is likely
+% also the reason for \name{}'s slower performance. But different from gg,
+% \name{} executes control-flow logic in a decentralized manner while gg has a
+% centralized coordinator on EC2 that proxies inter-function communications and
+% invokes lambdas. The reduced number of network communications  explains why
+% \name{} is slightly faster than gg.
 
 
 \subsection{Cost}
@@ -440,13 +465,10 @@ invokes lambdas. The reduced number of network communications  explains why
     Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
     ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 37,289.1   & 110,494.7      \\ \hline
   \end{tabular}
-  \caption{Latency and costs comparison between \name{} and Step Functions for
-    the macrobenchmark applications. Running applications on \name{} is 3.7x to
-    32.8x cheaper than on Step Functions. Furthermore, \name{} is faster than Step
-    Functions especially for workflows with high degrees of parallelism. Text
-    Processing is the only workflow which \name{} is marginally slower because
-    Step Functions creates parallel branches faster at low fan-out degrees as we
-    illustrated in Figure~\ref{fig:mapmicrolatency}.}
+  \caption{Application latency and costs comparison between \name{} and Step
+    Functions. Running applications on \name{} is 3.7x to 27.3x cheaper than
+    on Step Functions. Furthermore, \name{} is faster than Step Functions
+    especially for workflows with high degrees of parallelism.}
   \label{table:macro}
 \end{table*}
 
@@ -477,22 +499,21 @@ invokes lambdas. The reduced number of network communications  explains why
     \label{fig:cost-breakdown}
 \end{figure}
 
-One of the main attractions of building appliactions on serverless platforms is
-lower cost (or better resource utilization). In particular, because resources
-are easy to reclaim, applications are charged only for resources used to respond
-to actual events or requests. Thus, applications with potential for high
-burst-parallelism, or with intermittant bursts of concurrent requests, can
-achieve high performance without incurring the cost of long-term provisioning
-for max capacity. As a result, the \emph{cost} of orchestration overhead matters
-as well performance.
+One of the main attractions of building appliactions on serverless platforms
+is lower cost. In particular, because resources are easy to reclaim,
+applications are charged only for resources used to respond to actual events
+or requests. Thus, applications with potential for high burst-parallelism, or
+with intermittant bursts of concurrent requests, can achieve high performance
+without incurring the cost of long-term provisioning for max capacity. As a
+result, the \emph{cost} of orchestration overhead matters as well as
+performance.
 
 The source of costs for \name{} and Step Functions is quite different. Step
-Functions imposes a cost to developers, in addition to running Lambda functions,
-for each workflow transition. This abstracts the underlying, likely shared,
-costs to run the Step Functions servers, persist state and checkpoint data.
-Conversely, \name
-incurs costs directly from those services: additional Lambda compute time and
-DynamoDB storage on AWS.
+Functions imposes a cost to developers, in addition to running Lambda
+functions, for each workflow transition. This abstracts the underlying, likely
+shared, costs to run the Step Functions servers, persist state and checkpoint
+data. Conversely, \name{} incurs costs directly from those services:
+additional Lambda compute time and DynamoDB storage on AWS.
 
 Figure~\ref{fig:cost-breakdown} shows the cost to run each application using
 \name{} broken down to each component: storage costs for checkpointing, Lambda

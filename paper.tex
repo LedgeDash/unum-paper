@@ -41,34 +41,7 @@ without an Orchestrator}
 \maketitle
 \thispagestyle{empty}
 
-\abstract
-% Workflow systems have emerged to meet the demands of large serverless
-% applications by providing high-level interfaces for workflow definition, rich
-% semantics for function composition and strong guarantees for workflow
-% execution.
-
-Workflow systems  have emerged to meet the demands of large-scale serverless
-applications with higher-level programming interfaces, rich composition
-semantics and strong execution guarantees. However, current designs rely on
-%supplemental hosted 
-centralized orchestrators to execute workflows and thus break out of
-the serverless abstraction, compromising key serverless benefits such as fast
-auto-scaling, fine-grained billing and efficient resource multiplexing. 
-
-This paper presents \name{}, a new design for serverless workflow systems. 
-In \name{}, a two-stage compiler distributes high-level orchestration
-logic to constituent functions at compile-time. 
-This removes the need for orchestrators at runtime, which allows workflows to 
-execute purely as serverless functions. 
-By checkpointing progress to a strongly consistent data store 
-of choice, \name{} provides strong execution guarantees 
-and minimizes re-executions under faults. 
-
-We present and evaluate an implementation of \name{} that can compile Step
-Functions state machines and execute them purely as Lambda functions with
-either S3 or DynamoDB as the data store. Our comparison with Step Functions
-shows that applications scale up to 4.58x faster and cost more than one
-order-of-magnitude less when running with \name{}. 
+\abstract{\input{abstract}}
 
 %-------------------------------------------------------------------
 \input{introduction}
