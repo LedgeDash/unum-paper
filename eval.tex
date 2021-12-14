@@ -335,27 +335,6 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
   % \end{itemize}
 
 
-\begin{table*}[t]
-  \centering
-  \begin{tabular}{ll|rr|rr}
-    \hline
-    &                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
-    \textbf{Application} & \textbf{Pattern}       & \textit{\name{}} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
-    IoT Pipeline         & chain                  & 0.18       & 0.23       & 4.1       & 112.1   \\
-    Text Processing      & fan-out, fan-in        & 0.56       & 0.55       & 12.0      & 196.3   \\
-    Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
-    ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 37,289.1   & 110,494.7      \\ \hline
-  \end{tabular}
-  \caption{Latency and costs comparison between \name{} and Step Functions for
-    the macrobenchmark applications. Running applications on \name{} is 3.7x to
-    32.8x cheaper than on Step Functions. Furthermore, \name{} is faster than Step
-    Functions especially for workflows with high degrees of parallelism. Text
-    Processing is the only workflow which \name{} is marginally slower because
-    Step Functions creates parallel branches faster at low fan-out degrees as we
-    illustrated in Figure~\ref{fig:mapmicrolatency}.}
-  \label{table:macro}
-\end{table*}
-
 
 \subsubsection{ExCamera}\label{sec:eval:excamera}
 
@@ -375,10 +354,11 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
   \centering
   \begin{tabular}{|r|r|}
     \hline
-    & \textbf{Latency (seconds)} \\ \hline
-    \textbf{Original ExCamera}        & 76                         \\ \hline
-    \textbf{gg}                       & 90                         \\ \hline
-    \textbf{\name{}} & 84                         \\ \hline
+    \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
+    Original        & 76                         \\ \hline
+    \name{} & 84                         \\ \hline
+    gg                       & 90                         \\ \hline
+    Step Functions & 98                         \\ \hline
   \end{tabular}
   \caption{\name{}'s implementation closely matches that of gg and the original
     ExCamera where a task starts as soon as its input data becomes available. The
@@ -388,10 +368,14 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
   \label{table:excamera}
 \end{table}
 
-ExCamera~\cite{excamera} is a novel video encoder that encodes large raw videos
-with thousands of parallel functions to achieve low latency. It breaks a large
-video into small chunks and runs expensive steps in parallel and fast steps in
-series. The workflow consists of three stages, \texttt{ENCODE},
+The ExCamera~\cite{excamera} video encoder applications encodes large raw videos
+with thousands of concurrent functions. It breaks a large video into small
+chunks and attempts to runs expensive steps in parallel and fast steps in
+series. The original ExCamera design~\cite{excamera} used a custom centralized
+orchestrator that implemented specialized workflow patterns which Step Functions
+is unable to express efficiently.
+
+The workflow consists of three stages, \texttt{ENCODE},
 \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
 complex patterns. The first stage is a \texttt{map} that runs many
 \texttt{ENCODE} functions entirely in parallel, the second stage forms paralllel
@@ -400,35 +384,26 @@ pipelines following the first stage where the $i^{th}$
 \texttt{ENCODE} branch complete. The final \texttt{REBASE} runs in series and
 rebases each chunk on top of the state from the previous chunk.
 
-We implement a \name{} version and a Step Functions version for ExCamera,
-using the same binaries in constituent functions as the original
-paper~\cite{excamera-binary}. The \name{} implementation closely matches the
-original ExCamera where a task starts as soon as its input data becomes
-available. But the Step Functions implementation had to serialize the
-\texttt{ENCODE}, \texttt{ENCODE-GIVEN-STATE} stages because fan-outs in Step
-Functions require all parallel branches to complete before fan-in.  For this
-reason, we do not derive the \name{} version from a Step Functions definition
-with the frontend compiler. Instead, we hand-write \name{} configurations for
-each unumized function.
+However, in Step Functions, all concurrent fan-out branches must complete before
+any fan-in starts. As a result, a Step Functions implementation must serialize
+the \texttt{ENCODE} and \texttt{ENCODE-GIVEN-STATE} stages.  Conversely,
+\name{}'s IR is flexible enough to support ExCamera's original pattern where
+tasks start as soon as their input data becomes available.
 
-Furtheremore, we compare \name{}'s implementation against the original
-authors' implementation of ExCamera. The original authors build two version: a
-hand-optimized version in the original paper~\cite{excamera}, and a later
-version implemented with the \texttt{gg} framework~\cite{gg-atc}. We use the
-exact same workload and setup as the experiment in \texttt{gg}~\cite{gg-atc},
-i.e., the same input video of the first 888 chunks of \texttt{sintel-4k} video,
-16 chunks per batch and lambdas with 3GB of memory.
+Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
+the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
+Lambdas configured with 3GB of memory in all cases.
 
-While ExCamera process all 888 chunks in parallel, each batch is a
-\texttt{map} with only 16 branches. From the result in
-\S\ref{sec:eval:fan-out}, we know that \name{} is around 200ms slower than
-Step Functions when launching 16 parallel branches. However, \name{} is able
-to win back 14.24s or 17\% of latency performance because fan-in in \name{} is
-wait-free. \name{} invokes the fan-in function whenever its input becomes
-available, whereas Step Functions first requires all branches to complete even
-if a branch is not part of the fan-in function's input, and lacks programming
-constructs to express fine-grained data dependencies between branches that can
-enable ``partial fan-in''.
+%While ExCamera process all 888 chunks in parallel, each batch is a
+%\texttt{map} with only 16 branches. From the result in
+%\S\ref{sec:eval:fan-out}, we know that \name{} is around 200ms slower than
+%Step Functions when launching 16 parallel branches. However, \name{} is able
+%to win back 14.24s or 17\% of latency performance because fan-in in \name{} is
+%wait-free. \name{} invokes the fan-in function whenever its input becomes
+%available, whereas Step Functions first requires all branches to complete even
+%if a branch is not part of the fan-in function's input, and lacks programming
+%constructs to express fine-grained data dependencies between branches that can
+%enable ``partial fan-in''.
 
 \dhl{Sync with Design. Explain the difference between unum fan-in and Step
 Functions fan-in in design already. Specifically, unum fan-in starts when all
@@ -451,6 +426,27 @@ faster than \texttt{gg}.
 
 
 \subsection{Cost}
+
+\begin{table*}[t]
+  \centering
+  \begin{tabular}{ll|rr|rr}
+    \hline
+    &                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
+    \textbf{Application} & \textbf{Pattern}       & \textit{\name{}} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
+    IoT Pipeline         & chain                  & 0.18       & 0.23       & 4.1       & 112.1   \\
+    Text Processing      & fan-out, fan-in        & 0.56       & 0.55       & 12.0      & 196.3   \\
+    Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
+    ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 37,289.1   & 110,494.7      \\ \hline
+  \end{tabular}
+  \caption{Latency and costs comparison between \name{} and Step Functions for
+    the macrobenchmark applications. Running applications on \name{} is 3.7x to
+    32.8x cheaper than on Step Functions. Furthermore, \name{} is faster than Step
+    Functions especially for workflows with high degrees of parallelism. Text
+    Processing is the only workflow which \name{} is marginally slower because
+    Step Functions creates parallel branches faster at low fan-out degrees as we
+    illustrated in Figure~\ref{fig:mapmicrolatency}.}
+  \label{table:macro}
+\end{table*}
 
 \begin{figure}[t!]
     \centering
