@@ -3,9 +3,11 @@
 We implement a prototype of \name{} that runs Python functions on AWS Lambda
 with DynamoDB or S3 as the intermediary data store. The frontend compiler
 supports workflows written as AWS Step Functions state machines. The compiler
-is written in Python with 1,277 lines of code. \dhl{How the frontend compiler
-transforms a Step Functions state machine to a directed graph and then
-transforms it to the \name{} IR is beyond the scope of this paper}. The
+is written in Python with 1,277 lines of code.
+% \dhl{How the frontend compiler
+%transforms a Step Functions state machine to a directed graph and then
+%transforms it to the \name{} IR is beyond the scope of this paper}. 
+The
 runtime are written in Python with 2,957 lines of code. We also integrate our
 toolchain with AWS SAM to build and deploy \name{} workflows as Amazon
 CloudFormation stacks, which automates the development process. Developers can
@@ -20,7 +22,6 @@ exist (\texttt{ConditionExpression=attribute\_not\_exists()}). Check
 checkpoint existence is a consistent read via \texttt{GetItem} operation. For
 fan-in functions, reading input from DynamoDB uses the \texttt{BatchGetItem}
 operation with consistent reads.
-
 \name{} by default uses the on-demand capacity mode when creating DynamoDB
 tables where applications are charged by the amount of read and write it
 performs instead of a fixed hourly rate.
