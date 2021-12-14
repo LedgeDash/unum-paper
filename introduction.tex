@@ -11,21 +11,25 @@ milliseconds and per-stored-object and request, respectively), and platforms
 can make efficient use of hardware resources.
 
 Originally, serverless platforms targeted simple applications with one or a few
-functions and simple interaction patters. Recently, though, there has been
-emerging interest in using serverless platforms to build complex applications
-composed of many \shadiS{many -> 10s to 100s of} functions with rich interaction patterns~\cite{excamera,
-pywren, gg-atc, beldi, boki}. Unfortunately, building such applications using
-basic serverless building blocks is challenging.  Handling complex control flows and large number of functions, in a decentralized \shadiS{ad-hoc} manner, is both
-difficult to  express and implement correctly. Additionally, FaaS invocation semantics
-requires applications \shadiS{developers} to gracefully handle individual function failures and retries. 
+functions and simple interaction patterns. Recently, though, there has been
+emerging interest in using serverless platforms to build more complex
+applications composed of 10s to 100s functions with rich interaction
+patterns~\cite{excamera, pywren, gg-atc, beldi, boki}. Unfortunately, building
+such applications using basic serverless building blocks is challenging.
+Handling complex control flows and large numbers of functions, in a ad-hoc
+manner is difficult to both express and implement correctly.  Additionally, FaaS
+invocation semantics requires application developers to gracefully handle
+individual function failures and retries.
 
-To meet this need, several fault-tolerant workflow systems \shadiS{, that enable building serverless applications with large and complex ``workflows'' of functions, } have emerged. These offer high-level
-programming interfaces to express function interactions, supporting a rich set of
-composition patterns for chaining, branching, fan-out and fan-in, and
-exactly-once semantics for workflow execution~\cite{excamera, gg-atc,
+To meet this need, several workflow systems have emerged to enable serverless
+applications with large and complex ``workflows'' of functions. These offer
+high-level programming interfaces to express function interactions, supporting a
+rich set of composition patterns for chaining, branching, fan-out and fan-in, as
+well as exactly-once workflow execution semantics~\cite{excamera, gg-atc,
 aws-step-functions, google-cloud-composer, google-workflows, durable-functions}.
-All of these systems rely on some form of an \emph{orchestrator} to track workflow progress
-and retry individual steps in the case of faults.
+These systems rely on some form of \emph{orchestrator} to track workflow
+progress, implement interaction logic, and correctly handle retries of
+individual steps due to faults or inconsistency in function invocation queues.
 
 An orchestrator is a stateful component that centralizes execution states
 and control-flow operations. For each workflow transition in a serverless
