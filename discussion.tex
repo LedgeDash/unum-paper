@@ -1,11 +1,35 @@
-%\section{Limitations \& Future Work}\label{sec:limitations}
-%
-%\begin{itemize}
-%  \item Dynamic control structure
-%  \item Implementation currently only supports AWS
-%  \item Performance overhead for Step Functions probably inaccurate
-%  \item Pricing measurements limited
-%\end{itemize}
+\section{Limitations \& Future Work}\label{sec:limitations}
+
+\paragraph{Unsupported applications.} \name{} supports a superset of
+applications that can be expressed using Step Functions, but there are
+applications that do not fit \name{}'s constraints. In particular, \name{} only
+supports statically defined control structures. For example, Durable Functions
+expresses workflows dynamically as code and allows the developer to use
+arbitrary logic to determine what the next workflow step should be at runtime.
+This is not currently possible with \name{}.
+
+\paragraph{Measurement error.} Due to the opaque design, implementation and
+pricing of production workflow systems, such as Step Functions, comparisons in
+our evaluations are limited in their explanatory power. In particular, we use
+the current \emph{price} of Lambda, DynamoDB, and Step Functions as a proxy for
+the \emph{cost} of providing these services. Of course, different platform
+providers may choose different pricing schemes and prices may be either lower or
+higher for a particular service than the underlying cost.
+
+Similarly, performance measurements of Step Functions is done as a black box and
+thus cannot determine which components of performance are due to design choices
+(such as requiring additional network communication) and which are due to
+deployment variables (queue depth, provisioned resources, etc).
+
+\paragraph{Support for more languages and platforms.} While \name{} is designed
+to run on any serverless platform that meets our minimal criteria, our current
+implementation is only complete for AWS Lambda using DynamoDB or S3 for storage.
+We are working on other backends, including for Azure Functions and Google
+Functions, allowing the same applications to run on multiple platforms.
+
+Moreover, we only described a front-end compiler that targets the Step Functions
+description language. We intend to implement compilers for other workflow
+description languages as well.
 
 \section{Conclusion}\label{sec:conclusion}
 
