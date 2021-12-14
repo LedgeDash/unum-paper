@@ -1,152 +1,156 @@
 \subsection{\name{} Intermediate Representation}\label{sec:ir}
 
-\begin{figure*}[t!]
-	\centering
-	\begin{subfigure}[t]{\columnwidth}
-		\centering
-		\begin{minted}[
-			frame=single,
-			fontsize=\scriptsize
-			]{json}
-{
-	"Name": "F",
-	"Next": {
-		"Name": "G",
-		"InputType": "Scalar",
-		"Conditional": true,
-	}
-}
-		\end{minted}
-		\caption{\texttt{chain} pattern that invokes function \texttt{G} with
-			\texttt{F}'s result}
-		\label{fig:gadget-examples-chain}
-	\end{subfigure}
-	\begin{subfigure}[t]{\columnwidth}
-		\centering
-		\begin{minted}[
-			frame=single,
-			fontsize=\scriptsize
-			]{json}
-{
-	"Name": "M",
-	"Next": {
-		"Name": "N",
-		"InputType": "Map"
-	}
-}
-		\end{minted}
-		\caption{\texttt{map} pattern that invokes a parallel instance of
-			\texttt{N} for each element of the vector output of \texttt{M}}
-		\label{fig:gadget-examples-map}
-	\end{subfigure}
-	\hfill
-	\begin{subfigure}[t]{\columnwidth}
-		\centering
-		\begin{minted}[
-			frame=single,
-			fontsize=\scriptsize
-			]{json}
-{
-	"Name": "G",
-	"Next": [
-	{
-		"Name": "H",
-		"InputType": "Scalar"
-	},
-	{
-		"Name": "M",
-		"InputType": "Scalar"
-	}
-	]
-}
-		\end{minted}
-		\caption{\texttt{fan-out} pattern that invokes function \texttt{H} and
-			\texttt{M} with the result of \texttt{G}}
-		\label{fig:gadget-examples-fanout}
-	\end{subfigure}
-	\begin{subfigure}[t]{\columnwidth}
-		\centering
-		\begin{minted}[
-			frame=single,
-			fontsize=\scriptsize
-			]{json}
-{
-	"Name": "N",
-	"Next": {
-		"Name": "S",
-		"InputType": {
-			"Fan-in": {
-				"Values": [
-				"N-unumIndex-*"
-				]
-			}
-		}
-	}
-}
-		\end{minted}
-		\caption{\texttt{fan-in} pattern that invokes function \texttt{S} with
-			the result of all \texttt{N} instances of a \texttt{map}.}
-		\label{fig:gadget-examples-fanin}
-	\end{subfigure}
 
-	\begin{subfigure}[t]{\columnwidth}
-		\centering
-		\begin{minted}[
-			frame=single,
-			fontsize=\scriptsize
-			]{json}
-{
-	"Name": "F",
-	"Next": [
-	{
-		"Name": "G",
-		"InputType": "Scalar",
-		"Conditional": "$ret < 0"
-	},
-	{
-		"Name": "H",
-		"InputType": "Scalar",
-		"Conditional": "$ret >= 0"
-	}
-	]
-}
-		\end{minted}
-		\caption{\texttt{F} branches on the user function's result by
-		combining \texttt{fan-out} with \texttt{Conditional}}
-		\label{fig:gadget-examples-branch}
-	\end{subfigure}
+primitives for encoding the outgoing edges transitions from a source function
+to one or more target functions.
 
-	\begin{subfigure}[t]{\columnwidth}
-		\centering
-		\begin{minted}[
-			frame=single,
-			fontsize=\scriptsize
-			]{json}
-{
-    "Name": "F",
-    "Next": {
-        "Name": "F",
-        "InputType": {
-            "Fan-in": {
-                "Values": [
-                    "F-unumIndex-$0",
-                    "G-unumIndex-($0+1)"
-                ]
-            }
-        },
-        "Conditional": "$0 < $size-1"
-    },
-    "Next Payload Modifiers": ["$0=$0+1"]
-}
-		\end{minted}
-		\caption{\texttt{fold} pattern that folds \texttt{F} on the output of
-		a vector of \texttt{G} functions}
-		\label{fig:gadget-examples-fold}
-	\end{subfigure}
+% \begin{figure*}[t!]
+% 	\centering
+% 	\begin{subfigure}[t]{\columnwidth}
+% 		\centering
+% 		\begin{minted}[
+% 			frame=single,
+% 			fontsize=\scriptsize
+% 			]{json}
+% {
+% 	"Name": "F",
+% 	"Next": {
+% 		"Name": "G",
+% 		"InputType": "Scalar",
+% 		"Conditional": true,
+% 	}
+% }
+% 		\end{minted}
+% 		\caption{\texttt{chain} pattern that invokes function \texttt{G} with
+% 			\texttt{F}'s result}
+% 		\label{fig:gadget-examples-chain}
+% 	\end{subfigure}
+% 	\begin{subfigure}[t]{\columnwidth}
+% 		\centering
+% 		\begin{minted}[
+% 			frame=single,
+% 			fontsize=\scriptsize
+% 			]{json}
+% {
+% 	"Name": "M",
+% 	"Next": {
+% 		"Name": "N",
+% 		"InputType": "Map"
+% 	}
+% }
+% 		\end{minted}
+% 		\caption{\texttt{map} pattern that invokes a parallel instance of
+% 			\texttt{N} for each element of the vector output of \texttt{M}}
+% 		\label{fig:gadget-examples-map}
+% 	\end{subfigure}
+% 	\hfill
+% 	\begin{subfigure}[t]{\columnwidth}
+% 		\centering
+% 		\begin{minted}[
+% 			frame=single,
+% 			fontsize=\scriptsize
+% 			]{json}
+% {
+% 	"Name": "G",
+% 	"Next": [
+% 	{
+% 		"Name": "H",
+% 		"InputType": "Scalar"
+% 	},
+% 	{
+% 		"Name": "M",
+% 		"InputType": "Scalar"
+% 	}
+% 	]
+% }
+% 		\end{minted}
+% 		\caption{\texttt{fan-out} pattern that invokes function \texttt{H} and
+% 			\texttt{M} with the result of \texttt{G}}
+% 		\label{fig:gadget-examples-fanout}
+% 	\end{subfigure}
+% 	\begin{subfigure}[t]{\columnwidth}
+% 		\centering
+% 		\begin{minted}[
+% 			frame=single,
+% 			fontsize=\scriptsize
+% 			]{json}
+% {
+% 	"Name": "N",
+% 	"Next": {
+% 		"Name": "S",
+% 		"InputType": {
+% 			"Fan-in": {
+% 				"Values": [
+% 				"N-unumIndex-*"
+% 				]
+% 			}
+% 		}
+% 	}
+% }
+% 		\end{minted}
+% 		\caption{\texttt{fan-in} pattern that invokes function \texttt{S} with
+% 			the result of all \texttt{N} instances of a \texttt{map}.}
+% 		\label{fig:gadget-examples-fanin}
+% 	\end{subfigure}
 
-	\caption{The \name{} IR representation of common transition patterns.}
-	\label{fig:ir-examples}
-\end{figure*}
+% 	\begin{subfigure}[t]{\columnwidth}
+% 		\centering
+% 		\begin{minted}[
+% 			frame=single,
+% 			fontsize=\scriptsize
+% 			]{json}
+% {
+% 	"Name": "F",
+% 	"Next": [
+% 	{
+% 		"Name": "G",
+% 		"InputType": "Scalar",
+% 		"Conditional": "$ret < 0"
+% 	},
+% 	{
+% 		"Name": "H",
+% 		"InputType": "Scalar",
+% 		"Conditional": "$ret >= 0"
+% 	}
+% 	]
+% }
+% 		\end{minted}
+% 		\caption{\texttt{F} branches on the user function's result by
+% 		combining \texttt{fan-out} with \texttt{Conditional}}
+% 		\label{fig:gadget-examples-branch}
+% 	\end{subfigure}
+
+% 	\begin{subfigure}[t]{\columnwidth}
+% 		\centering
+% 		\begin{minted}[
+% 			frame=single,
+% 			fontsize=\scriptsize
+% 			]{json}
+% {
+%     "Name": "F",
+%     "Next": {
+%         "Name": "F",
+%         "InputType": {
+%             "Fan-in": {
+%                 "Values": [
+%                     "F-unumIndex-$0",
+%                     "G-unumIndex-($0+1)"
+%                 ]
+%             }
+%         },
+%         "Conditional": "$0 < $size-1"
+%     },
+%     "Next Payload Modifiers": ["$0=$0+1"]
+% }
+% 		\end{minted}
+% 		\caption{\texttt{fold} pattern that folds \texttt{F} on the output of
+% 		a vector of \texttt{G} functions}
+% 		\label{fig:gadget-examples-fold}
+% 	\end{subfigure}
+
+% 	\caption{The \name{} IR representation of common transition patterns.}
+% 	\label{fig:ir-examples}
+% \end{figure*}
 
 Before executing serverless workflows in a decentralized manner, a workflow
 definition first needs to be partitioned such that each function performs only
@@ -160,21 +164,77 @@ directed graph representation where nodes are user functions and edges are
 workflow transitions between functions. Then each function is assgined to
 perform just the transitions of its node's outgoing edges.
 
-Compared with high-level workflow definitions where developers compose
-functions with much higher-level building blocks such as pattern, the \name{}
-IR encodes workflow transitions with low-level primitives. In particular, the
-IR is made up of a set of configurations, one for each function in the
-workflow, that just specifies i. \textit{which} function(s) to run next, ii.
-\textit{when} the next function(s) should run, iii. \textit{what} input should
-the next function(s) run with.
+Compared with workflow definitions where developers compose functions with
+higher-level building blocks such as patterns, the \name{} IR encodes workflow
+transitions with low-level primitives. In particular, the IR is made up of a
+set of configurations, one for each function in the workflow, that just
+specifies i. \textit{which} function(s) to run next, ii. \textit{when} the
+next function(s) should run, iii. \textit{what} input should the next
+function(s) run with. Table~\ref{tab:ir} lists 
+
+With these primitives, the IR can express all common workflow patterns
+(\S\ref{sec:transition-patterns}) using just a few lines of code for simple
+patterns and a combination of the primitives for more complex interactions.
+For instances, 
+
+
+
+
+A key design challenge of the \name{} IR is to support dynamic runtime
+behavior with statically generated configurations.
+
+For instance, in a workflow that consists of a \texttt{map} followed by a
+\texttt{fan-in}, \texttt{map} creates multiple parallel instances of the same
+function, but the number of instances depends on the output data and cannot be
+known at compile-time. \name{} needs to uniquely identify each function
+instance so that \texttt{fan-in} can execute correctly (e.g., not miss an
+instance or counting the same instance twice).
+
+To solve this problem, \name{} defines a naming scheme for runtime instances
+and exposes a set of APIs to interact with names. First,
+\name{} requires each user function to have a user-defined name (in the
+top-level \texttt{Name} field). This is also a common requirement for existing
+serverless systems when developers deploy their functions. Next, each branch
+in a \texttt{map} and \texttt{fan-out} pattern is assigned an integer index,
+starting from zero, and the $i^th$ branch is named
+\texttt{<FunctionName>-unumIndex-\emph{i}}. For nested fan-outs, the indexes
+are delimited with periods. For example,
+\texttt{<FunctionName>-unumIndex-\emph{i.j}} identifies the $i^{th}$ branch in
+the outer loop and $j^{th}$ in the inner loop.
+
+To identify all branches, the \name{}~IR supports glob patterns, such as
+\texttt{*}, when specifying runtime instances' names.
+Figure~\ref{fig:gadget-examples-fanin} shows a \texttt{fan-in} example that
+invokes \texttt{S} with the outputs from all instances of \texttt{N}.
+
+\name{} IR provides a set of runtime variables and APIs that enables
+additional dynamic behavior. For example, \texttt{\$0} refers to the
+inner-most index of the function instance which can be used in the
+\texttt{Values} field for fan-in when input depends on specific instances
+instead of all instances. The \texttt{Next Payload Modifiers} field allows
+expressions that can modify the runtime variables (e.g., \texttt{\$0=\$0+1}),
+which can implement fold or for loops when combined with a termination
+condition in \texttt{Conditional}.
+
+
+\name{} IR also provides other APIs that interacts with runtime data, such as
+\texttt{\$ret} that refers to the function's output, and \texttt{\$size} that
+refers to the number of parallel branches in a \texttt{map}.
+
+
+
+
+
+
+
 
 The IR configuration is platform-agnostic. In particular, it does not specify
 how to launch the next function(s), and how to send input data to the next
-function(s). These details are left to the \name{} runtime library (\deorc{})
-that can target specific platforms (for example, the \deorc{} for AWS runs
-functions as lambdas and uses the Lambda asychronous invocation API to launch
-functions). Thus, workflows are portable across platforms by simply changing
-the \deorc{} library.
+function(s). These details are left to the \name{} runtime library that can
+target specific platforms (for example, the runtime for AWS runs functions as
+lambdas and uses the Lambda asychronous invocation API to launch functions).
+Thus, workflows are portable across platforms by simply changing the runtime
+library.
 
 % The \name{} frontend compiler can generate IR from workflow definitions
 % written in high-level description languages (e.g., AWS Step Functions), but
@@ -293,43 +353,4 @@ the \deorc{} library.
 
 \subsubsection{Naming and Dynamic Runtime Behavior}\label{sec:ir:naming}
 
-A key design challenge of the \name{} IR is to support dynamic runtime
-behavior with statically generated configurations.
 
-For instance, in a workflow that consists of a \texttt{map} followed by a
-\texttt{fan-in}, \texttt{map} creates multiple parallel instances of the same
-function, but the number of instances depends on the output data and cannot be
-known at compile-time. \name{} needs to uniquely identify each function
-instance so that \texttt{fan-in} can execute correctly (e.g., not miss an
-instance or counting the same instance twice).
-
-To solve this problem, \name{} defines a naming scheme for runtime instances
-and exposes a set of APIs to interact with names. First,
-\name{} requires each user function to have a user-defined name (in the
-top-level \texttt{Name} field). This is also a common requirement for existing
-serverless systems when developers deploy their functions. Next, each branch
-in a \texttt{map} and \texttt{fan-out} pattern is assigned an integer index,
-starting from zero, and the $i^th$ branch is named
-\texttt{<FunctionName>-unumIndex-\emph{i}}. For nested fan-outs, the indexes
-are delimited with periods. For example,
-\texttt{<FunctionName>-unumIndex-\emph{i.j}} identifies the $i^{th}$ branch in
-the outer loop and $j^{th}$ in the inner loop.
-
-To identify all branches, the \name{}~IR supports glob patterns, such as
-\texttt{*}, when specifying runtime instances' names.
-Figure~\ref{fig:gadget-examples-fanin} shows a \texttt{fan-in} example that
-invokes \texttt{S} with the outputs from all instances of \texttt{N}.
-
-\name{} IR provides a set of runtime variables and APIs that enables
-additional dynamic behavior. For example, \texttt{\$0} refers to the
-inner-most index of the function instance which can be used in the
-\texttt{Values} field for fan-in when input depends on specific instances
-instead of all instances. The \texttt{Next Payload Modifiers} field allows
-expressions that can modify the runtime variables (e.g., \texttt{\$0=\$0+1}),
-which can implement fold or for loops when combined with a termination
-condition in \texttt{Conditional}.
-
-
-\name{} IR also provides other APIs that interacts with runtime data, such as
-\texttt{\$ret} that refers to the function's output, and \texttt{\$size} that
-refers to the number of parallel branches in a \texttt{map}.
