@@ -147,143 +147,148 @@
 	\caption{The \name{} IR representation of common transition patterns.}
 	\label{fig:ir-examples}
 \end{figure*}
-\shadi{the paper suddenly jumps into details of the IR. we still haven't established how we are doing the decentralized orchestration, which is much more important than the IR syntax. I would first discuss the deorc, how the patterns are supported and then the IR.} \shadi{I like the high-level architecture, but this section forward has too much details too soon. We should have a discussion on the flow of this and the next section.}
 
 Before executing serverless workflows in a decentralized manner, a workflow
 definition first needs to be partitioned such that each function performs only
-the orchestration logic local to its subsection of the workflow. The \name{}
-intermediate representation solves this problem with a naming scheme that
-uniquely identifies each function instance in the workflow and a configuration
-language in JSON that encodes workflow transitions.\shadi{this is another instance of jumping to details without the big picture. you suddenly talk about naming structure and json without giving the details of what this config contains (the following sentences)} Specifically, each
-function is assigned a configuration that contains: i. \textit{which}
-function(s) to run next, ii. \textit{when} the next function(s) should run,
-iii. \textit{what} input should the next function(s) run with.
+a subsection of the workflow. The system needs to decide where to make the
+partition, how big each parition is and how to assign partitions to user
+functions.
 
-Note that the IR configuration is platform-agnostic. In particular, it does
-not specify how to launch the next function(s), and how to send input data to
-the next function(s). These details are left to the \name{} runtime library
-(\deorc{}) that can target specific platforms (for example, the \deorc{} for
-AWS runs functions as lambdas and uses the Lambda asychronous invocation API
-to launch functions). Thus, workflows are portable across platforms by simply
-changing the \deorc{} library.
+\name{} partitions a workflow by converting it into an intermediate
+representation. From a high-level workflow definition, \name{} first derives a
+directed graph representation where nodes are user functions and edges are
+workflow transitions between functions. Then each function is assgined to
+perform just the transitions of its node's outgoing edges.
 
-The \name{} frontend compiler can generate IR from workflow definitions
-written in high-level description languages (e.g., AWS Step Functions), but
-developers can also write IR configurations directly, with just a few lines of
-JSON. In particular, The \name{} IR uses a top-level \texttt{Name} field to
-identify the source function that the configuration is co-located with, a
-\texttt{Next} field to list the workflow transitions, and under which a
-\texttt{Name}, \texttt{Conditional}, and \texttt{InputType} fields that
-identify which function to run, when and with what input.
-Figure~\ref{fig:ir-examples} shows examples on how to express common
-orchestration patterns such as branching, chaining, map, fan-out, fan-in and
-fold: 
+Compared with high-level workflow definitions where developers compose
+functions with much higher-level building blocks such as pattern, the \name{}
+IR encodes workflow transitions with low-level primitives. In particular, the
+IR is made up of a set of configurations, one for each function in the
+workflow, that just specifies i. \textit{which} function(s) to run next, ii.
+\textit{when} the next function(s) should run, iii. \textit{what} input should
+the next function(s) run with.
 
-\dhl{Sync with background. should have at least mentioned some of those patterns in
-the background.}
+The IR configuration is platform-agnostic. In particular, it does not specify
+how to launch the next function(s), and how to send input data to the next
+function(s). These details are left to the \name{} runtime library (\deorc{})
+that can target specific platforms (for example, the \deorc{} for AWS runs
+functions as lambdas and uses the Lambda asychronous invocation API to launch
+functions). Thus, workflows are portable across platforms by simply changing
+the \deorc{} library.
 
-\shadi{you suddenly jump into these patterns. why these? where did they come from? this might be the right place to have the apps discussed.}
+% The \name{} frontend compiler can generate IR from workflow definitions
+% written in high-level description languages (e.g., AWS Step Functions), but
+% developers can also write IR configurations directly, with just a few lines of
+% JSON. In particular, The \name{} IR uses a top-level \texttt{Name} field to
+% identify the source function that the configuration is co-located with, a
+% \texttt{Next} field to list the workflow transitions, and under which a
+% \texttt{Name}, \texttt{Conditional}, and \texttt{InputType} fields that
+% identify which function to run, when and with what input.
+% Figure~\ref{fig:ir-examples} shows examples on how to express common
+% orchestration patterns such as branching, chaining, map, fan-out, fan-in and
+% fold: 
 
-\paragraph{chain}
 
-%Chaining is a simple but common orchestration pattern. For example, an
-%application might include a function (the source) that processes input data
-%from a sensor followed by another function (the target) that adjusts an
-%actuator based on the processed input. The \texttt{chain} pattern connects the
-%two functions by invoking the target function with the source function's
-%result.
+% \paragraph{chain}
 
-Figure~\ref{fig:gadget-examples-chain} expresses a chain with a \texttt{Next}
-field that contains a single JSON object whose \texttt{InputType} is
-\texttt{Scalar}. \texttt{Scalar} means that the target function (i.e.,
-\texttt{G}) should receive as input the source function's (i.e., \texttt{F}'s)
-output as a singular entity. The \texttt{Conditional: true} means that this
-transition should always take place whenever \texttt{F} produces a result.
-\texttt{Conditional} is assumed to be \texttt{true} when not specified.
+% %Chaining is a simple but common orchestration pattern. For example, an
+% %application might include a function (the source) that processes input data
+% %from a sensor followed by another function (the target) that adjusts an
+% %actuator based on the processed input. The \texttt{chain} pattern connects the
+% %two functions by invoking the target function with the source function's
+% %result.
 
-\paragraph{fan-out}
+% Figure~\ref{fig:gadget-examples-chain} expresses a chain with a \texttt{Next}
+% field that contains a single JSON object whose \texttt{InputType} is
+% \texttt{Scalar}. \texttt{Scalar} means that the target function (i.e.,
+% \texttt{G}) should receive as input the source function's (i.e., \texttt{F}'s)
+% output as a singular entity. The \texttt{Conditional: true} means that this
+% transition should always take place whenever \texttt{F} produces a result.
+% \texttt{Conditional} is assumed to be \texttt{true} when not specified.
 
-%Another common pattern processes the output of a function in different ways in
-%parallel. For example, an social network application might perform several
-%independent functions given a new user post, such as URL shortening and
-%resolving other users mentioned in the post. The \texttt{fan-out} pattern
-%launches a vector of functions (branches) each with the output of the same
-%source function.
+% \paragraph{fan-out}
 
-Figure~\ref{fig:gadget-examples-fanout} expresses a fan-out with an array in
-the \texttt{Next} field. Each item of the array identifies a different target
-function that should should run in parallel. The \texttt{InputType} field is
-\texttt{Scalar} for both branches because both should receive as input the
-source function's (i.e., \texttt{F}'s) output as a singular entity.
+% %Another common pattern processes the output of a function in different ways in
+% %parallel. For example, an social network application might perform several
+% %independent functions given a new user post, such as URL shortening and
+% %resolving other users mentioned in the post. The \texttt{fan-out} pattern
+% %launches a vector of functions (branches) each with the output of the same
+% %source function.
 
-\paragraph{map}
+% Figure~\ref{fig:gadget-examples-fanout} expresses a fan-out with an array in
+% the \texttt{Next} field. Each item of the array identifies a different target
+% function that should should run in parallel. The \texttt{InputType} field is
+% \texttt{Scalar} for both branches because both should receive as input the
+% source function's (i.e., \texttt{F}'s) output as a singular entity.
 
-%An application may also perform the same function on multiple outputs of a
-%source function. For example, a photo management application might unpack an
-%archive of high-resolution images in one function and perform compression on
-%each of the resulting images. The \texttt{map} pattern invokes the same
-%function once for each element in a vector of outputs from the source
-%function.
+% \paragraph{map}
 
-Figure~\ref{fig:gadget-examples-map} expresses a \texttt{map} with a
-\texttt{Next} field that contains a single JSON object whose
-\texttt{InputType} is \texttt{Map}, which indicates that the source function's
-(i.e., \texttt{F}'s) output should be treated as an array and for each
-element, a target function (i.e., \texttt{G}) should launch with that element
-as the input.
+% %An application may also perform the same function on multiple outputs of a
+% %source function. For example, a photo management application might unpack an
+% %archive of high-resolution images in one function and perform compression on
+% %each of the resulting images. The \texttt{map} pattern invokes the same
+% %function once for each element in a vector of outputs from the source
+% %function.
 
-\paragraph{fan-in}
+% Figure~\ref{fig:gadget-examples-map} expresses a \texttt{map} with a
+% \texttt{Next} field that contains a single JSON object whose
+% \texttt{InputType} is \texttt{Map}, which indicates that the source function's
+% (i.e., \texttt{F}'s) output should be treated as an array and for each
+% element, a target function (i.e., \texttt{G}) should launch with that element
+% as the input.
 
-%After processing data with many parallel branches, applications commonly want
-%to aggregate results. For example, a video encoder might divide a large video
-%into chunks, encode each in parallel and then concatenant all the encoded
-%chunks together. The \texttt{fan-in} pattern invokes a single ``sink''
-%function with the outputs from a vector of functions (the fan-in branches).
+% \paragraph{fan-in}
 
-Figure~\ref{fig:gadget-examples-fanin} expresses a \texttt{fan-in} with a
-\texttt{Next} field that contains a single JSON object whose
-\texttt{InputType} is \texttt{Fan-in} under which a \texttt{Values} fields
-specifies an ordered list with names of functions whose results should be the
-target function's (i.e., \texttt{S}'s)input.
+% %After processing data with many parallel branches, applications commonly want
+% %to aggregate results. For example, a video encoder might divide a large video
+% %into chunks, encode each in parallel and then concatenant all the encoded
+% %chunks together. The \texttt{fan-in} pattern invokes a single ``sink''
+% %function with the outputs from a vector of functions (the fan-in branches).
 
-Different from \texttt{Scalar} and \texttt{Map} where the target function only
-depends on the source function's output, \texttt{Fan-in} expresses data
-dependencies across functions which is difficult to implement efficiently. We
-discuss how we support \texttt{fan-in} in \S\ref{sec:runtime}.
+% Figure~\ref{fig:gadget-examples-fanin} expresses a \texttt{fan-in} with a
+% \texttt{Next} field that contains a single JSON object whose
+% \texttt{InputType} is \texttt{Fan-in} under which a \texttt{Values} fields
+% specifies an ordered list with names of functions whose results should be the
+% target function's (i.e., \texttt{S}'s)input.
 
-\paragraph{branch}
+% Different from \texttt{Scalar} and \texttt{Map} where the target function only
+% depends on the source function's output, \texttt{Fan-in} expresses data
+% dependencies across functions which is difficult to implement efficiently. We
+% discuss how we support \texttt{fan-in} in \S\ref{sec:runtime}.
 
-%An application may decide to take a different branch of the workflow graph
-%based on runtime behavior (e.g., the output of a function). The
-%\texttt{branch} pattern selects a next function based on some boolean
-%condition.
+% \paragraph{branch}
 
-Figure~\ref{fig:gadget-examples-branch} expresses a \texttt{branch} with an
-array in the \texttt{Next} field where each branch has a \texttt{Conditional}.
-Notice that \texttt{branch} is expressed similarly as \texttt{fan-out}
-combined with the \texttt{Conditional} field. This example demonstrates the
-flexibility and expressiveness of \name{} IR's building blocks which
-developers can compose to express additional patterns.
+% %An application may decide to take a different branch of the workflow graph
+% %based on runtime behavior (e.g., the output of a function). The
+% %\texttt{branch} pattern selects a next function based on some boolean
+% %condition.
 
-\paragraph{fold}
+% Figure~\ref{fig:gadget-examples-branch} expresses a \texttt{branch} with an
+% array in the \texttt{Next} field where each branch has a \texttt{Conditional}.
+% Notice that \texttt{branch} is expressed similarly as \texttt{fan-out}
+% combined with the \texttt{Conditional} field. This example demonstrates the
+% flexibility and expressiveness of \name{} IR's building blocks which
+% developers can compose to express additional patterns.
 
-In functional programming, \texttt{fold} is higher-level function that takes
-another functions and applies it to an vector of values. In serverless
-workflow, \texttt{fold} is an advanced pattern that is supported by few
-systems~\cite{azure-functions}. Although \name{} is built on a simpler
-abstraction without adding new components, we support folding a function on
-the output of a vector of functions.
+% \paragraph{fold}
 
-Figure~\ref{fig:gadget-examples-fold} expresses a \texttt{fold} that folds the
-function \texttt{F} on a vector of \texttt{G} instances result, using a
-combination of \texttt{Fan-in}, \texttt{Conditional} and \texttt{Next Payload
-Modifiers}. On a high-level, \texttt{F} recursively calls itself, passing the
-previous iteration's output (\texttt{F-unumIndex-\$0}) and the next \texttt{G}
-instance's result (\texttt{F-unumIndex-(\$0+1)}), until it reaches the last
-\texttt{G} instance in the vector ((\texttt{Conditional: "\$0<\$size-1"})). On
-each iteration, \texttt{F} increments its index by 1 (\texttt{"\$0=\$0+1"}).
-We explain the details on \name{} IR's naming scheme and the use of index and
-runtime variables (e.g., \texttt{\$0}) in the next section.
+% In functional programming, \texttt{fold} is higher-level function that takes
+% another functions and applies it to an vector of values. In serverless
+% workflow, \texttt{fold} is an advanced pattern that is supported by few
+% systems~\cite{azure-functions}. Although \name{} is built on a simpler
+% abstraction without adding new components, we support folding a function on
+% the output of a vector of functions.
+
+% Figure~\ref{fig:gadget-examples-fold} expresses a \texttt{fold} that folds the
+% function \texttt{F} on a vector of \texttt{G} instances result, using a
+% combination of \texttt{Fan-in}, \texttt{Conditional} and \texttt{Next Payload
+% Modifiers}. On a high-level, \texttt{F} recursively calls itself, passing the
+% previous iteration's output (\texttt{F-unumIndex-\$0}) and the next \texttt{G}
+% instance's result (\texttt{F-unumIndex-(\$0+1)}), until it reaches the last
+% \texttt{G} instance in the vector ((\texttt{Conditional: "\$0<\$size-1"})). On
+% each iteration, \texttt{F} increments its index by 1 (\texttt{"\$0=\$0+1"}).
+% We explain the details on \name{} IR's naming scheme and the use of index and
+% runtime variables (e.g., \texttt{\$0}) in the next section.
 
 
 \subsubsection{Naming and Dynamic Runtime Behavior}\label{sec:ir:naming}
