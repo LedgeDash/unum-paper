@@ -264,22 +264,26 @@ And Figure~\ref{fig:ir-examples} gives an example of a regular fan-in and
 using a combination of \texttt{Fan-in}, \texttt{Conditional} and \texttt{Next
 Payload Modifier} to express fold.
 
-A key design challenge of the \name{} IR is to support dynamic runtime
-behavior with statically generated configurations.
 
-For instance, in a workflow that consists of a \texttt{map} followed by a
-\texttt{fan-in}, \texttt{map} creates multiple parallel instances of the same
-function, but the number of instances depends on the output data and cannot be
-known at compile-time. \name{} needs to uniquely identify each function
-instance so that \texttt{fan-in} can execute correctly (e.g., not miss an
-instance or counting the same instance twice).
+\subsubsection{Naming and Dynamic Runtime Behavior}\label{sec:ir:naming}
+
+A key design challenge of the \name{} IR is to support dynamic runtime
+behavior with statically generated configurations. Importantly, there might be
+multiple \emph{runtime} instances of the same function during execution.
+\name{} needs to uniquely identify each function instance to correctly perform
+transitions. For example, in a workflow that consists of a map followed by a
+fan-in, map creates multiple parallel instances of the same function, but the
+number of instances depends on the output data and cannot be known at
+compile-time. \name{} needs to identify each function instance so that fan-in
+can execute correctly (e.g., not miss an instance or counting the same
+instance twice).
 
 To solve this problem, \name{} defines a naming scheme for runtime instances
 and exposes a set of APIs to interact with names. First,
 \name{} requires each user function to have a user-defined name (in the
 top-level \texttt{Name} field). This is also a common requirement for existing
 serverless systems when developers deploy their functions. Next, each branch
-in a \texttt{map} and \texttt{fan-out} pattern is assigned an integer index,
+in a map and fan-out pattern is assigned an integer index,
 starting from zero, and the $i^th$ branch is named
 \texttt{<FunctionName>-unumIndex-\emph{i}}. For nested fan-outs, the indexes
 are delimited with periods. For example,
@@ -288,8 +292,8 @@ the outer loop and $j^{th}$ in the inner loop.
 
 To identify all branches, the \name{}~IR supports glob patterns, such as
 \texttt{*}, when specifying runtime instances' names.
-Figure~\ref{fig:gadget-examples-fanin} shows a \texttt{fan-in} example that
-invokes \texttt{S} with the outputs from all instances of \texttt{N}.
+Figure~\ref{fig:gadget-examples-fanin} shows a fan-in example that invokes
+\texttt{S} with the outputs from all instances of \texttt{N}.
 
 \name{} IR provides a set of runtime variables and APIs that enables
 additional dynamic behavior. For example, \texttt{\$0} refers to the
@@ -297,20 +301,8 @@ inner-most index of the function instance which can be used in the
 \texttt{Values} field for fan-in when input depends on specific instances
 instead of all instances. The \texttt{Next Payload Modifiers} field allows
 expressions that can modify the runtime variables (e.g., \texttt{\$0=\$0+1}),
-which can implement fold or for loops when combined with a termination
-condition in \texttt{Conditional}.
-
-
-\name{} IR also provides other APIs that interacts with runtime data, such as
-\texttt{\$ret} that refers to the function's output, and \texttt{\$size} that
-refers to the number of parallel branches in a \texttt{map}.
-
-
-
-
-
-
-
+which can implement fold or for loops~\ref{fig:gadget-examples-fold} when
+combined with a termination condition in \texttt{Conditional}.
 
 The IR configuration is platform-agnostic. In particular, it does not specify
 how to launch the next function(s), and how to send input data to the next
@@ -433,8 +425,4 @@ library.
 % each iteration, \texttt{F} increments its index by 1 (\texttt{"\$0=\$0+1"}).
 % We explain the details on \name{} IR's naming scheme and the use of index and
 % runtime variables (e.g., \texttt{\$0}) in the next section.
-
-
-\subsubsection{Naming and Dynamic Runtime Behavior}\label{sec:ir:naming}
-
 
