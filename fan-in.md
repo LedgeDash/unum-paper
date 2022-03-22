@@ -15,7 +15,7 @@ Additionally, the aggregate function should only start when all upstream branche
 
 An orchestrator supports aggregation by having all functions return outputs to it. The orchestrator then formats (for instance, Step Functions uses an ordered list) the outputs of all branches and invokes the aggregation function.
 
-Due to this centralized design where the orchestrator mediates all results and invocation, the orchestrator serves as the synchronization point and consensus mechanism where it dictates when all the values are ready and what the values are. An orchestrator can invoke the aggregation function only when receives the output from all upstream branches, and thus avoids idle-billing.
+Due to this centralized design where the orchestrator interposes on all communication (receiving results and initiating invocations), the orchestrator serves as the synchronization point and consensus mechanism where it dictates when all the values are ready and what the values are. An orchestrator can invoke the aggregation function when it receives the output from all upstream branches, and thus avoids idle-billing.
 
 
 
@@ -28,7 +28,7 @@ However, depending on the implementation, orchestrators fan-in support can impos
 
 Unum supports the same semantics without a centralized process and removes the retry and expressiveness restrictions.
 
-In Unum, branches in fan-in reaches consensus on when all outputs are ready and what the values are in a decentralized way. We piggybacks on the checkpoint files in ensuring exactly-once semantics. Each branch creates a unique checkpoint file that's guaranteed to be the same value for a particular workflow execution. The existence of a checkpoint signifies the completion of its function, and each function can access the checkpoint of any other functions in the same application.
+In Unum, branches in fan-in reaches consensus on when all outputs are ready and what the values are in a decentralized way. We piggybacks on the checkpointing mechanism in ensuring exactly-once semantics. Each branch creates a unique checkpoint file that's guaranteed to be the same value for a particular workflow execution. The existence of a checkpoint signifies the completion of its function, and each function can access the checkpoint of any other functions in the same application.
 
 In practice, the input payload to each branch contains its index in the fan-out and the size of the fan-out. For instance, the 1st branch in a map of 3 `encode` functions will receive the following payload
 
@@ -50,13 +50,13 @@ In practice, the input payload to each branch contains its index in the fan-out 
 }
 ```
 
-This function will create a checkpoint named `9dd5548/encode-unumIndex-0` where `encode` is its function name and `0` is its `Index` number in the `Fan-out` field from the input payload. And it knows that to invoke the aggregation function, checkpoints with the name `9dd5548/encode-unumIndex-1` and `9dd5548/encode-unumIndex-2` must also exist.
+This function will create a checkpoint named `9dd5548/encode-unumIndex-0` where `encode` is its function name and `0` is its `Index` number in the `Fan-out` field from the input payload. Unum's exactly-once semantics guarantee that once `9dd5548/encode-unumIndex-0` is created, its values does not change for the entire workflow execution. Thus, consensus is reached on what the final output value of the 1st branch is.
 
-Unum's exactly-once semantics guarantee that once `9dd5548/encode-unumIndex-0` is created, its values does not change for the entire workflow execution.
+Moreover, the 1st `encode` function knows that to invoke the aggregation function, checkpoints with the name `9dd5548/encode-unumIndex-1` and `9dd5548/encode-unumIndex-2` must also exist. Similarly, the 2nd and 3rd `encode` functions knows to verify the existence of the other `encode` functions' checkpoints before invoking the aggregation function. Thus, the consensus on when all inputs to the aggregation function is ready is determined by the existence of upstream branches' checkpoints.
 
 
 
-Additionally, Unum provides consensus on who the last-to-finish branch is, so that in the absence of faults, the aggregation function is only invoked once by the last-to-finish branch. Unum uses an atomic bitmap that returns its values immediately after an update. Each branch sets the bit at its index to 1 and then checks the updated value of the bitmap. In the absences of faults and retries, only the last-to-finish branch will read an all-1's bitmap and therefore invoke the aggregation function.
+Additionally, Unum provides consensus on who the last-to-finish branch is, so that in the absence of faults, the aggregation function is only invoked *once* by the last-to-finish branch. Unum uses an atomic bitmap that returns its values immediately after an update. Each branch sets the bit at its index to 1 and then checks the updated value of the bitmap, all in a single atomic operation. In the absences of faults and retries, only the last-to-finish branch will read an all-1's bitmap and therefore invoke the aggregation function.
 
 The first-to-finish branch will create the bitmap using the same conditional create operation for checkpoints. Subsequent branch will update and read the bitmap in one atomic operation.
 
@@ -72,7 +72,7 @@ The last-to-finish branch will invoke the aggregation function by passing in the
 }
 ```
 
-The Unum runtime on the aggregation function then reads from the 3 checkpoints, and pass the values of the checkpoints as a list to the user code.
+The Unum runtime on the aggregation function then reads from the 3 checkpoints, and passes the values of the checkpoints as a list to the user code.
 
 
 
@@ -84,7 +84,7 @@ def egress(result):
     if not datastore_atomic_add(checkpoint_name, result):
         result = datastore_get(checkpoint_name)
     
-    completion_bitmap_after = mark_complete(fan_in_bitmap, my_index)
+    completion_bitmap_after = write_bitmap_read_result(fan_in_bitmap, my_index)
     if all_complete(completion_bitmap_after):
         _do_next(expand_names(result))
 
@@ -94,20 +94,29 @@ def _do_next(result)
         
 ```
 
-1. The `mark_complete()` function, in one atomic operation, writes the bitmap by updating the bit at the function instances' index to 1 and then returns the resultant bitmap immediately *after* the write.
-2. In the *absence* of faults, `mark_complete()` guarantees that only the last-to-finish instance will see an all-1's bitmap and subsequently invoke the the downstream function.
-3. The `mark_complete()` operation needs to be idempotent because functions might crash after `mark_complete()` and the retry execution will run `mark_complete()` again.
+1. The `write_bitmap_read_result()` function, *in one atomic operation*, writes the bitmap by updating the bit at the function instances' index to 1 and then returns the resultant bitmap immediately *after* the write.
+2. `write_bitmap_read_result()` happens after checkpointing.
+3. In the *absence* of faults, `write_bitmap_read_result()` guarantees that only the last-to-finish instance will see an all-1's bitmap and subsequently invoke the the downstream function.
+4. The `write_bitmap_read_result()` operation needs to be idempotent because functions might crash after `write_bitmap_read_result()` and the retry execution will run `write_bitmap_read_result()` again.
    1. As a counter-example, data structures that are not safe to use include atomic counters where each finishing instance increments the counter by 1.
-4. The fan in bitmap is named as `'{workflow_id}/{function_name}-*-fan-in'` for map fan-ins, and `'{workflow_id}/{function_name1}-{function_name2}-...-fan-in'` for fan-out fan-ins.
-   1. In the case of fan-out, the number of branches, the names of the branches and the order of the branches are known at compile time because they're stored in the Unum configuration (i.e., the IR). Therefore, each branch can create the bitmap with the correct length during `mark_complete()` and knows its index to update in the bitmap.
-   2. In the case map, the number of branches are not known until runtime. Therefore, we use a `-*-` in the name of the bitmap. However, each branch does know the total number of branches, and its index in the branch at runtime because the information is passed in the input payload (specifically, the `Fan-out` field). Thus, similar to the fan-out scenario, each branch in a map can also create the bitmap during `mark_complete()` and knows its index to update in the bitmap.
-5. Different from non-aggregation patterns, the invoker passes a list of pointers to the invokee, as opposed to the invoker's result. Unum expands names in the invoker.
+5. The fan in bitmap is named as `'{workflow_id}/{function_name}-*-fan-in'` for map fan-ins, and `'{workflow_id}/{function_name1}-{function_name2}-...-fan-in'` for fan-out fan-ins.
+   1. In the case of fan-out, the number of branches, the names of the branches and the order of the branches are known at compile time because they're stored in the Unum configuration (i.e., the IR). Therefore, each branch can create the bitmap with the correct length during `write_bitmap_read_result()` and knows its index to update in the bitmap.
+   2. In the case map, the number of branches are not known until runtime. Therefore, we use a `-*-` in the name of the bitmap. However, each branch does know the total number of branches, and its index in the branch at runtime because the information is passed in the input payload (specifically, the `Fan-out` field). Thus, similar to the fan-out scenario, each branch in a map can also create the bitmap during `write_bitmap_read_result()` and knows its index to update in the bitmap.
+6. Different from non-aggregation patterns, the invoker passes a list of pointers to the invokee, as opposed to the invoker's result. Unum expands names in the invoker.
 
 
 
-TODO: walkthrough retry and faults.
+## Fault-tolerance
 
-TODO: more on the expressiveness of Unum's fan-in
+Each branch handles faults independently. 
 
+If a branch crashes during execution, that branch will be retried without affecting other branches.
 
+Similar to exactly-once mechanism, if a branch fails before creating a checkpoint, the retry will run the user code again and write user code result into a checkpoint. If a branch fails after creating a checkpoint but before `write_bitmap_read_result()`, the retry will skip user code and instead use the existing checkpoint as the output. Then, the retry execution will `write_bitmap_read_result()`  and if it sees an all-1's bitmap, invoke the aggregation function.
+
+If the branch fails after `write_bitmap_read_result()`, the retry will similarly use the existing checkpoint as its output, and run `write_bitmap_read_result()` again. This is safe because `write_bitmap_read_result()` is idempotent. Also similarly,  if the retry sees an all-1's bitmap, it will invoke the aggregation function.
+
+If a branch fails after `write_bitmap_read_result()`, its retry might invoke the aggregation function a second time after another successful branch sees the failed branch's completion and invokes the aggregation function. This is also safe and satisfies the exactly-once semantics because the aggregation function is invoked with identical input and Unum's deduplication mechanism works to ensure only one result is produced by the aggregation function as if the function only executed once.
+
+In the case of repeated failure, the failing branch writes its error to a `FINALRESULT` directory and noting the stage it failed at (e.g., did it produce a checkpoint and updating the completion bitmap). It terminates the branch without invoking the aggregation function.
 
