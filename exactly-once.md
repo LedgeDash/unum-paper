@@ -14,9 +14,9 @@ One of the benefits of an orchestrator is to provide _exactly-once_ execution
 semantics for a _workflow_. While individual functions within a workflow may
 execute more than once, an orchestrator chooses which single result of these
 executions to use as input to downstream functions. At the end of the workflow,
-it uses exactly one final result.
+it produces exactly one final result.
 
-Because centralized orchestrators are a centralized service that interpose on
+Because orchestrators are a centralized service that interpose on
 all communication between workflow stages and are solely responsible for moving
 a workflow state machine forward, providing _exactly-once_ workflow semantics is
 straightforward---though doing so in a fault-tolerant and scalable manner may
@@ -46,7 +46,7 @@ avoid unnecessary resource usage and cost in the common case.
   * Unum achieves this by atomically checkpointing the result of the user
     computation before invoking next nodes. If a checkpoint already exists, that
     means a concurrent instance has already completed and may have invoked a
-    subsequent node, and the current node uses this output instead.
+    subsequent node, and the current node uses the value in the checkpoint as its output instead.
   * Unum relies on the datastore providing some form of an atomic add operation
     where writing to a key succeeds only if the key does not yet exist. Many
     FaaS datastores provide exactly such an operation, but the same semantics
@@ -86,9 +86,14 @@ def ingress():
 
 
 
-* Cases:
-  * No retries
-  * Retry with failure before checkpoint
-  * Retry with failure after checkpoint but before invoking
-  * Retry with failure after invoking some/all next nodes
-  * (Retry with no failure, i.e., an unnecessary retry, is the same as the last one above)
+## Fault-tolerance
+
+When there is no faults, a function runs its user code, writes the results to a checkpoint and invokes the downstream functions.
+
+If the function crashes after user code completes but before creating the checkpoint, the retry execution will run the user code again and creates the checkpoint.
+
+If the function crashes after creating a checkpoint, the retry execution will see that a checkpoint exists during `ingress`, skips user code, and instead use the value in the checkpoint as its result and invoke the downstream functions.
+
+If the function crashes after invoking some or all of the downstream functions, the retry will similarly use the existing checkpoint as its output and try to invoke all downstream function again. Note that this is safe and satisfies the exactly-once semantics because the downstream functions are invoked with identical input and Unum's deduplication mechanism works to ensure only one result is produced by the downstream functions as if they only execute once.
+
+Lastly, duplicate executions can happen without faults. For instance, the FaaS engine can incorrectly determine an invocation crashed and retry the function. This case is identical to the previous scenario where a function crashes after invoking all downstream functions, and Unum can therefore still ensure exactly-once semantics.
