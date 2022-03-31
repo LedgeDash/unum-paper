@@ -68,7 +68,7 @@ unum request payload to each subsequent node.
 struct RequestPayload {
     header: {
         is_fan_out: bool,
-        gc_bitmap: optional "${workflow_id}/${function_name}.gc",
+        gc_bitmap: optional "${workflow_id}/${node_name}.gc",
         sibling_idx: optional int,
     },
     user_value: Blob,
