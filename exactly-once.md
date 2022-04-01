@@ -1,4 +1,6 @@
-# Exactly-Once Workflow Execution
+---
+title: Exactly-Once Workflow Execution
+---
 
 FaaS platforms guarantee at-least once execution of individual functions. If the
 machine running a function instance crashes, or the network is partitioned, for
@@ -88,12 +90,28 @@ def ingress():
 
 ## Fault-tolerance
 
-When there is no faults, a function runs its user code, writes the results to a checkpoint and invokes the downstream functions.
+When there are no faults, unum runs the function runs its user code, writes the
+results to a checkpoint and invokes the downstream functions.
 
-If the function crashes after user code completes but before creating the checkpoint, the retry execution will run the user code again and creates the checkpoint.
+If the function crashes after user code completes but before creating the
+checkpoint, the retry execution will not find an existing checkpoint and proceed
+as though it is the first execution.
 
-If the function crashes after creating a checkpoint, the retry execution will see that a checkpoint exists during `ingress`, skips user code, and instead use the value in the checkpoint as its result and invoke the downstream functions.
+If the function crashes after creating a checkpoint, subsequent retry executions
+will find the checkpoint either during `ingress`, in which case it skips user
+code or after running user code in `egress`. In both cases, unum uses the
+checkpoint value (rather than a newly computed result from running user code) to
+invoke downstream functions
 
-If the function crashes after invoking some or all of the downstream functions, the retry will similarly use the existing checkpoint as its output and try to invoke all downstream function again. Note that this is safe and satisfies the exactly-once semantics because the downstream functions are invoked with identical input and Unum's deduplication mechanism works to ensure only one result is produced by the downstream functions as if they only execute once.
+If the function crashes after invoking some or all of the downstream functions,
+the retry will similarly use the existing checkpoint as its output and try to
+invoke all downstream function again. Note that this is safe and satisfies the
+exactly-once semantics because the downstream functions are invoked with
+identical input and Unum's deduplication mechanism works to ensure only one
+result is produced by the downstream functions as if they only execute once.
 
-Lastly, duplicate executions can happen without faults. For instance, the FaaS engine can incorrectly determine an invocation crashed and retry the function. This case is identical to the previous scenario where a function crashes after invoking all downstream functions, and Unum can therefore still ensure exactly-once semantics.
+Lastly, duplicate executions can happen without faults. For instance, the FaaS
+engine can incorrectly determine an invocation crashed and retry the function.
+This case is identical to the previous scenario where a function crashes after
+invoking all downstream functions, and Unum can therefore still ensure
+exactly-once semantics.

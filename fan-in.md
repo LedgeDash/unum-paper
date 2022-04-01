@@ -1,4 +1,6 @@
-# Fan-in / Aggregation
+---
+title: Fan-in / Aggregation
+---
 
 Aggregation is an important and common pattern in applications that allows computation on the outputs of many upstream tasks. For example, to build an index of a large corpus, the application might process chunks in parallel and aggregate the results at the end.
 
