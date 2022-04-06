@@ -2,37 +2,68 @@
 title: Fan-in / Aggregation
 ---
 
-Aggregation is an important and common pattern in applications that allows computation on the outputs of many upstream tasks. For example, to build an index of a large corpus, the application might process chunks in parallel and aggregate the results at the end.
+Aggregation is an important and common pattern in applications that allows
+computation on the outputs of many upstream tasks. For example, to build an
+index of a large corpus, the application might process chunks in parallel and
+aggregate the results at the end.
 
-Aggregation in FaaS applications involves many upstream functions and one aggregation function. When all upstream branches complete, their outputs are passed into the aggregate function in a particular order and format.
+Aggregation in FaaS applications involves many upstream functions and one
+aggregation function. When all upstream branches complete, their outputs are
+passed into the aggregate function in a particular order and format.
 
-To achieve this functionality, consensus is needed on when all inputs to the aggregation function is ready and what the input values are. 
+To achieve this functionality, consensus is needed on when all inputs to the
+aggregation function is ready and what the input values are. 
 
-Additionally, the aggregate function should only start when all upstream branches have completed. Because,
+Additionally, the aggregate function should only start when all upstream
+branches have completed. Because,
 
-1. It avoids idle-billing when the aggregate function is waiting for upstream branches to finish.
-2. Starting an aggregation function to wait for upstream branches' output is often not possible on many FaaS platforms due to the lack of direct addressing of individual function instances. Sending data to a particular function instance is often considered an anti-pattern to the event-driven design of FaaS.
+1. It avoids idle-billing when the aggregate function is waiting for upstream
+   branches to finish.
+2. Starting an aggregation function to wait for upstream branches' output is
+   often not possible on many FaaS platforms due to the lack of direct
+   addressing of individual function instances. Sending data to a particular
+   function instance is often considered an anti-pattern to the event-driven
+   design of FaaS.
+
+An orchestrator supports aggregation by having all functions return outputs to
+it. The orchestrator then formats (for instance, Step Functions uses an ordered
+list) the outputs of all branches and invokes the aggregation function.
+
+Due to this centralized design where the orchestrator interposes on all
+communication (receiving results and initiating invocations), the orchestrator
+serves as the synchronization point and consensus mechanism where it dictates
+when all the values are ready and what the values are. An orchestrator can
+invoke the aggregation function when it receives the output from all upstream
+branches, and thus avoids idle-billing.
 
 
 
-An orchestrator supports aggregation by having all functions return outputs to it. The orchestrator then formats (for instance, Step Functions uses an ordered list) the outputs of all branches and invokes the aggregation function.
+However, depending on the implementation, orchestrators fan-in support can
+impose restrictions. For example, as the currently most popular serverless
+orchestrator, AWS Step Functions
 
-Due to this centralized design where the orchestrator interposes on all communication (receiving results and initiating invocations), the orchestrator serves as the synchronization point and consensus mechanism where it dictates when all the values are ready and what the values are. An orchestrator can invoke the aggregation function when it receives the output from all upstream branches, and thus avoids idle-billing.
+1. Cannot retry individual branches. If any one of the branches fails, the
+   entire `Map` or `Parallel` state fails and all branches are stopped
+   immediately.
+2. Restricts the expressiveness of fan-in patterns (or pipeline parallelism?).
+   That is, you can only fan-in all branches of a `Map` or `Parallel` state. You
+   cannot, for instance, aggregate the adjacent branches in a reversed-tree
+   pattern.
 
+Unum supports the same semantics without a centralized process and removes the
+retry and expressiveness restrictions.
 
+In Unum, branches in fan-in reaches consensus on when all outputs are ready and
+what the values are in a decentralized way. We piggybacks on the checkpointing
+mechanism in ensuring exactly-once semantics. Each branch creates a unique
+checkpoint file that's guaranteed to be the same value for a particular workflow
+execution. The existence of a checkpoint signifies the completion of its
+function, and each function can access the checkpoint of any other functions in
+the same application.
 
-However, depending on the implementation, orchestrators fan-in support can impose restrictions. For example, as the currently most popular serverless orchestrator, AWS Step Functions
-
-1. Cannot retry individual branches. If any one of the branches fails, the entire `Map` or `Parallel` state fails and all branches are stopped immediately.
-2. Restricts the expressiveness of fan-in patterns (or pipeline parallelism?). That is, you can only fan-in all branches of a `Map` or `Parallel` state. You cannot, for instance, aggregate the adjacent branches in a reversed-tree pattern.
-
-
-
-Unum supports the same semantics without a centralized process and removes the retry and expressiveness restrictions.
-
-In Unum, branches in fan-in reaches consensus on when all outputs are ready and what the values are in a decentralized way. We piggybacks on the checkpointing mechanism in ensuring exactly-once semantics. Each branch creates a unique checkpoint file that's guaranteed to be the same value for a particular workflow execution. The existence of a checkpoint signifies the completion of its function, and each function can access the checkpoint of any other functions in the same application.
-
-In practice, the input payload to each branch contains its index in the fan-out and the size of the fan-out. For instance, the 1st branch in a map of 3 `encode` functions will receive the following payload
+In practice, the input payload to each branch contains its index in the fan-out
+and the size of the fan-out. For instance, the 1st branch in a map of 3 `encode`
+functions will receive the following payload
 
 ```json
 {
@@ -52,9 +83,20 @@ In practice, the input payload to each branch contains its index in the fan-out 
 }
 ```
 
-This function will create a checkpoint named `9dd5548/encode-unumIndex-0` where `encode` is its function name and `0` is its `Index` number in the `Fan-out` field from the input payload. Unum's exactly-once semantics guarantee that once `9dd5548/encode-unumIndex-0` is created, its values does not change for the entire workflow execution. Thus, consensus is reached on what the final output value of the 1st branch is.
+This function will create a checkpoint named `9dd5548/encode-unumIndex-0` where
+`encode` is its function name and `0` is its `Index` number in the `Fan-out`
+field from the input payload. Unum's exactly-once semantics guarantee that once
+`9dd5548/encode-unumIndex-0` is created, its values does not change for the
+entire workflow execution. Thus, consensus is reached on what the final output
+value of the 1st branch is.
 
-Moreover, the 1st `encode` function knows that to invoke the aggregation function, checkpoints with the name `9dd5548/encode-unumIndex-1` and `9dd5548/encode-unumIndex-2` must also exist. Similarly, the 2nd and 3rd `encode` functions knows to verify the existence of the other `encode` functions' checkpoints before invoking the aggregation function. Thus, the consensus on when all inputs to the aggregation function is ready is determined by the existence of upstream branches' checkpoints.
+Moreover, the 1st `encode` function knows that to invoke the aggregation
+function, checkpoints with the name `9dd5548/encode-unumIndex-1` and
+`9dd5548/encode-unumIndex-2` must also exist. Similarly, the 2nd and 3rd
+`encode` functions knows to verify the existence of the other `encode`
+functions' checkpoints before invoking the aggregation function. Thus, the
+consensus on when all inputs to the aggregation function is ready is determined
+by the existence of upstream branches' checkpoints.
 
 
 
@@ -76,11 +118,9 @@ The last-to-finish branch will invoke the aggregation function by passing in the
 
 The Unum runtime on the aggregation function then reads from the 3 checkpoints, and passes the values of the checkpoints as a list to the user code.
 
-
-
 ```python
 checkpoint_name = f'{workflow_id}/{function_name}-unumIndex-{unumIndex}'
-fan_in_bitmap = f'{workflow_id}/{function_name}-*-fan-in'
+fan_in_bitmap = f'{next_function_instance_name}'
 
 def egress(result):
     if not datastore_atomic_add(checkpoint_name, result):

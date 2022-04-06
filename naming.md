@@ -2,6 +2,12 @@
 title: Naming
 ---
 
+## What is named?
+
+* Checkpoints
+* Fan-in bitmap
+* GC bitmap
+
 ## Terms
 
 -------    ---------- 
@@ -20,4 +26,4 @@ def instance_name(function_name: string,
     ...
 ```
 
-GC and fan-in bitmap use `${instance_name}.gc` and `${instance_name}.bitmap` respectively.
+GC and fan-in bitmap use `${previous_instance_name}.gc` and `${next_instance_name}.fanin` respectively.
