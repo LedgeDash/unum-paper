@@ -12,21 +12,25 @@ title: Introduction
         milliseconds at a time at fine granularity of compute resource (1/6th of
         a core * 128MB memory). These are typically provisioned automatically in
         response to storage events or end-user invocations via HTTP.
+      * Originally FaaS designed for 
       * vertically integrated high-level services, including orchestration.
         * Good because they enable many applications in cost effective manner by sharing resources in application-specific ways.
         * Bad because they are application specific, so inherently _exclude_ applications that don't fit their model.
 
   * It's hard to build FaaS applications because of complex workflows (fan-in, multiple executions)
+
   * Centralized orchestrators have been developed/deployed to address these problems
-    * Centralize state
-    * Support rich workflow patterns by centralizing
+    * Centralize state and workflow execution
+
   * There are downsides:
-    * Centralized, multi-tenant orchestrators limit application flexibility
-    * Orchestrators internally need to handle fault-tolerance, exactly-once semantics, etc scalably. This is hard.
+    * Orchestrators internally need to handle fault-tolerance, exactly-once
+      semantics, etc scalably. This is hard.
       * Scalability bottlenecks in practice
       * High price in practice
+    * Centralized, multi-tenant orchestrators limit application flexibility
     * Usually platform specific (e.g., Step Functions for AWS, Google Workflow
       for Google Cloud, durable functions for Azure Functions), making serverless applications even less portable.
+
   * In this paper we ask "do we _need_ a centralized orchestrator? are complex
     workflow patterns, exactly-once execution and scalability better achieved
     in a decentralized manner?"
