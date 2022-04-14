@@ -38,7 +38,7 @@ unbounded storage costs over repeated executions of a workflow.
 In order to support complex FaaS applications, cloud providers have built and
 deployed specialized centralized workflow
 orchestrators~\cite{aws-step-functions, google-cloud-composer, google-workflows,
-durable-functions}. Centralizing workflow coordination makes supporting complex
+durable-functions}. Centralization makes supporting complex
 interactions simple---e.g.\ an orchestrator can support fan-in by simply waiting
 for all branches to complete before invoking an aggregation function, storing
 intermediate states itself. Similarly, a centralized orchestrator can ensure
@@ -49,19 +49,22 @@ these orchestrators can offer high-level programming interfaces that express
 complex function interactions and promise that workflow results are consistent
 even if individual functions are run more than once.
 
-Centralized orchestators, though, are an imperfect solution. Cloud providers
-must invest significant engineering and deployment effort into these systems to
-ensure they are fault tolerant, scalable, and consistent. This effort has proven
-worthwhile to provide a general-purpose multi-tenant service, but is out of
-reach for most application developers to build and deploy their own should the
-semantics of available orchestrators prove insufficient for their applications.
-This problem is not theoretical. Recently, researchers have devised specialized
-orchestrators to handle FaaS applications with specific workflow
-needs~\cite{excamera,gg-atc}.
-
-Moreover, making centralized orchestrators fault tolerant, correct, and scalable
+However, making centralized orchestrators fault tolerant, correct, and scalable
 comes at a resource cost, reflected in the often order-of-magnitude higher price
 to use an orchestrator compared to the cost of invoking FaaS functions natively.
+
+Moreover, a system with these necessary properties is too hard to build or too
+expensive for most applications to deploy on their own. Instead, cloud providers
+typically amortize these costs in one or two multi-tenant orchestration services
+that make particular design decisions about the kinds of execution patterns to
+support and execution guarantees to provide. This results in a trade-off
+(another word) familiar from operating systems~\cite{exokernel,spin},
+networks~\cite{active-networks,sdn}, and storage
+systems~\cite{comet,rust-comet}---well designed centralized systems efficiently
+support the needs of many applications but cannot meet all application needs.
+Centralized orchestrators suffer the same limitations and, indeed, researchers
+have devised new orchestrators to support FaaS applications that cannot be
+efficiently run using existing orchestrators~\cite{excamera,gg-atc}.
 
 %An orchestrator is a stateful component that centralizes execution states and
 %control-flow operations. All function invocations are initiated by the
@@ -124,10 +127,18 @@ are available in commonly available orchestrators.
 
 At a high level, \name{} relies on the FaaS scheduler to run each function
 invocation \emph{at least} once and consistent datastore operations to
-deduplicate multiple attempts to execute the same function invocation, to
-coordinate fan-in patterns, and safely garbage collect intermediate states.
-Doing so in a correct, efficient, and reusable manner challenging in several
-ways.
+coordinate interactions and deduplicate multiple attempts to execute the same
+function invocation. The key design challenge in \name{} is to provide these
+properties in a decentralized yet efficient manner using a minimal set of
+underlying serverless APIs.
+
+Supporting complex patterns such as fan-in uses objects in a consistent
+datastore as a coordination point for fan-in branches. Ensuring workflow
+correctness despite non-deterministic functions that may execute multiple times
+uses checkpoints to commit to exactly one output for a function invocation. Both
+require generating globally unique names for nodes and edges in the execution
+graph \emph{locally} (using information available at each node locally) as well
+as cleaning up intermediate datastore objects in a timely manner.
 
 \paragraph{Correctness with failures}. FaaS platforms guarantee at-least once
 execution of individual function invocations---if the machine running a function
