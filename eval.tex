@@ -448,14 +448,14 @@ input.}
 
 \begin{table*}[t]
   \centering
-  \begin{tabular}{ll|rr|rr}
+  \begin{tabular}{ll|rrr|rr}
     \hline
-    &                        & \multicolumn{2}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
-    \textbf{Application} & \textbf{Pattern}       & \textit{\name{}} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
-    IoT Pipeline         & chain                  & 0.18       & 0.23       & 4.1       & 112.1   \\
-    Text Processing      & fan-out, fan-in        & 0.56       & 0.55       & 12.0      & 196.3   \\
-    Wordcount            & chain, fan-out, fan-in & 410.64     & 898.56     & 4,904.8   & 18,113.0 \\
-    ExCamera             & chain, fan-out, fold   & 84.17      & 98.42      & 37,289.1   & 110,494.7      \\ \hline
+    &                        & \multicolumn{3}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
+    \textbf{Application} & \textbf{Pattern}       & \textit{\name{} (aws)} & \textit{\name{} (gcloud)} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
+    IoT Pipeline         & chain                  & 0.18      & 0.81 & 0.23       & 4.1       & 112.1   \\
+    Text Processing      & fan-out, fan-in        & 0.56      & 3.56 & 0.55       & 12.0      & 196.3   \\
+    Wordcount            & chain, fan-out, fan-in & 410.64    & 484.00 & 898.56     & 4,904.8   & 18,113.0 \\
+    ExCamera             & chain, fan-out, fold   & 84.17     & - & 98.42      & 37,289.1   & 110,494.7      \\ \hline
   \end{tabular}
   \caption{Application latency and costs comparison between \name{} and Step
     Functions. Running applications on \name{} is 3.7x to 27.3x cheaper than
