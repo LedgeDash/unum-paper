@@ -1,6 +1,42 @@
-\section{Design}
+\section{Design}\label{sec:design}
 
-\begin{figure*}[t]
+\name{} orchestrates the execution of workflows a decentralized manner on top of
+a FaaS platform and a scalable consistent storage service. Workflows are modeled
+as a directed execution graph where nodes represent user-defined FaaS functions
+and each edge represents an invocation of one functions (incoming edge) with the
+output of one or more other functions (outgoing edges). The FaaS platform
+executes each function invocation at least once and may execute it more than
+once due to lost messages, infrastructure failure, inconsistency in invocation
+queues, etc.
+
+An \name{} graph may can include fan-outs, where output from a node is used to
+invoke several functions or split up and ``mapped'' multiple times on the same
+function. Each such branch may be taken conditionally, based on the output value
+or dynamic states of the graph. Execution graphs may also contain fan-ins, where
+the outputs of multiple nodes are used to invoke a single aggregate function.
+Cycles are also supported and each iteration through a cycle is a different
+invocation of the target function.
+
+\begin{table}[]
+  \centering
+  \begin{tabular}{|m{0.2\linewidth}|m{0.75\linewidth}|}
+    \hline
+	\textbf{Workflow} & A directed graph of functions that takes an input and produces one or more outputs. \\
+    \hline
+	\textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
+    \hline
+	\textbf{Invocation} & An invocation of a function one request of the FaaS platform to run a function and is associated with an argument to the function. \\
+    \hline
+	\textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
+    \hline
+  \end{tabular}
+  \caption{\name{} terminology.}
+  \label{table:terms}
+\end{table}
+
+\subsection{Architecture}\label{sec:design:architecture}
+
+\begin{figure*}[t!]
 	\centering
 	\begin{subfigure}[t]{0.8\textwidth}
 	\centering
@@ -40,6 +76,71 @@
 	subsection of the graph.}
 	\label{fig:arch}
 \end{figure*}
+
+Figure~\ref{fig:arch:unum-compile-time} depicts how a developer goes from a high
+level workflow description and functions to running the workflow in a
+decentralized manner using \name{}.
+
+Developers write individual functions and describe the workflow using a
+high-level workflow language, such as Step Function's expression language. They
+pass this description and functions through a front-end \name{} compiler that
+extracts portable \name{} IR for each node in the graph and ``attaches'' it to
+the function (e.g.\ by placing a file containing the IR alongside the function
+code). A backend \name{} linker ``links'' each function with a
+platform-specific \name{} runtime library.~\footnote{Since functions are
+typically written in dynamic languages, the \name{} library source code is
+placed alongside the function and dynamically imported, rather than statically
+linking an object file}
+
+Runtime libraries are specific to the FaaS platform and datastore---e.g.\ Amazon
+Lambda and DynamoDB, or Google Cloud Functions and Firestore. Each runtime is
+composed of an ingress and egress component that run, respectively, before and
+after the user-defined function. The egress component coalesces input data from
+each incoming edge (e.g.\ in a fan-in), resolves input data if passed by name
+rather than by value, and passes the input value to the function. The egress
+component uses the function's result to invoke the next function(s) as
+determined by the node's IR, ensures execution semantics using checkpoints,
+performs coordination with sibling branches in fan-in, and deletes intermediate
+states no longer needed for the workflow.
+
+Developers deploy each linked function along with its IR to the FaaS platform.
+The workflow is invoked by invoking the first function in the graph.  The
+\name{} runtime is responsible for interpreting the \name{} IR at each node and
+invoking next functions, performing coordination, checkpointing, and garbage
+collection to execute the workflow in-situ with functions, in lieu of a
+centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
+
+\subsection{\name{} Intermediate Representation}\label{sec:design:ir}
+
+
+\begin{figure}[t!]
+    \centering
+    \begin{minted}[
+        frame=single,
+        fontsize=\scriptsize
+        ]{rust}
+type NodeName String
+type InvocationName
+    (SessionId, NodeName, Iteration, Vec<FanOut>)
+
+struct IR {
+  name: NodeName,
+  next: Vec<Conditional<Invoke>>
+}
+
+enum Invoke {
+  Scalar(NodeName),
+  Map(NodeName),
+  FanIn(NodeName, Vec<InvocationName>)
+}
+
+type Conditional<T> Fn(Input, Output) -> Option<T>
+    \end{minted}
+    \caption{\name{} IR}
+    \label{fig:irschema}
+\end{figure}
+
+\section{Design}
 
 To achieve the objectives in \S\ref{sec:goals}, \name{} utilizes a strategy we
 call ``\emph{decentralized orchestration}'' where instead of executing
