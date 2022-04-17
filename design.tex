@@ -1,22 +1,5 @@
 \section{Design}\label{sec:design}
 
-\name{} orchestrates the execution of workflows a decentralized manner on top of
-a FaaS platform and a scalable consistent storage service. Workflows are modeled
-as a directed execution graph where nodes represent user-defined FaaS functions
-and each edge represents an invocation of one functions (incoming edge) with the
-output of one or more other functions (outgoing edges). The FaaS platform
-executes each function invocation at least once and may execute it more than
-once due to lost messages, infrastructure failure, inconsistency in invocation
-queues, etc.
-
-An \name{} graph may can include fan-outs, where output from a node is used to
-invoke several functions or split up and ``mapped'' multiple times on the same
-function. Each such branch may be taken conditionally, based on the output value
-or dynamic states of the graph. Execution graphs may also contain fan-ins, where
-the outputs of multiple nodes are used to invoke a single aggregate function.
-Cycles are also supported and each iteration through a cycle is a different
-invocation of the target function.
-
 \begin{table}[]
   \centering
   \begin{tabular}{|m{0.2\linewidth}|m{0.75\linewidth}|}
@@ -34,6 +17,23 @@ invocation of the target function.
   \label{table:terms}
 \end{table}
 
+\name{} orchestrates the execution of workflows a decentralized manner on top of
+a FaaS platform and a scalable consistent storage service. Workflows are modeled
+as a directed execution graph where nodes represent user-defined FaaS functions
+and each edge represents an invocation of one functions (incoming edge) with the
+output of one or more other functions (outgoing edges). The FaaS platform
+executes each function invocation at least once and may execute it more than
+once due to lost messages, infrastructure failure, inconsistency in invocation
+queues, etc.
+
+An \name{} graph may can include fan-outs, where output from a node is used to
+invoke several functions or split up and ``mapped'' multiple times on the same
+function. Each such branch may be taken conditionally, based on the output value
+or dynamic states of the graph. Execution graphs may also contain fan-ins, where
+the outputs of multiple nodes are used to invoke a single aggregate function.
+Cycles are also supported and each iteration through a cycle is a different
+invocation of the target function.
+
 \subsection{Architecture}\label{sec:design:architecture}
 
 \begin{figure*}[t!]
@@ -41,7 +41,6 @@ invocation of the target function.
 	\begin{subfigure}[t]{0.8\textwidth}
 	\centering
 		\includegraphics[width=0.8\columnwidth]{figures/unum-arch-compile-time.pdf}
-		% \includegraphics[width=\columnwidth]{figures/architecture.png}
 		\caption{Serverless workflows form directed graphs. \name{}
 		partitions the graph into an intermediate representation where each
 		function is embedded with an \name{} configuration that encodes how to
@@ -137,8 +136,198 @@ enum Invoke {
 type Conditional<T> Fn(Input, Output) -> Option<T>
     \end{minted}
     \caption{\name{} IR}
-    \label{fig:irschema}
+    \label{fig:design:irschema}
 \end{figure}
+
+\subsection{Fan-in Patterns}\label{sec:design:fanin}
+
+\subsection{Execution Guarantees Using Checkpoints}\label{sec:design:execution}
+
+FaaS platforms guarantee at-least once execution of individual functions. If the
+machine running a function instance crashes, or the network is partitioned, for
+example, that instance may never complete. FaaS platforms ensure that at-least
+one such instance completes for every function invocation. It may run several
+instances concurrently or retry execution if an instance does not return a
+result after a certain timeout. As a result, an invocation may result in more
+than one execution of a particular function and, because functions may not be
+deterministic, this can result in multiple different results for the same
+invocation.
+
+One of the benefits of an orchestrator is to provide strong workflow execution
+semantics. While individual functions within a workflow may execute more than
+once, an orchestrator chooses a single result of these executions to use as
+input for all downstream functions. At the end of the workflow, the result is
+consistent with an execution of the workflow where each function invocation
+executed \emph{exactly-once}.
+
+Because centralized orchestrators interpose on all communication between
+workflow stages and are solely responsible for moving a workflow state machine
+forward, providing these execution guarantees is conceptually straightforward
+(though doing scalably and tolerant of orchestrator faults may not be
+straightforward).
+
+A key challenge for \name{} is to provide the same semantics without
+centralizing orchestration. Moreover, because failures and, thus, retries are
+the exception, not the rule, \name{} should provide these semantics without
+expensive coordination---function instances should be able to proceed without
+blocking to avoid unnecessary resource usage and cost in the common case.
+
+\name{} leverages two key insights to achieve these semantics. First, a workflow
+can run \emph{correctly} even if a function is invoked more than once as long as
+the invocations are identical. This \emph{must} be the case, because a workflow
+must already be able to handle \emph{re-executions} of the same invocation.
+Second, different executions of the same function invocation may return
+different results as long as \name{} ensures that only one of those results is
+used to invoke downstream functions.
+
+The \name{} library employs an atomic add operation in the serverless datastore
+to \emph{checkpoint} exactly one execution of each function invocation. The
+egress component of the \name{} library attempts to atomically add the result of
+the function to a checkpoint object in the datastore. If such a checkpoint
+already exists, a concurrent or previous execution of the invocation must have
+already completed and the add operation will fail. To invoke downstream
+functions, the egress component \emph{always} uses the value stored in the
+checkpoint, rather than the result of the recently completed function.
+Essentially, \name{} ``commits'' to result of the first successful execution of
+the function.
+
+The datastore might expose an atomic add operation natively (DynamoDB), or it
+can be implemented using transactions (Firestore) or versioned adds (S3).
+
+As a further optimization, the ingress component in the \name{} library checks
+for the checkpoint object before executing the user-defined function. If the
+object exists, it bypasses the user-defined function and passes the checkpoint
+value directly to the egress component to invoke downstream functions. This is
+not necessary for correctness (and it is, of course, possible for the checkpoint
+to be added after a concurrent execution checks for its existence in the ingress
+component) but helps reduce computation that we know to be unused.
+
+\begin{figure}
+\begin{minted}[
+    frame=single,
+    fontsize=\scriptsize
+    ]{python}
+def ingress(self, function):
+    ...
+    result = datastore_get(self.checkpoint_name):
+    if result:
+        self._egress(result)
+    else:
+        self.egress(function.handle())
+
+def egress(self, result):
+    ...
+    if not datastore_atomic_add(self.checkpoint_name, result):
+      result = datastore_get(self.checkpoint_name)
+    self._egress(result)
+    ...
+
+def _egress(self, result)
+    for f in next_functions:
+        faas.async_invoke(f, result)
+\end{minted}
+\label{fig:design:checkpoint}
+\caption{Pseudo-code showing \name{}'s checkpointing mechanism. As different
+executions of a function may return different results, \name{}'s egress
+component checkpoints the first successful execution using an atomic add
+datastore operation. All subsequent executions will uses this committed value
+rather than the result their own execution returned.}
+\end{figure}
+
+\subsubsection{Fault Tolerance}
+
+The FaaS platform guarantees that even in the presence of faults, at least one
+execution of a function invocation will complete. \name{}'s checkpointing
+mechanism ensures while faults may occur at any point during the execution of a
+function's user code or the \name{} library, and while downstream functions may
+be invoked multiple times by different executions of the same invocation, a
+single value is always used to invoke downstream functions.
+
+When there are no faults, \name{} runs the function's user code, attempts to add
+the results to the invocation's checkpoint object and invokes the downstream
+functions using the checkpoint value. If the FaaS platform executes the
+invocation more once, each execution will using the value from whichever
+execution performs the add operation first.
+
+If there is a fault after the user code completes but before creating the
+checkpoint, its value is ignored (indeed, never seen) by other attempts to
+execute the function and another execution's value will be used to invoke
+downstream functions.
+
+If the ``winning'' function crashes after creating a checkpoint, and before
+invoking some or all downstream functions, other executions will use the
+checkpoint value to invoke downstream functions.
+
+Note that, even if multiple executions invoke some or all downstream functions,
+execution guarantees are still satisfied as these invocations will have
+identical inputs and the checkpointing mechanism in these functions treat
+multiple identical invocations the same as re-executions---in fact, the \name{}
+library cannot differentiate between re-executions by the FaaS platform and
+duplicate invocations by preceding functions.
+
+\subsection{Naming}\label{sec:design:naming}
+
+Both fan-in patterns and checkpointing require a way of uniquely naming function
+invocations. Fan-in uses the target aggregation function's invocation to name
+the bitmap object to coordinate between fan-in branches and checkpoint object
+are named using the current function's invocation name.
+
+Each workflow invocation has a unique name that is passed through the execution
+graph. The name is either generated in the ingress to the first function using,
+e.g., a UUID library or, when available, is taken from the FaaS platform's
+invocation identifier for the first function. This enables functions to have
+different names when invoked as part of invocations of the workflow. However,
+this is not sufficient as functions may be invoked multiple times in the same
+workflow due to map patterns---which invoke the same function multiple times over
+an iterable output---and cycles.
+
+Moreover, invocation names must be determined using local information only. Once
+running, each function only has access to it's own code (including the IR) and
+metadata passed in its input. Nonetheless a particular invocation must be able
+to determine its own name for checkpointing as well as, if it is part of a
+fan-in, the name of downstream invocations to coordinate with other branches.
+
+As a result, \name{} names function invocations using a combination of the
+global function name, an iteration number, a vector of branch indexes leading to
+the invocation, and the workflow invocation name. The function's global name is
+available from the function's IR (Figure~\ref{fig:design:irschema}) and is either user-defined
+or determined by the FaaS platform (e.g.\ the ARN on AWS Lambda). The remaining
+items are propagated by \name{} in invocation arguments.
+
+During a fan-out pattern (multiple scalar invocations or a map invocation), a
+branch index is added to a list in the next functions' input. If the next
+function is an ancestor of the current function (a cycle), an iteration field in
+the input is incremented. Note that a single iteration field is sufficient even
+if there are nested cycles since it is only important that different invocations
+of the same function have \emph{different} names, not that the iteration field
+is sequential. Thus, a monotonically increasing iteration field is sufficient.
+
+\begin{figure}
+\begin{minted}[
+    frame=single,
+    fontsize=\scriptsize
+    ]{rust}
+fn invocation_name(function_name: String,
+                   iteration: int,
+                   branches: Vec<int>,
+                   workflow_id: String) -> String;
+\end{minted}
+\label{fig:design:names}
+\caption{Function invocation names are determined from the function name
+(available in the function's IR) as well as the iteration number, a vector of
+branch indexes, and the workflow invocation name, all available from the
+invocation argument.}
+\end{figure}
+
+Figure~\ref{fig:design:names} shows a function signature for determining the name of a
+function invocation from the relevant inputs. The format of this name is not
+significant and, importantly, it need not be interpretable. It must only be
+deterministic and unique for its inputs. A reasonable implementation, for
+example, would serialize the inputs and take a cryptographic hash over the
+result. This would guarantee uniqueness (with very high probably) while
+preventing names from growing too large to use as object names.
+
+\subsection{Garbage Collection}\label{sec:design:garbage}
 
 \section{Design}
 
