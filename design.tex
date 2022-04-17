@@ -111,6 +111,37 @@ centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
 
 \subsection{\name{} Intermediate Representation}\label{sec:design:ir}
 
+\begin{figure}[t!]
+    \centering
+    \begin{minted}[
+        frame=single,
+        fontsize=\scriptsize
+        ]{rust}
+type NodeName
+
+struct IR {
+  name: NodeName,
+  instructions: Vec<Instruction>
+}
+
+enum Invoke {
+  Scalar(NodeName),
+  Map(NodeName),
+  FanIn(NodeName)
+}
+
+type Conditional<T> Fn(InvocationRequest, Output) -> Option<T>
+
+enum Instruction {
+  PopFanOut,
+  IncrIteration,
+  Invoke(Invoke),
+  InvokeCond(Conditional<Invoke>)
+}
+    \end{minted}
+    \caption{\name{} IR}
+    \label{fig:design:irschema}
+\end{figure}
 
 \begin{figure}[t!]
     \centering
@@ -118,28 +149,123 @@ centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
         frame=single,
         fontsize=\scriptsize
         ]{rust}
-type NodeName String
-type InvocationName
-    (SessionId, NodeName, Iteration, Vec<FanOut>)
-
-struct IR {
-  name: NodeName,
-  next: Vec<Conditional<Invoke>>
+struct InvocationRequest {
+  data: Vec<RequestData>,
+  workflowId: String,
+  iteration: usize,
+  fanOut: Stack<FanOut>,
 }
 
-enum Invoke {
-  Scalar(NodeName),
-  Map(NodeName),
-  FanIn(NodeName, Vec<InvocationName>)
+struct RequestData {
+  reference: DatastoreObjectName,
+  value: Option<Value>
 }
 
-type Conditional<T> Fn(Input, Output) -> Option<T>
+struct FanOut {
+  index: usize,
+  size: usize,
+  is_map: bool,
+}
     \end{minted}
     \caption{\name{} IR}
-    \label{fig:design:irschema}
+    \label{fig:design:unum-request}
 \end{figure}
 
+The \name{} intermediate representation (IR) helps separate between partitioning
+an execution graph description among the constituent functions and encoding
+platform-specific execution details, such as which datastore primitives to
+use for coordination or checkpointing and how to invoke downstream functions.
+The IR is designed to allow encoding of common workflow patterns but is
+low-level enough to also support less uncommon patterns
+(\ref{excamera-description}).
+
+Each function's IR includes the function's name and a sequence of instructions
+(Figure~\ref{fig:design:irschema}). Instructions direct the runtime to invoke
+functions and operate on state metadata passed between functions in
+\name{}-wrapped function inputs (Figure~\ref{fig:design:unum-request}).
+
+The egress component, which receives the function's user-code output, executes
+the IR and uses it to determine which next steps to take. An invocation can be
+protected by a conditional---a boolean expression that operates on the
+invocation request and the current function's output. There are three kinds of
+invocations \name{}'s IR enables:
+
+\begin{itemize}
+  \item \textbf{Scalar} simply invokes the named function using the
+        current functions output.
+  \item \textbf{Map} treats the current function's output as iterable data
+        (e.g.\ a list) and invokes the named function once for each item in the
+        output.
+  \item \textbf{Fan-in} invokes the named function using the current function's
+        output along with the outputs of all other functions fanning into the
+        same node. Fan-in requires coordination among multiple functions and is
+        described in detail in \S\ref{sec:design:fanin}.
+\end{itemize}
+
+When multiple invocations occur, either using multiple instructions or a single
+\texttt{Map} invocation, each of the invocations adds a fan out frame to the
+invocation request's fan-out stack, including the total number of invocations
+(\texttt{size}) and the index of the particular invocation (\texttt{index}).
+This allows different invocations of the same function to be differentiated for
+naming (\S\ref{sec:design:naming}) and to coordinate fan-in
+(\S\ref{sec:design:fanin}).
+
+Finally, the \texttt{IncrIteration} and \texttt{PopFanOut} instructions operate
+to, respectively, increment the iteration field and pop the \texttt{fan\_out}
+stack in next functions' invocation request.
+
+Using this relatively basic IR, it is simple to represent the most common patterns.
+
+\paragraph{Chain.}
+Chaining executes a number of functions in sequence, each using as input the
+output of the previous function. For example, a photo management application may
+perform a series of operations to recognize faces in a photo, each operation
+dependent on the output of the previous. In \name{}, this is simply encoded by
+each function using a scalar invocation naming the next function in the
+pipeline.
+
+\paragraph{Fan Out.}
+Another common pattern processes output from a function multiple ways in
+parallel. For example, a photo management application might validate a
+user-uploaded photo, then resize it to a number of different resolutions,
+identify objects in the photo, and extract photo metadata, concurrently. An
+\name{} application represents this pattern using \emph{several} scalar
+invocations in the first function's IR, one for each branch of the the fan-out.
+
+\paragraph{Map.}
+Applications may also perform the same operation on each component of a
+function's output. For example, an application may unpack an archive of
+high-resolution images in one function and perform compression on each of the
+resulting images. \name{}'s \texttt{Map} invocation pass each element from the
+function's output to a different invocation of the same function.
+
+\paragraph{Branching.}
+Applications may need to invoke different functions based on runtime conditions
+(e.g., the output of a function). For instance, an application may first
+validate that a user-uploaded photo is a valid JPEG. If it is, it invokes, e.g.,
+one of the patterns above, otherwise it notifies the user of the error.
+\name{}'s conditional invoke instruction allows each invocation to be protected
+by a conditional expression that has access to the function output.
+
 \subsection{Fan-in Patterns}\label{sec:design:fanin}
+
+\paragraph{Fan in}
+After processing data with many parallel branches, applications commonly want to
+aggregate results. For example, to build an index of a large corpus, the
+application might process a chunks in parallel and the aggregate the results.
+\texttt{fan-in} is a common pattern to join back multiple parallel functions, by
+invokeing a single ``sink'' function with the outputs from a vector of functions
+(the fan-in branches).
+
+\paragraph{Fold}
+\texttt{fold} sequentially applies the same function on the outputs of a vector
+of source functions, while aggregating with the intermediate results of running
+the function so far. For example, a video encoding application might encode
+chunks in parallel and then concatenate the results in order: concatenating
+chunk 1 and 2, then concatenating chunk 3 to chunk [1--2], and so on.
+\texttt{fold} is an advanced pattern that is not supported by all existing
+systems (e.g., AWS Step Functions do not support \texttt{fold}) but is
+expressible in \name{}.
 
 \subsection{Execution Guarantees Using Checkpoints}\label{sec:design:execution}
 
@@ -290,9 +416,9 @@ fan-in, the name of downstream invocations to coordinate with other branches.
 As a result, \name{} names function invocations using a combination of the
 global function name, an iteration number, a vector of branch indexes leading to
 the invocation, and the workflow invocation name. The function's global name is
-available from the function's IR (Figure~\ref{fig:design:irschema}) and is either user-defined
-or determined by the FaaS platform (e.g.\ the ARN on AWS Lambda). The remaining
-items are propagated by \name{} in invocation arguments.
+available from the function's IR (Figure~\ref{fig:design:irschema}) and is
+either user-defined or determined by the FaaS platform (e.g.\ the ARN on AWS
+Lambda). The remaining items are propagated by \name{} in invocation arguments.
 
 During a fan-out pattern (multiple scalar invocations or a map invocation), a
 branch index is added to a list in the next functions' input. If the next
@@ -329,161 +455,227 @@ preventing names from growing too large to use as object names.
 
 \subsection{Garbage Collection}\label{sec:design:garbage}
 
-\section{Design}
+Both checkpointing, to provide correct workflow execution semantics, and fan-in
+require storing intermediate data in the datastore. This poses a garbage
+collection challenge.
 
-To achieve the objectives in \S\ref{sec:goals}, \name{} utilizes a strategy we
-call ``\emph{decentralized orchestration}'' where instead of executing
-workflow orchestration logic entirely within a centralized orchestrator, a set
-of ``decentralized orchestrators'' run \emph{in-situ} with user functions and
-each performs only the orchestration logic \emph{local to its subsection} of
-the workflow.
+Both checkpoints and fan-in bitmaps may be numerous in a workflow and only
+temporally useful. Deleting checkpoints or bitmaps too early can compromise
+execution guarantees and deleting too late incurs unnecessary storage charges
+from the datastore. \name{} deletes checkpoints and bitmaps as soon as they are
+no longer needed for execution correctness.
 
-Efficiently implementing decentralized orchestration while also preserving the
-benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
-\name{} to solve three key challenges:
+\subsubsection{Checkpoint Collection}
 
-\squishenum
-	\item How to partition its orchestration logic such that it can run in a
-	decentralized manner in-situ with user functions given a high-level workflow description?
+A checkpointing node does not know when the checkpoint is no longer necessary.
+If it deletes its checkpoint after invoking subsequent functions but before
+completing, it may crash and the FaaS platform may re-execute it, yielding a
+potentially inconsistent result. However, downstream nodes know that once they
+have committed to a value by checkpointing, previous checkpoints are no longer
+necessary to ensure their own correctness. Once a node has committed to some
+particular output, future invocations, even with \emph{different} inputs will produce the same output, as the node will \emph{always} use the checkpoint value.
 
-	\item How to efficiently execute orchestration logic in a
-	decentralized manner, esp. when it requires data sharing and
-	synchronization across function instances (e.g., fan-in)?
+In particular, \name{} collects checkpoints by relaxing the constraint that
+nodes always output the same value. Instead, they must only output the same
+value until all subsequent nodes have committed to their own outputs.
 
-	\item How to provide exactly-once semantics when the
-	orchestration logic is decentralized across function instances that may
-	crash or retry mid-execution?
-\squishenumend
+This means that, in non-fan-out cases, once a node checkpoints its result, it
+can delete the previous checkpoint:
 
-\name{} contributes an end-to-end system that solves the three challenges and
-delivers significant cost savings and improved or comparable performance than
-a state-of-the-art production orchestrator (\S\ref{sec:eval}).
-Figure~\ref{fig:arch} depicts \name{}'s architecture. \shadi{we should reference a,b,c individually as some later parts in the text.  btw, isn't 1.a the architecture rather than 1?}
+\begin{minted}[
+    frame=single,
+    fontsize=\scriptsize
+    ]{python}
+def egress(self, result):
+    result = _checkpoint(result)
+    _egress(result)
+    database_delete(prev_checkpoint)
+\end{minted}
 
-\name{} solves the first challenge \emph{at compile time}, using a frontend
-compiler and an intermediate representation (IR). Given a workflow definition
-written in a high-level description language, the frontend compiler derives a
-directed graph representation where nodes are user functions and edges
-represent workflow transitions between functions. Based on the directed graph,
-the compiler generates an IR in the form of configuration files, one file for
-each node in the graph. A \textit{\name{} configuration} encodes all the outgoing edges
-of a node such that each function in the workflow knows how to transition just
-to its immediate downstream node(s).
+Note that \name{} runtime implementations delay garbage collection until after
+invoking next functions, sacrificing some storage overhead in favor of
+minimizing end-to-end latency for a workflow.
 
-\name{} solves the second challenge using an \textit{\name{} runtime} library
-that efficiently implements a set of workflow patterns in a decentralized manner
-and can run in-situ with user functions. In particular, the \name{} runtime is
-made up of an ingress component and an egress component.  Developers package
-each user function with its assigned \name{} configuration and the \name{}
-runtime to create an \emph{unumized} function. When an unumized function
-executes, its entry point is no longer the user code but instead the \name{}
-ingress. And when user code completes, it returns its results to the \name{}
-egress which then interprets its co-located \name{} configuration and performs
-the workflow transition.
+Fan-out cases are more complicated because deleting the checkpoint must wait
+until all branches have committed to an output. \name{} repurposes the same
+bitmap-based technique from fan-in to collect checkpoints in fan-in cases as
+well. Branches of a fan-out coordinate via an atomic that each sets after
+checkpointing. Any node that reads a full bitmap deletes the parent's
+checkpoint. This guarantees that the parent's checkpoint is deleted and ensures
+that all branches have first checkpointed.
 
-A critical complexity is to enable data sharing and synchronization across
-functions in a workflow invocation. For example, applications might aggregate
-the results of multiple upstream functions with a single ``sink'' function
-when all of the upstream functions complete (commonly called a ``fan-in''). To
-this end, \name{} leverages a shared \emph{intermediary data store} that is a
-strongly consistent serverless storage (e.g., DynamoDB). Upstream functions
-each write their output into the intermediary data store and use this data
-store to share data and  synchronize across each other.
+\begin{minted}[
+    frame=single,
+    fontsize=\scriptsize
+    ]{python}
+def egress_fan_out(self, result):
+    result = _checkpoint(self, result)
+    _do_next(result)
 
+    completion_bitmap_after =
+        write_bitmap_read_result(fan_out_gc_bitmap, fan_out_index)
+    if all_complete(completion_bitmap_after):
+        database_delete(prev_checkpoint)
+        database_delete(fan_out_gc_bitmap)
+\end{minted}
 
-\name{} also leverages the intermediary data store to solve the third
-challenge and provide a strong exactly-once semantics. \name{} uses a
-checkpointing mechansim to limit the scope of retries when workflows crash
-mid-execution and guarantee that even if there are multiple instances of the
-same function, concurrent or not, only one instance's output is taken as the
-final result and propargates downstream. When user functions do not produce
-externally visible side-effects, \name{}'s exactly-once guarantee appears the
-same as exactly-once semantics.
+\subsubsection{Bitmap collection}
 
-In the rest of the section, we first highlight a set of common workflow
-patterns that \name{} supports (\S~\ref{sec:transition-patterns}), then
-describe how the \name{} runtime efficiently executes workflows in a
-decentralized manner (\S~\ref{sec:runtime}). Next, we show how the \name{} IR
-encodes transitions between functions (\S\ref{sec:ir}) and allows partitioning
-of workflows written as a high-level description. Finally, we detail \name{}'s
-checkpointing mechanism and how it ensures strong execution guarantee
-(\S~\ref{sec:exec-gntee}).
-
-
-\input{patterns}
-\input{runtime}
-\input{ir-design}
-
-
-
-
-
-\subsection{Execution Guarantees}\label{sec:exec-gntee}
-
-An important characteristic of any workflow system is (a) how it deals with  a
-transient failure in a constituent step, and (b) what guarantees it makes in
-the presence of such faults.
- 
-Workflow systems typically persist progress to limit the scope of re-execution after faults
-\cite{aws-step-functions, durable-functions, netherite, google-workflows, kappa}.
-Likewise, \name{} checkpoints each function to storage.
- In particular, if a workflow experiences crashes mid-execution,
-\name{} does not retry from the beginning but from the node of failure only.
-
-In terms of progress and consistency, \name{} guarantees \textbf{exactly-once semantics}, 
-meaning that the system records
-exactly one result for each step of the workflow. FaaS engines already
-support automatic retries for functions; this helps to ensure progress, as transient
-faults do not compromise progress. However, we still need to
-strengthen this at-least-once guarantee to an exactly-once guarantee, which 
-is nontrivial because of the following subtleties:
-
-\squishlist
-	\item Function executions are not always deterministic, each re-execution
-	may produce a different result.
-	\item Some FaaS engines may detect failures incorrectly, thus multiple
-	executions of a function can be in progress simultaneously, and may all run to completion.
-\squishend
-\vspace{1ex}
-
-Fortunately, we found a way to handle these challenges by taking advantage of
-conditional store operations supported by strongly consistent data stores.
-Specifically, \name{} guarantees that even if there are multiple function
-execution instances, concurrent or not, only one instance's result is taken as
-the final result and propagates to the downstream ingress node(s). Other
-instances simply discard their results and terminate.
-
-\paragraph{Checkpoints and Synchronization.}%\name{} uses a similar checkpointing technique across all transition patterns. 
-After user code completes, the \name{} egress immediately writes a checkpoint
-file that contains the user code results to the intermediary data store. The
-checkpoint is uniquely named with the instance's name (i.e., the name
-according the
-\name{}~IR's naming scheme (\S\ref{sec:ir:naming}), prefixed by the workflow
-invocation's unique session ID) such that the existence of a checkpoint
-implies the corresponding function has successfully completed its user
-function. The create operation is a conditional write and only succeeds when
-the file does not already exist. If there are concurrent duplicate instances,
-only one of them will create the checkpoint. The others will receive an error
-from the write operation and \name{} runtime will simply terminate the
-instance. The instance that successfully creates a checkpoint will proceeds to
-executing its egress node and propagate its result to downstream functions.
-
-For nonconcurrent duplicates (e.g., retries), \name{} checks if a checkpoint
-exists \emph{before} running its user code. If a checkpoint does not exist,
-\name{} goes ahead and runs the user code. Otherwise, \name{} reads the data
-from the checkpoint and use that as final result without running user code
-again. Then \name{} will run the ingress node to invoke the downstream function.
-This is necessary because the duplicate might be a retry whose prior execution
-crashed after checkpointing but before running the downstream ingress node. \name{} can
-tolerate running a ingress/egress node more than once because of the same protection
-against duplicates.
-
-\paragraph{External Side Effects.} Naturally, the
-exactly-once guarantee does not automatically extend to functions with
-external side effects, i.e. functions that directly call external services. In
-such cases, retries can lead to unexpected results if the effects are not
-idempotent. This issue is well known, and independent of the orchestrator
-architecture (centralized vs. decentralized). Thus, we consider the question
-of how to control such side effects to be orthogonal and beyond the scope of
-this paper. For example, a store interposition libary like Beldi \cite{beldi}
-can solve this problem.
+%\section{Design}
+%
+%To achieve the objectives in \S\ref{sec:goals}, \name{} utilizes a strategy we
+%call ``\emph{decentralized orchestration}'' where instead of executing
+%workflow orchestration logic entirely within a centralized orchestrator, a set
+%of ``decentralized orchestrators'' run \emph{in-situ} with user functions and
+%each performs only the orchestration logic \emph{local to its subsection} of
+%the workflow.
+%
+%Efficiently implementing decentralized orchestration while also preserving the
+%benefits of centralized orchestrators (\S\ref{sec:bg:orchestrator}) requires
+%\name{} to solve three key challenges:
+%
+%\squishenum
+%	\item How to partition its orchestration logic such that it can run in a
+%	decentralized manner in-situ with user functions given a high-level workflow description?
+%
+%	\item How to efficiently execute orchestration logic in a
+%	decentralized manner, esp. when it requires data sharing and
+%	synchronization across function instances (e.g., fan-in)?
+%
+%	\item How to provide exactly-once semantics when the
+%	orchestration logic is decentralized across function instances that may
+%	crash or retry mid-execution?
+%\squishenumend
+%
+%\name{} contributes an end-to-end system that solves the three challenges and
+%delivers significant cost savings and improved or comparable performance than
+%a state-of-the-art production orchestrator (\S\ref{sec:eval}).
+%Figure~\ref{fig:arch} depicts \name{}'s architecture. \shadi{we should reference a,b,c individually as some later parts in the text.  btw, isn't 1.a the architecture rather than 1?}
+%
+%\name{} solves the first challenge \emph{at compile time}, using a frontend
+%compiler and an intermediate representation (IR). Given a workflow definition
+%written in a high-level description language, the frontend compiler derives a
+%directed graph representation where nodes are user functions and edges
+%represent workflow transitions between functions. Based on the directed graph,
+%the compiler generates an IR in the form of configuration files, one file for
+%each node in the graph. A \textit{\name{} configuration} encodes all the outgoing edges
+%of a node such that each function in the workflow knows how to transition just
+%to its immediate downstream node(s).
+%
+%\name{} solves the second challenge using an \textit{\name{} runtime} library
+%that efficiently implements a set of workflow patterns in a decentralized manner
+%and can run in-situ with user functions. In particular, the \name{} runtime is
+%made up of an ingress component and an egress component.  Developers package
+%each user function with its assigned \name{} configuration and the \name{}
+%runtime to create an \emph{unumized} function. When an unumized function
+%executes, its entry point is no longer the user code but instead the \name{}
+%ingress. And when user code completes, it returns its results to the \name{}
+%egress which then interprets its co-located \name{} configuration and performs
+%the workflow transition.
+%
+%A critical complexity is to enable data sharing and synchronization across
+%functions in a workflow invocation. For example, applications might aggregate
+%the results of multiple upstream functions with a single ``sink'' function
+%when all of the upstream functions complete (commonly called a ``fan-in''). To
+%this end, \name{} leverages a shared \emph{intermediary data store} that is a
+%strongly consistent serverless storage (e.g., DynamoDB). Upstream functions
+%each write their output into the intermediary data store and use this data
+%store to share data and  synchronize across each other.
+%
+%
+%\name{} also leverages the intermediary data store to solve the third
+%challenge and provide a strong exactly-once semantics. \name{} uses a
+%checkpointing mechansim to limit the scope of retries when workflows crash
+%mid-execution and guarantee that even if there are multiple instances of the
+%same function, concurrent or not, only one instance's output is taken as the
+%final result and propargates downstream. When user functions do not produce
+%externally visible side-effects, \name{}'s exactly-once guarantee appears the
+%same as exactly-once semantics.
+%
+%In the rest of the section, we first highlight a set of common workflow
+%patterns that \name{} supports (\S~\ref{sec:transition-patterns}), then
+%describe how the \name{} runtime efficiently executes workflows in a
+%decentralized manner (\S~\ref{sec:runtime}). Next, we show how the \name{} IR
+%encodes transitions between functions (\S\ref{sec:ir}) and allows partitioning
+%of workflows written as a high-level description. Finally, we detail \name{}'s
+%checkpointing mechanism and how it ensures strong execution guarantee
+%(\S~\ref{sec:exec-gntee}).
+%
+%
+%\input{patterns}
+%\input{runtime}
+%\input{ir-design}
+%
+%
+%
+%
+%
+%\subsection{Execution Guarantees}\label{sec:exec-gntee}
+%
+%An important characteristic of any workflow system is (a) how it deals with  a
+%transient failure in a constituent step, and (b) what guarantees it makes in
+%the presence of such faults.
+%
+%Workflow systems typically persist progress to limit the scope of re-execution after faults
+%\cite{aws-step-functions, durable-functions, netherite, google-workflows, kappa}.
+%Likewise, \name{} checkpoints each function to storage.
+% In particular, if a workflow experiences crashes mid-execution,
+%\name{} does not retry from the beginning but from the node of failure only.
+%
+%In terms of progress and consistency, \name{} guarantees \textbf{exactly-once semantics},
+%meaning that the system records
+%exactly one result for each step of the workflow. FaaS engines already
+%support automatic retries for functions; this helps to ensure progress, as transient
+%faults do not compromise progress. However, we still need to
+%strengthen this at-least-once guarantee to an exactly-once guarantee, which
+%is nontrivial because of the following subtleties:
+%
+%\squishlist
+%	\item Function executions are not always deterministic, each re-execution
+%	may produce a different result.
+%	\item Some FaaS engines may detect failures incorrectly, thus multiple
+%	executions of a function can be in progress simultaneously, and may all run to completion.
+%\squishend
+%\vspace{1ex}
+%
+%Fortunately, we found a way to handle these challenges by taking advantage of
+%conditional store operations supported by strongly consistent data stores.
+%Specifically, \name{} guarantees that even if there are multiple function
+%execution instances, concurrent or not, only one instance's result is taken as
+%the final result and propagates to the downstream ingress node(s). Other
+%instances simply discard their results and terminate.
+%
+%\paragraph{Checkpoints and Synchronization.}%\name{} uses a similar checkpointing technique across all transition patterns.
+%After user code completes, the \name{} egress immediately writes a checkpoint
+%file that contains the user code results to the intermediary data store. The
+%checkpoint is uniquely named with the instance's name (i.e., the name
+%according the
+%\name{}~IR's naming scheme (\S\ref{sec:ir:naming}), prefixed by the workflow
+%invocation's unique session ID) such that the existence of a checkpoint
+%implies the corresponding function has successfully completed its user
+%function. The create operation is a conditional write and only succeeds when
+%the file does not already exist. If there are concurrent duplicate instances,
+%only one of them will create the checkpoint. The others will receive an error
+%from the write operation and \name{} runtime will simply terminate the
+%instance. The instance that successfully creates a checkpoint will proceeds to
+%executing its egress node and propagate its result to downstream functions.
+%
+%For nonconcurrent duplicates (e.g., retries), \name{} checks if a checkpoint
+%exists \emph{before} running its user code. If a checkpoint does not exist,
+%\name{} goes ahead and runs the user code. Otherwise, \name{} reads the data
+%from the checkpoint and use that as final result without running user code
+%again. Then \name{} will run the ingress node to invoke the downstream function.
+%This is necessary because the duplicate might be a retry whose prior execution
+%crashed after checkpointing but before running the downstream ingress node. \name{} can
+%tolerate running a ingress/egress node more than once because of the same protection
+%against duplicates.
+%
+%\paragraph{External Side Effects.} Naturally, the
+%exactly-once guarantee does not automatically extend to functions with
+%external side effects, i.e. functions that directly call external services. In
+%such cases, retries can lead to unexpected results if the effects are not
+%idempotent. This issue is well known, and independent of the orchestrator
+%architecture (centralized vs. decentralized). Thus, we consider the question
+%of how to control such side effects to be orthogonal and beyond the scope of
+%this paper. For example, a store interposition libary like Beldi \cite{beldi}
+%can solve this problem.
