@@ -282,85 +282,84 @@ merge into goals or later section}
 %all have different propritary APIs.} \shadi{I thought the point here was to be a design goal of "interoperability".}
 %\dhl{Yes, but the problem is that current \name{} implementation only works on AWS. So we can't show/prove that we achieved interoperability if we list that as a goal. }
 
-\section{Goals}\label{sec:goals}
-In this paper, we examine whether we can have the best of both worlds:
-\emph{Can we preserve the advantages of workflow orchestrators while building
-entirely on top of the existing serverless computing abstraction (no
-supplemental services)?}
-
-Table~\ref{table:positioning} compares the current solutions and \name{}.
-Specifically, we aim for a system that requires \textbf{no new services}. The
-system should work in a basic, unmodified serverless environment and not require
-adding any new services.  The system should execute workflows solely as
-event-driven serverless functions, and use serverless storage, when necessary,
-to enable stateful control-flow patterns.
-
-In addition, we aim to preserve the best properties of existing centralized workflow orchestrators:
-
-\squishlist
-    \item \textbf{High-level API \& support for common interactions.}
-    Developers should compose functions with high-level primitives similar to
-    existing workflow orchestrators instead of ad-hoc mechanisms and be able
-    to simply express common control-flow patterns such as chaining,
-    branching, fan-out and fan-in.
-
-    \item \textbf{Exactly-once semantics.} The system must guarantee workflow 
-    progress and consistency. Specifically, it must retry constituent functions on transient faults;
-    yet it must record exactly one result\footnote{The result recorded
-    for a function may be an error result, such as when a retry or time limit is exceeded.}
-    for each function,
-    even if there are multiple executions due to retries.% or duplicate invocations.
-
-    \item \textbf{Comparable performance and costs.} The system should have
-comparable costs and performance as the state-of-the-art workflow orchestrators.
-Similarly, it should avoid idle-billing. Users should only pay for the resources
-used rather than idle time wait for other functions to return.
-
-    \shadi{should we call it idle billing throughout the paper instead of
-    double billing? It is not exactly double...}\dhl{Yeah, I like "idle
-    billing" better. Used "double billing" because of prior work. But if we no
-    longer need to mention this problem anywhere else in the paper other than
-    the driver functions section, I think we can just define and explain the
-    problem and then be done with it.}
-
-\squishend
-
-\shadi{in the table, should we have double billing? maybe another term would
-be better?}\dhl{Changed it to pay-for-what-you-use billing}
-
-
-
-
-%In this paper, we examine whether we can have the best of both worlds. We
-%argue that it is possible to preserve the advantages of workflow orchestrators
-%while building entirely on top of the existing serverless computing
-%abstraction without adding any supplemental components.
+%\section{Goals}\label{sec:goals}
+%In this paper, we examine whether we can have the best of both worlds:
+%\emph{Can we preserve the advantages of workflow orchestrators while building
+%entirely on top of the existing serverless computing abstraction (no
+%supplemental services)?}
 %
-%Specifically, we aim for a system with the following objectives:
+%Table~\ref{table:positioning} compares the current solutions and \name{}.
+%Specifically, we aim for a system that requires \textbf{no new services}. The
+%system should work in a basic, unmodified serverless environment and not require
+%adding any new services.  The system should execute workflows solely as
+%event-driven serverless functions, and use serverless storage, when necessary,
+%to enable stateful control-flow patterns.
 %
-%\paragraph{\emph{Purely serverless}} The system should work within the current
-%serverless environment and not require adding any new services.
+%In addition, we aim to preserve the best properties of existing centralized workflow orchestrators:
 %
-%The system should execute workflows solely as event-driven serverless
-%functions, and use serverless storage, when necessary, to enable stateful
-%operations (e.g., fan-in).
+%\squishlist
+%    \item \textbf{High-level API \& support for common interactions.}
+%    Developers should compose functions with high-level primitives similar to
+%    existing workflow orchestrators instead of ad-hoc mechanisms and be able
+%    to simply express common control-flow patterns such as chaining,
+%    branching, fan-out and fan-in.
 %
-%\paragraph{Higher-level programming interface} Developers should express
-%function compositions with higher-level primitives similar to exising workflow
-%orchestrators (e.g., AWS Step Functions) instead of ad-hoc mechanisms.
+%    \item \textbf{Exactly-once semantics.} The system must guarantee workflow
+%    progress and consistency. Specifically, it must retry constituent functions on transient faults;
+%    yet it must record exactly one result\footnote{The result recorded
+%    for a function may be an error result, such as when a retry or time limit is exceeded.}
+%    for each function,
+%    even if there are multiple executions due to retries.% or duplicate invocations.
 %
-%\paragraph{Supports all common interactions} The system should support all
-%composition patterns commonly used in orchestrators today, including chaining,
-%branching, fan-out and fan-in.
+%    \item \textbf{Comparable performance and costs.} The system should have
+%comparable costs and performance as the state-of-the-art workflow orchestrators.
+%Similarly, it should avoid idle-billing. Users should only pay for the resources
+%used rather than idle time wait for other functions to return.
 %
-%\paragraph{Exactly-once semantics} Even if a function executes multiple times,
-%due to retries or duplicate invocations, concurrently or non-concurrently, the
-%final state should appear that the execution happened only once.
+%    \shadi{should we call it idle billing throughout the paper instead of
+%    double billing? It is not exactly double...}\dhl{Yeah, I like "idle
+%    billing" better. Used "double billing" because of prior work. But if we no
+%    longer need to mention this problem anywhere else in the paper other than
+%    the driver functions section, I think we can just define and explain the
+%    problem and then be done with it.}
 %
-%\paragraph{Avoids double billing} Users should only pay for the resources
-%used. Functions should not synchronously wait for other functions to return.
+%\squishend
 %
-%\paragraph{Comparable performance and costs} The system should at least have
-%comparable costs and performance as the state-of-the-art workflow
-%orchestrators.
-
+%\shadi{in the table, should we have double billing? maybe another term would
+%be better?}\dhl{Changed it to pay-for-what-you-use billing}
+%
+%
+%
+%
+%%In this paper, we examine whether we can have the best of both worlds. We
+%%argue that it is possible to preserve the advantages of workflow orchestrators
+%%while building entirely on top of the existing serverless computing
+%%abstraction without adding any supplemental components.
+%%
+%%Specifically, we aim for a system with the following objectives:
+%%
+%%\paragraph{\emph{Purely serverless}} The system should work within the current
+%%serverless environment and not require adding any new services.
+%%
+%%The system should execute workflows solely as event-driven serverless
+%%functions, and use serverless storage, when necessary, to enable stateful
+%%operations (e.g., fan-in).
+%%
+%%\paragraph{Higher-level programming interface} Developers should express
+%%function compositions with higher-level primitives similar to exising workflow
+%%orchestrators (e.g., AWS Step Functions) instead of ad-hoc mechanisms.
+%%
+%%\paragraph{Supports all common interactions} The system should support all
+%%composition patterns commonly used in orchestrators today, including chaining,
+%%branching, fan-out and fan-in.
+%%
+%%\paragraph{Exactly-once semantics} Even if a function executes multiple times,
+%%due to retries or duplicate invocations, concurrently or non-concurrently, the
+%%final state should appear that the execution happened only once.
+%%
+%%\paragraph{Avoids double billing} Users should only pay for the resources
+%%used. Functions should not synchronously wait for other functions to return.
+%%
+%%\paragraph{Comparable performance and costs} The system should at least have
+%%comparable costs and performance as the state-of-the-art workflow
+%%orchestrators.
