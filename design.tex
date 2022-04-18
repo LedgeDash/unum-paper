@@ -4,13 +4,13 @@
   \centering
   \begin{tabular}{|m{0.2\linewidth}|m{0.75\linewidth}|}
     \hline
-	\textbf{Workflow} & A directed graph of functions that takes an input and produces one or more outputs. \\
+  \textbf{Workflow} & A directed graph of functions that takes an input and produces one or more outputs. \\
     \hline
-	\textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
+  \textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
     \hline
-	\textbf{Invocation} & An invocation of a function one request of the FaaS platform to run a function and is associated with an argument to the function. \\
+  \textbf{Invocation} & An invocation of a function one request of the FaaS platform to run a function and is associated with an argument to the function. \\
     \hline
-	\textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
+  \textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
     \hline
   \end{tabular}
   \caption{\name{} terminology.}
@@ -117,7 +117,9 @@ centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
         frame=single,
         fontsize=\scriptsize
         ]{rust}
-type NodeName
+type NodeName String
+type InvocationName String
+type Size usize
 
 struct IR {
   name: NodeName,
@@ -127,7 +129,7 @@ struct IR {
 enum Invoke {
   Scalar(NodeName),
   Map(NodeName),
-  FanIn(NodeName)
+  FanIn(NodeName, InvocationName, Size)
 }
 
 type Conditional<T> Fn(InvocationRequest, Output) -> Option<T>
@@ -152,7 +154,6 @@ enum Instruction {
 struct InvocationRequest {
   data: Vec<RequestData>,
   workflowId: String,
-  iteration: usize,
   fanOut: Stack<FanOut>,
 }
 
@@ -165,6 +166,7 @@ struct FanOut {
   index: usize,
   size: usize,
   is_map: bool,
+  iteration: usize,
 }
     \end{minted}
     \caption{\name{} IR}
@@ -249,13 +251,48 @@ by a conditional expression that has access to the function output.
 
 \subsection{Fan-in Patterns}\label{sec:design:fanin}
 
-\paragraph{Fan in}
+In fan-in patterns, the results of multiple nodes are used to invoke a single
+target node. Such patterns are a particular challenge for decentralized
+orchestration because invoking the target function cannot happen until all
+branches complete, but there is no centralized orchestrator to wait for this
+condition. Designating one of the dependent functions as a coordinator for the
+fan-in would address this directly, however it waiting could be indefinite
+(there is no guarantee that branches for a fan-in complete soon after each
+other), incurring a potentially large resource cost to do virtually no work, or
+exceed platform enforced time limits on function invocations. Moreover,
+functions typically cannot communicate with each other directly, so it is no
+obvious how a other branches would notify this coordinator of their completion.
+
+\name{}, instead, leverages the same insight as checkpoints---that the datastore
+is provides strong consistency and thus can provide a sufficient coordination
+point. Rather than designate a single branch function as the coordinator, all
+branches are empowered to invoke the fan-in function once all other branches
+have completed. To determine this condition, branches in a fan-in add the name
+of their checkpoint object to a shared set in the datastore. Any branch that
+sees the set has size equal to the number of branches invokes the target
+function using all the branches checkpoints as input.
+
+Importantly, no function need wait for any other to complete. As long as all
+functions complete eventually (in other words, they run at-least once),
+\emph{some} function will read a full set and invoke the fan-in target function.
+More than one function may observe this condition, resulting in multiple
+invocations, but these invocations will be identical and are de-duplicated
+normally (\S\ref{sec:design:execution}).
+
+In order to perform this coordination, branches must know the branching
+factor---the size of the set. The \texttt{FanIn} instruction includes this size,
+which is either specified explicitly, or using a variable from the invocation
+request, commonly the fan-out size.
+
+
+This enables more patterns that commonly arise in applications.
+
+\paragraph{Aggregation}
 After processing data with many parallel branches, applications commonly want to
 aggregate results. For example, to build an index of a large corpus, the
-application might process a chunks in parallel and the aggregate the results.
+application might process chunks in parallel and the aggregate the results.
 \texttt{fan-in} is a common pattern to join back multiple parallel functions, by
-invokeing a single ``sink'' function with the outputs from a vector of functions
-(the fan-in branches).
+invoking a single ``sink'' function with the outputs from a vector of functions.
 
 \paragraph{Fold}
 \texttt{fold} sequentially applies the same function on the outputs of a vector
@@ -498,11 +535,17 @@ minimizing end-to-end latency for a workflow.
 
 Fan-out cases are more complicated because deleting the checkpoint must wait
 until all branches have committed to an output. \name{} repurposes the same
-bitmap-based technique from fan-in to collect checkpoints in fan-in cases as
-well. Branches of a fan-out coordinate via an atomic that each sets after
-checkpointing. Any node that reads a full bitmap deletes the parent's
-checkpoint. This guarantees that the parent's checkpoint is deleted and ensures
-that all branches have first checkpointed.
+set-based technique from fan-in to collect checkpoints in fan-in cases as well.
+The originating node of a fan-out creates a set for branches to coordinate when
+to delete its checkpoint. Branches add themselves to the set after checkpointing
+their own value. Any node that reads a full set deletes the parent's checkpoint
+as well as the set. This guarantees that the parent's checkpoint is deleted and
+ensures that all branches have first checkpointed.
+
+Note that it is possible for one of the branches to re-execute \emph{after} the
+set has been deleted. This is safe because it is the origin of the fan-out that
+creates the set, so a branch's attempt to add itself to a, now, non-existent set
+will simply fail.
 
 \begin{minted}[
     frame=single,
@@ -519,7 +562,18 @@ def egress_fan_out(self, result):
         database_delete(fan_out_gc_bitmap)
 \end{minted}
 
-\subsubsection{Bitmap collection}
+\subsubsection{Fan-in Set collection}
+
+Deleting sets used for fan-in works much like removing checkpoints---the target
+node of a fan-in deletes the set once it has generated a checkpoint. However,
+who \emph{creates} the set?
+
+If each branch in the fan-in creates the set if it doesn't already exist, a
+spurious execution of one of the branches \emph{after} the fan-in target removes
+the original set will create a new one that is never deleted (because it never
+fills, and thus the target function is never invoked again). To avoid this,
+\name{} places the responsibility to create the set on the node that originates
+the \emph{fan-out} at the same level as the target node.
 
 %\section{Design}
 %
