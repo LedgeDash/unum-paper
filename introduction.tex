@@ -1,7 +1,7 @@
 \section{Introduction}
 
 Serverless computing offers a simple but powerful abstraction consisting of
-stateless compute component (Functions as a Service, or FaaS) and scalable,
+stateless compute components (Functions as a Service, or FaaS) and scalable,
 multi-tenant data stores~\cite{berkeley}. Developers build applications using
 task-specific, event-driven ``functions'' without the need to provision or
 manage servers. In turn, serverless platforms have been able to offer high
@@ -22,18 +22,19 @@ simple portability layers have enabled developers to build mostly portable
 applications~\cite{boto3,serverless-framework}.
 
 Originally, serverless platforms targeted simple applications with one or a few
-functions and no or only simple interaction between them. Recently, though, it
-this paradigm has increasingly proven useful for more complex applications
-composed of 10s to 100s functions with rich, stateful, interaction
+functions and no or only simple interaction between them. Recently, though, this
+paradigm has increasingly proven useful for more complex applications composed
+of 10s to 100s functions with rich, stateful, interaction
 patterns~\cite{excamera, pywren, gg-atc, beldi, boki}. Unfortunately, building
 such applications using basic serverless building blocks is challenging.  Due to
 the event driven nature of FaaS functions, complex interaction patterns, such as
-aggregation or fan-in, are difficult to express. Moreover, implementing such
-patters correctly is hard because individual functions be non-deterministic
-while FaaS platform provide at-least once execution guarantees (i.e.\ a function
-may run more than once in response to a single event). Finally, intermediate
-states must be managed efficiently and deleted promptly to avoid incurring
-unbounded storage costs over repeated executions of a workflow.
+fold or fan-in, are difficult to express. Moreover, implementing such
+patterns correctly is hard. FaaS platforms may attempt to execute a function
+invocation more than once, due to lost messages, infrastructure failures, or
+inconsistency in invocation queues, and because individual functions may be
+non-deterministic. Finally, intermediate states must be managed efficiently and
+deleted promptly to avoid incurring unbounded storage costs over repeated
+executions of a workflow.
 
 In order to support complex FaaS applications, cloud providers have built and
 deployed specialized centralized workflow
@@ -63,15 +64,15 @@ engineering and resource cost of making such a service fault tolerant, correct,
 and scalable. In turn, these overheads are typically reflected in high end-user
 prices compared to invoking FaaS functions natively.
 
-These orchestration services make design decisions, e.g., about of interactions
-to support and execution semantics to provide that fit many, but not all
+These orchestration services make design decisions, e.g., about which interactions
+to support and execution semantics to provide, that fit many, but not all
 applications. This results in a trade-off (another word) familiar from operating
 systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn}, and storage
 systems~\cite{comet,rust-comet}---well designed centralized systems efficiently
 support the needs of many applications but cannot meet all application needs.
-Indeed, researchers have devised new orchestrators to support FaaS applications
-that cannot be efficiently run using existing
-orchestrators~\cite{excamera,gg-atc}.
+%Indeed, researchers have devised new orchestrators to support FaaS applications
+%that cannot be efficiently run using existing
+%orchestrators~\cite{excamera,gg-atc}.
 
 %An orchestrator is a stateful component that centralizes execution states and
 %control-flow operations. All function invocations are initiated by the
@@ -130,15 +131,15 @@ into the IR.
 
 At a high level, \name{} relies on the FaaS scheduler to run each function
 invocation \emph{at least} once and consistent datastore operations to
-coordinate interactions and deduplicate multiple attempts to execute the same
+coordinate interactions and deduplicate multiple executions of the same
 function invocation. The key design challenge in \name{} is to provide these
 properties in a decentralized yet efficient manner using a minimal set of
 underlying serverless APIs.
 
 Supporting complex patterns such as fan-in uses objects in a consistent
-datastore as a coordination point for fan-in branches. Ensuring workflow
+datastore as a coordination point for fan-in branches. \name{} ensures workflow
 correctness despite non-deterministic functions that may execute multiple times
-uses checkpoints to commit to exactly one output for a function invocation. Both
+by using checkpoints to commit to exactly one output for a function invocation. Both
 require generating globally unique names for nodes and edges in the execution
 graph \emph{locally} (using information available at each node locally) as well
 as cleaning up intermediate datastore objects in a timely manner.
@@ -186,17 +187,18 @@ as cleaning up intermediate datastore objects in a timely manner.
 
 Our implementation of \name{} includes a compiler for AWS Step Functions'
 description language, enabling \name{} to run arbitrary Step Function workflows.
-While both performance and cost are difficult to compare objectively with
-existing black-box production orchestrators---both are influenced by deployment
-and pricing decisions that may not reflect the underlying efficiency or cost of
-the system---\name{} performs well in practice. We find that a representative
-set of applications run with the same execution semantics and fault-tolerance
-scale better with \name{} than AWS Step Functions, typically perform similarly
-or better at low scale, and cost significantly (more than an order of magnitude)
-less to run (using current pricing choices on AWS, at least). We also
-demonstrate that \name{}'s IR allows hand-tuned applications to run faster than
-their Step Functions equivalent by using application-specific optimizations and
-supporting a richer set of interaction patterns.
+We show that Step Function workflows compiled to \name{} execute with the same
+execution semantics and fault-tolerance as running natively using the Step
+Functions centralized orchestrator.  Moreover, while both performance and cost
+are difficult to compare objectively with existing black-box production
+orchestrators---both are influenced by deployment and pricing decisions that may
+not reflect the underlying efficiency or cost of the system---\name{} performs
+well in practice. We find that a representative set of applications scale better
+with \name{} than AWS Step Functions, typically perform similarly or better at
+low scale, and cost significantly less (more than an order of magnitude) to run.
+We also demonstrate that \name{}'s IR allows hand-tuned applications to run
+faster than their Step Functions equivalent by using application-specific
+optimizations and supporting a richer set of interaction patterns.
 
 %Importantly, \name{}'s decentralization does not sacrifice any of the   fault
 %tolerance and strong execution guarantees of  commonly used orchestrators
