@@ -1,4 +1,4 @@
-\section{Introduction}
+\section{Introduction}\label{sec:intro}
 
 Serverless computing offers a simple but powerful abstraction consisting of
 stateless compute components (Functions as a Service, or FaaS) and scalable,
@@ -22,252 +22,110 @@ simple portability layers have enabled developers to build mostly portable
 applications~\cite{boto3,serverless-framework}.
 
 Originally, serverless platforms targeted simple applications with one or a few
-functions and no or only simple interaction between them. Recently, though, this
-paradigm has increasingly proven useful for more complex applications composed
-of 10s to 100s functions with rich, stateful, interaction
+functions and no, or only simple interaction between them. Recently, though,
+this paradigm has increasingly proven useful for more complex applications
+composed of many functions with rich, stateful, interaction
 patterns~\cite{excamera, pywren, gg-atc, beldi, boki}. Unfortunately, building
 such applications using basic serverless building blocks is challenging.  Due to
-the event driven nature of FaaS functions, complex interaction patterns, such as
-fold or fan-in, are difficult to express. Moreover, implementing such
-patterns correctly is hard. FaaS platforms may attempt to execute a function
+the event driven nature of FaaS functions, fan-in interaction patterns (e.g.\
+aggregations or folds) are difficult to express. Moreover, implementing such
+patterns correctly is hard as FaaS platforms may attempt to execute a function
 invocation more than once, due to lost messages, infrastructure failures, or
-inconsistency in invocation queues, and because individual functions may be
-non-deterministic. Finally, intermediate states must be managed efficiently and
+inconsistency in invocation queues, and individual functions may be
+non-deterministic.  Finally, intermediate states must be managed efficiently and
 deleted promptly to avoid incurring unbounded storage costs over repeated
 executions of a workflow.
 
 In order to support complex FaaS applications, cloud providers have built and
 deployed specialized centralized workflow
 orchestrators~\cite{aws-step-functions, google-cloud-composer, google-workflows,
-durable-functions}. These orchestrators allow developers to provide a
-description of an execution graph---nodes in the graph represent FaaS functions
-and edges represent invocations of a function with the output of one or more
-functions. The orchestrator drives the execution of this graph and hosts the
-state of execution (outstanding invocations and intermediate results) centrally.
+durable-functions}. Developers provide a description of an execution
+graph---nodes in the graph represent FaaS functions and edges represent
+invocations of a function with the output of one or more functions---while the
+orchestrator drives the execution of this graph and hosts the state of execution
+(outstanding invocations and intermediate results) centrally.
 
 Centralization makes supporting complex interactions simple---e.g.\ an
 orchestrator can support fan-in by simply waiting for all branches to complete
-before invoking an aggregation function, Similarly, a centralized orchestrator
+before invoking an aggregation function. Similarly, a centralized orchestrator
 can ensure that workflow results are consistent with an exactly-once execution
 by simply choosing one result for each function invocation in the workflow, even
 if some functions are executed multiple times and return different results. As a
 result, these orchestrators can offer high-level programming interfaces that
-express complex function interactions and promise that workflow results are
-consistent even if individual functions are run more than once.
+express complex function interactions while promising that workflow results are
+consistent even if individual function invocations execute more than once.
 
-In principle, a sequential program running on a dedicated compute instance could
-act as an orchestrator, however such a solution isn't tolerant to faults in the
-orchestrator and does not provide burst scalability to many workflow
-invocations. Instead, application developers typically rely on one or two
-multi-tenant orchestration services run by the cloud provider that amortizes the
-engineering and resource cost of making such a service fault tolerant, correct,
-and scalable. In turn, these overheads are typically reflected in high end-user
-prices compared to invoking FaaS functions natively.
+In principle, developers could deploy their own orchestrators, written as
+sequential programs running on a dedicated machine function. However, such a
+solution isn't tolerant to faults in the orchestrator and does not provide burst
+scalability to many workflow invocations. Instead, application developers
+typically rely on a multi-tenant orchestration service run by the cloud provider
+that amortizes the engineering and resource cost of making orchestration fault
+tolerant, correct, and scalable. In turn, these overheads are typically
+reflected in high end-user prices compared to invoking FaaS functions natively.
 
-These orchestration services make design decisions, e.g., about which interactions
-to support and execution semantics to provide, that fit many, but not all
-applications. This results in a trade-off (another word) familiar from operating
+These orchestration services make design decisions, e.g., about which
+interactions to support and execution semantics to provide, that fit many, but
+not all applications. This results in a compromise familiar from operating
 systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn}, and storage
 systems~\cite{comet,rust-comet}---well designed centralized systems efficiently
 support the needs of many applications but cannot meet all application needs.
+%
 %Indeed, researchers have devised new orchestrators to support FaaS applications
 %that cannot be efficiently run using existing
 %orchestrators~\cite{excamera,gg-atc}.
 
-%An orchestrator is a stateful component that centralizes execution states and
-%control-flow operations. All function invocations are initiated by the
-%orchestrator, and all workflow states (e.g., function results) flow through the
-%orchestrator. Therefore, building complex interaction patterns is relatively
-%straightforward: for each workflow transition in a serverless application, the
-%orchestrator waits for currently running functions to complete, determines what
-%to do with their results, and which function(s) to run next. Similarly, a
-%centralized orchestrator simplifies failure handling. The entire workflow state
-%resides in the orchestrator and can be easily checkpointed.
-%
-%However, centralization is not a panacea. Centralized orchestrators are
-%communication-intensive, as all control and data must flow back and forth
-%between the orchestrator and the functions. Moreover, because orchestration
-%functionality is commonly provided by a separate stateful hosted service
-%\cite{aws-step-functions, google-cloud-composer, google-workflows}, this
-%requires development and operation of yet another scalable, multi-tenant,
-%fault-tolerant, billable service, in addition to serverless compute and storage
-%infrastructure.
-
-%Such centralized orchestrators enable new classes of serverless applications,
-%but requires an additional multi-tenant service to be maintained and operated
-%and adds additional constraints on performance and scalability.
-
-%While basic serverless build blocks are the result of decades of research and
-%engineering to achieve performant and scalable compute and storage
-%infrastructure, orchestrators perform specialized functionality that must solve
-%scalability and performance problems independently. Applications may suffer, for
-%example, from scalability bottlenecks in the orchestrator even if storage and
-%FaaS platforms can support much higher burst-scalability. Moreover, an
-%orchestrator represents yet-another system for which platform providers must fix
-%bugs, maintain high availability, and provision resources.
-
 In this paper, we try to answer a simple question: \textit{is centralization
 \emph{necessary} to achieve the benefits of workflow  orchestrators?} We argue
 it is not. In particular, the scalable and strongly consistent datastores
-already provided as part of the basis of serverless systems resolve the hardest
+already provided as a basis for serverless platforms resolve the hardest
 challenge of centralization: coordination. Using such datastores, we show that a
 decentralized orchestrator can achieve strong execution guarantees and run
-complex execution efficiently. We argue that decentralizing orchestration
+complex execution graphs efficiently. We argue that decentralizing orchestration
 is better for cloud providers as they need not develop and maintain yet another
-complex service, and better for developers as is gives applications more
+complex service. It is better for developers as it gives applications more
 flexibility to use more performant, applications-specific orchestration
 optimizations and makes porting applications between different cloud platforms
 easier.
 
-We present \name{}, a system for decentralized serverless workflow
-orchestration. \name{} provides orchestration as a library, rather than a
-separate service, that runs in-situ with user defined FaaS functions. The
-library relies on a minimal set of existing serverless APIs---function
-invocation and a few basic datastore operations---that are common across cloud
-platforms. \name{} introduces an intermediate representation language to express
-interactions execution graphs using only node-local information while supporting
-front-end compilers that can transform high-level workflow descriptions
-into the IR.
+To support these arguments, we present \name{}, a system for decentralized
+serverless workflow orchestration (\S\ref{sec:design}). \name{} provides
+orchestration as a library that runs in-situ with user defined FaaS functions,
+rather than as a separate service. The library relies on a minimal set of
+existing serverless APIs---function invocation and a few basic datastore
+operations---that are common across cloud platforms. \name{} introduces an
+intermediate representation (IR) language to express interactions execution
+graphs using only node-local information while supporting front-end compilers
+that can transform high-level workflow descriptions into the IR.
 
 At a high level, \name{} relies on the FaaS scheduler to run each function
 invocation \emph{at least} once and consistent datastore operations to
-coordinate interactions and deduplicate multiple executions of the same
-function invocation. The key design challenge in \name{} is to provide these
-properties in a decentralized yet efficient manner using a minimal set of
-underlying serverless APIs.
+coordinate interactions and deduplicate multiple executions of the same function
+invocation. The key design challenge in \name{} is to provide these properties
+in a decentralized yet efficient manner using a minimal set of underlying
+serverless APIs.
 
-Supporting complex patterns such as fan-in uses objects in a consistent
-datastore as a coordination point for fan-in branches. \name{} ensures workflow
-correctness despite non-deterministic functions that may execute multiple times
-by using checkpoints to commit to exactly one output for a function invocation. Both
-require generating globally unique names for nodes and edges in the execution
-graph \emph{locally} (using information available at each node locally) as well
-as cleaning up intermediate datastore objects in a timely manner.
+\name{} fan-ins use objects in a consistent datastore as a coordination point
+for fan-in branches. \name{} ensures workflow correctness despite multiple
+executions of non-deterministic functions by using checkpoints to commit to
+exactly one output for a function invocation. Both require generating globally
+unique names for nodes and edges in the execution graph \emph{locally} (using
+information available at each node locally) as well as cleaning up intermediate
+datastore objects in a timely manner.
 
-%\paragraph{Correctness with failures}. FaaS platforms guarantee at-least once
-%execution of individual function invocations---if the machine running a function
-%instance crashes, for example, the invocation may need to be re-executed on a
-%different machine. Because functions may not be deterministic, each execution
-%may return different results which. If different results were used for different
-%branches in a fan-out, for example, this could yield not only multiple, but
-%\emph{inconsistent} workflow results. In a centralized setting, the orchestrator
-%simply chooses \emph{one} of the executions' results to pass to downstream
-%workflow functions. The result is that, in practice, centralized orchestrators
-%can guarantee that the result of a workflow is equivalent to some execution of
-%the workflow where each function invocation executed \emph{excatly-once}
-%(ignoring observable side-effects in the functions).  \name{} provides the same
-%execution guarantees without centralization by atomically checkpointing the
-%result of function invocations, thus``committing'' to the result of a particular
-%execution.
-%
-%\amit{this is similar to the execution guarantees for MapReduce. Unfortunately
-%they don't have a name for it. It's not exactly exactly once}
-%
-%\paragraph{Fan-in and aggregation patterns}. While many workflow
-%patterns---e.g.\ pipelines, fan-out, and map---are simple to implement in a
-%decentralized manner, fan-ins and aggregations---where the next node in the
-%execution graph relies on results from many previous nodes---require some form
-%of coordination. Centralized orchestrators know how many such dependencies exist
-%(how many branches are involved in a fan-in) and store the results of each
-%dependency. When all results are available, it invokes the aggregation node with
-%all these results. Because no such centralized component exists in \name{},
-%branches must instead coordinate among themselves to invoke the next function
-%only when all inputs are available. Importantly, \name{} should achieve this
-%without requiring branches that complete early to wait, as this wastes FaaS
-%resources. Instead, \name{} uses atomic operations or transactions in the
-%datastore to fill a shared bitmap. Whichever function fills the last bit in the
-%bitmap invokes the next function.
-%
-%\paragraph{Garbage collection} Both ensuring execution correctness and handling
-%fan-ins generates intermediate data (checkpoints and bitmaps, respectively) that
-%should not persist longer than needed. \name{} is architected such that
-%checkpoints for two steps in the execution graph and bitmaps are only needed
-%until the next function is invoked. \name{} uses this property to delete
-%intermediate data quickly and predictably.
+Our implementation of \name{} (\S\ref{sec:impl}) includes a compiler for AWS Step
+Functions' description language, enabling \name{} to run arbitrary Step Function
+workflows.  We show that Step Function workflows compiled to \name{} execute
+with the same execution semantics and fault-tolerance as running natively using
+the Step Functions centralized orchestrator.
 
-Our implementation of \name{} includes a compiler for AWS Step Functions'
-description language, enabling \name{} to run arbitrary Step Function workflows.
-We show that Step Function workflows compiled to \name{} execute with the same
-execution semantics and fault-tolerance as running natively using the Step
-Functions centralized orchestrator.  Moreover, while both performance and cost
-are difficult to compare objectively with existing black-box production
-orchestrators---both are influenced by deployment and pricing decisions that may
-not reflect the underlying efficiency or cost of the system---\name{} performs
-well in practice. We find that a representative set of applications scale better
-with \name{} than AWS Step Functions, typically perform similarly or better at
-low scale, and cost significantly less (more than an order of magnitude) to run.
-We also demonstrate that \name{}'s IR allows hand-tuned applications to run
-faster than their Step Functions equivalent by using application-specific
-optimizations and supporting a richer set of interaction patterns.
-
-%Importantly, \name{}'s decentralization does not sacrifice any of the   fault
-%tolerance and strong execution guarantees of  commonly used orchestrators
-%\cite{aws-step-functions, durable-functions, google-cloud-composer,
-%google-workflows}.  In particular, \name{} guarantees that workflows produce
-%consistent results. There is no risk of workflow divergence due to
-%unanticipated function nondeterminism or concurrency---a common source of
-%errors when developers attempt to compose serverless functions without the
-%help of a workflow system.
-
-%In particular, for side-effect-free functions, this guaranteeThis matches the guarantees provided by central orchestrators, such as Step Functionsexecution semantics even if an application's constituent function
-%fails and is retried or is otherwise run multiple times by the FaaS system.
-%Even if some constituent functions execute multiple times, the final application
-%states appear as if all functions executed once.
-
-%\dhl{Design insights, highlights and overview}
-
-% \name{} uses a two-stage compiler that tackles the complexity of orchestration
-% at compile-time and removes the need to use hosted orchestrator services for
-% workflow execution. The compiler transforms workflow definitions (e.g., Step
-% Functions state machines) to a continuation-based intermediary representation
-% (the \name{} IR \S\ref{sec:design-ir}) and distributes the continuations to
-% constiuent functions such that each function is responsible for invoking its
-% immediate downstream functions.
-
-% Workflow functions in \name{} are deployed with a runtime wrapper that
-% transparently interposes on user code entry and exit. \name{} runtime wrapper
-% does not change how users build functions. Developer can still write functions
-% exactly the same way as if they are individual functions, and do not need to
-% import any additional libraries in order to use \name{}.
-
-% During execution, when user code completes, the runtime wrapper executes the
-% assigned continuations which triggers its immediate downstream functions in
-% the workflow. Each function performs the same action in the order defined in
-% the workflow such that the orchestration logic is distributedly executed by
-% the collection of constituent functions.\shadi{this last sentence is a bit vague, reword.}
-
-%  a runtime wrapper transparently interposes on user code
-% entry and exit and executes the assigned continuations when user code
-% completes. The \name{} runtime wrapper does not change how users build
-% functions. Developer can still write functions exactly the same way as if they
-% are individual functions, and do not need to import any additional libraries
-% in order to use \name{}.
-
-% We present and evaluate an implementation of \name{} that can compile Step
-% Functions state machines and execute them purely as Lambda functions using
-% either S3 or DynamoDB as the data store. The implementation supports all
-% orchestration patterns in Step Functions. Our experimental results show that,
-% compared with Step Functions, \name{} improves performance by 11-28\% in the
-% case of chaining functions and up to 4.5x in high-parallelism patterns such as
-% fan-out. At the same time, \name{} significantly reduces the cost of running
-% applications by 3.7x to 32.8x.
-
-%This paper makes the following contributions:
-%
-%\squishlist
-%
-%  \item A low-level intermediate representation that partitions workflow logic
-%  to functions.
-%
-%  \item A runtime that implements common orchestration patterns
-%  (e.g., chaining, branching, fan-out, fan-in) in a decentralized manner and
-%  run in-situ with user-defined FaaS functions and
-%
-%  \item An implementation of the \name{} runtime for AWS Lambda and
-%DynamoDB as well as a compiler from the AWS Step Functions language to
-%\name{}'s low level IR
-
-%\squishend
-% -------
-
-% execution guarantee challenges.
+Moreover, while both performance and cost are difficult to compare objectively
+with existing black-box production orchestrators---both are influenced by
+deployment and pricing decisions that may not reflect the underlying efficiency
+or cost of the system---\name{} performs well in practice (\S\ref{sec:eval}). We
+find that a representative set of applications scale better with \name{} than
+AWS Step Functions, typically complete faster low scale, and cost
+significantly less (by over an order of magnitude) to run. We also demonstrate
+that \name{}'s IR allows hand-tuned applications to run faster than their Step
+Functions equivalent by using application-specific optimizations and supporting
+a richer set of interaction patterns.
