@@ -3,13 +3,13 @@
 \subsection{AWS Lambda}
 
 \begin{enumerate}
-  \item Asynchronous invocation
+  \item \textbf{Asynchronous invocation} supported natively with via the \texttt{Invoke} API and \texttt{InvocationType} ``Event''.
 \end{enumerate}
 
 \subsubsection{DynamoDB}
 
 \begin{enumerate}
-  \item Create and write to object with value
+  \item \textbf{Create and write to object with value} Uses \texttt{put\_item} with the conditional flag \texttt{attribute\_not\_exists} for the key.
   \item Create Set
   \item Add to set
   \item Get set size
@@ -27,13 +27,13 @@
 \subsection{Google Cloud Functions}
 
 \begin{enumerate}
-  \item Asynchronous invocation
+  \item \textbf{Asynchronous invocation} enqueue the event in a function-specific Pub/Sub queue. On deployment, the function is set up as a subscriber to the queue to run for each event.
 \end{enumerate}
 
 \subsubsection{Firestore}
 
 \begin{enumerate}
-  \item Create and write to object with value
+  \item \textbf{Create and write to object with value} A firestore document \texttt{create} operation writes a value to a key only if the key doesn't exist
   \item Create Set
   \item Add to set
   \item Get set size
