@@ -1,10 +1,14 @@
-\section{Design}\label{sec:design}
+\section{\name{} Design}\label{sec:design}
 
-\name{} orchestrates the execution of workflows in a decentralized manner on top of
-a FaaS platform and a scalable consistent storage service. Workflows are modeled
-as a directed execution graph where nodes represent user-defined FaaS functions
-and each edge represents an invocation of one functions (incoming edge) with the
-output of one or more other functions (outgoing edges).
+\name{} is an orchestration system that achieves the flexibility of ad-hoc
+orchestration without comprosmising the scalability, fault-tolerance, and
+execution guarantees of centralized orchestrators. It does so by placing
+decentralized orchestration logic in a library that runs in-situ with FaaS
+fucntions and leverages a scalable consistent storage service for coordination
+and deduplication. Similar to many centralized orchestrators, \name{} workflows
+are modeled as a directed execution graph where nodes represent user-defined
+FaaS functions and each edge represents an invocation of one function (incoming
+edge) with the output of one or more other functions (outgoing edges).
 
 An \name{} graph may include fan-outs, where output from a node is used to
 invoke several functions or split up and ``mapped'' multiple times on the same
@@ -72,13 +76,15 @@ placed alongside the function and dynamically imported, rather than statically
 linking an object file}
 
 Each runtime is composed of an ingress and egress component that run,
-respectively, before and after the user-defined function. The egress component
-coalesces input data from each incoming edge (e.g.\ in a fan-in), resolves input
-data if passed by name rather than by value, and passes the input value to the
-function. The egress component uses the function's result to invoke the next
-function(s) as determined by the node's IR, ensures execution semantics using
-checkpoints, performs coordination with sibling branches in fan-in, and deletes
-intermediate states no longer needed for the workflow.
+respectively, before and after the user-defined function and unwrap and wrap the
+results of the function in \name{} execution state
+(Figure~\ref{fig:design:unum-request}). The ingress component coalesces input
+data from each incoming edge (e.g.\ in a fan-in), resolves input data if passed
+by name rather than by value, and passes the input value to the function. The
+egress component uses the function's result to invoke the next function(s) as
+determined by the node's IR, ensures execution semantics using checkpoints,
+performs coordination with sibling branches in fan-in, and deletes intermediate
+states no longer needed for the workflow.
 
 Developers deploy each linked function along with its IR to the FaaS platform.
 The workflow is invoked by invoking the first function in the graph.  The
@@ -89,48 +95,35 @@ centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
 
 \subsection{\name{} Intermediate Representation}\label{sec:design:ir}
 
-\begin{figure}[t!]
-    \centering
-    \begin{minted}[
-        frame=single,
-        fontsize=\scriptsize
-        ]{rust}
-type NodeName String
-type InvocationName String
-type Size usize
+\begin{table}[t]
+  \centering
+  \begin{tabular}{|m{0.2\linewidth}|m{0.75\linewidth}|}
+    \hline
+  \texttt{Invoke} & Queue a single invocation of a function.\\
+    \hline
+  \texttt{Map} & Queue once invocation of a function for each element in the current function's result.\\
+    \hline
+  \texttt{FanIn} & Queue a fan in to a function using the provided coordination set object and size.\\
+    \hline
+  \texttt{Pop} & Pope's the top frame of the execution state stack (passed via \name{} requests). \\
+    \hline
+  \texttt{Next} & Increments the current execution state frame's iteration counter.\\
+    \hline
+  \texttt{CreateSet} & Creates a coordination set object in the datastore with the provided name.\\
+    \hline
+  \end{tabular}
+  \caption{\name{} intermediate representation instructions.}
+  \label{table:irschema}
+\end{table}
 
-struct IR {
-  name: NodeName,
-  instructions: Vec<Instruction>
-}
-
-enum Invoke {
-  Scalar(NodeName),
-  Map(NodeName),
-  FanIn(NodeName, InvocationName, Size)
-}
-
-type Conditional<T> Fn(InvocationRequest, Output) -> Option<T>
-
-enum Instruction {
-  PopFanOut,
-  IncrIteration,
-  Invoke(Invoke),
-  InvokeCond(Conditional<Invoke>)
-}
-    \end{minted}
-    \caption{\name{} IR}
-    \label{fig:design:irschema}
-\end{figure}
-
-\begin{figure}[t!]
+\begin{figure}[t]
     \centering
     \begin{minted}[
         frame=single,
         fontsize=\scriptsize
         ]{rust}
 struct InvocationRequest {
-  data: Vec<RequestData>,
+  data: Vec<DatastoreObjectName>,
   workflowId: String,
   fanOut: Stack<FanOut>,
 }
@@ -143,11 +136,13 @@ struct RequestData {
 struct FanOut {
   index: usize,
   size: usize,
-  is_map: bool,
   iteration: usize,
 }
     \end{minted}
-    \caption{\name{} IR}
+    \caption{An \name{} request wraps the outputs of parent nodes with execution
+state that allows function invocations to be named uniquely and assists in
+coordinating fan-ins. \name{} IR instructions can reference this metadata and
+modify it for subsequent functions.}
     \label{fig:design:unum-request}
 \end{figure}
 
@@ -167,12 +162,12 @@ invocation request and the current function's output. There are three kinds of
 invocations \name{}'s IR enables:
 
 \begin{itemize}
-  \item \textbf{Scalar} simply invokes the named function using the
+  \item \textbf{Invoke} simply invokes the named function using the
         current functions output.
   \item \textbf{Map} treats the current function's output as iterable data
         (e.g.\ a list) and invokes the named function once for each item in the
         output.
-  \item \textbf{Fan-in} invokes the named function using the current function's
+  \item \textbf{FanIn} invokes the named function using the current function's
         output along with the outputs of all other functions fanning into the
         same node. Fan-in requires coordination among multiple functions and is
         described in detail in \S\ref{sec:design:fanin}.
@@ -186,9 +181,9 @@ This allows different invocations of the same function to be differentiated for
 naming (\S\ref{sec:design:naming}) and to coordinate fan-in
 (\S\ref{sec:design:fanin}).
 
-Finally, the \texttt{IncrIteration} and \texttt{PopFanOut} instructions operate
-to, respectively, increment the iteration field and pop the \texttt{fan\_out}
-stack in next functions' invocation request.
+%Finally, the \texttt{IncrIteration} and \texttt{PopFanOut} instructions operate
+%to, respectively, increment the iteration field and pop the \texttt{fan\_out}
+%stack in next functions' invocation request.
 
 Using this relatively basic IR, it is simple to represent the most common patterns.
 
