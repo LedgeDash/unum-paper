@@ -1,5 +1,45 @@
 \section{Implementation}\label{sec:impl}
 
+\subsection{AWS Lambda}
+
+\begin{enumerate}
+  \item Asynchronous invocation
+\end{enumerate}
+
+\subsubsection{DynamoDB}
+
+\begin{enumerate}
+  \item Create and write to object with value
+  \item Create Set
+  \item Add to set
+  \item Get set size
+\end{enumerate}
+
+\subsubsection{S3}
+
+\begin{enumerate}
+  \item Create and write to object with value
+  \item Create Set
+  \item Add to set
+  \item Get set size
+\end{enumerate}
+
+\subsection{Google Cloud Functions}
+
+\begin{enumerate}
+  \item Asynchronous invocation
+\end{enumerate}
+
+\subsubsection{Firestore}
+
+\begin{enumerate}
+  \item Create and write to object with value
+  \item Create Set
+  \item Add to set
+  \item Get set size
+\end{enumerate}
+
+
 We implement a prototype of \name{} that runs Python functions on AWS Lambda
 with DynamoDB as the intermediary data store. The frontend compiler
 supports workflows written as AWS Step Functions state machines. The compiler
