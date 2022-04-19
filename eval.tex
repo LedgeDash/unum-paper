@@ -448,14 +448,46 @@ input.}
 
 \begin{table*}[t]
   \centering
-  \begin{tabular}{ll|rrr|rr}
-    \hline
-    &                        & \multicolumn{3}{c}{\textbf{Latency (seconds)}}            & \multicolumn{2}{c}{\textbf{Cost (\$ per \emph{1 mil.} executions)}}       \\
-    \textbf{Application} & \textbf{Pattern}       & \textit{\name{} (aws)} & \textit{\name{} (gcloud)} & \textit{Step Functions}   & \textit{\name{}} & \textit{Step Functions}            \\ \hline
-    IoT Pipeline         & chain                  & 0.18      & 0.81 & 0.23       & 4.1       & 112.1   \\
-    Text Processing      & fan-out, fan-in        & 0.56      & 3.56 & 0.55       & 12.0      & 196.3   \\
-    Wordcount            & chain, fan-out, fan-in & 410.64    & 484.00 & 898.56     & 4,904.8   & 18,113.0 \\
-    ExCamera             & chain, fan-out, fold   & 84.17     & 393.46 & 98.42      & 37,289.1   & 110,494.7      \\ \hline
+  \begin{tabular}{|l|rrr|rrr|}
+\hline
+\textbf{} &
+  \multicolumn{3}{c|}{\textbf{Latency (seconds)}} &
+  \multicolumn{3}{c|}{\textbf{Costs (\$ per 1 mil. executions)}} \\ \hline
+\textbf{Application} &
+  \multicolumn{1}{c|}{\textit{Unum (no GC)}} &
+  \multicolumn{1}{c|}{\textit{Unum (GC)}} &
+  \multicolumn{1}{l|}{\textit{Step Functions}} &
+  \multicolumn{1}{c|}{\textit{Unum (no GC)}} &
+  \multicolumn{1}{c|}{\textit{Unum (GC)}} &
+  \multicolumn{1}{l|}{\textit{Step Functions}} \\ \hline
+\textit{IoT Pipeline} &
+  \multicolumn{1}{r|}{0.12} &
+  \multicolumn{1}{r|}{0.12} &
+  0.23 &
+  \multicolumn{1}{r|}{\$6.19} &
+  \multicolumn{1}{r|}{\$11.83} &
+  \$112.10 \\ \hline
+\textit{Text Processing} &
+  \multicolumn{1}{r|}{0.46} &
+  \multicolumn{1}{r|}{0.52} &
+  0.55 &
+  \multicolumn{1}{r|}{\$27.29} &
+  \multicolumn{1}{r|}{\$52.62} &
+  \$196.30 \\ \hline
+\textit{Wordcount} &
+  \multicolumn{1}{r|}{405.70} &
+  \multicolumn{1}{r|}{408.88} &
+  898.56 &
+  \multicolumn{1}{r|}{\$6,770.02} &
+  \multicolumn{1}{r|}{\$15,904.57} &
+  \$18,113.00 \\ \hline
+\textit{ExCamera} &
+  \multicolumn{1}{r|}{84.46} &
+  \multicolumn{1}{r|}{84.52} &
+  98.42 &
+  \multicolumn{1}{r|}{\$49,306.90} &
+  \multicolumn{1}{r|}{\$77,298.35} &
+  \$110,494.70 \\ \hline
   \end{tabular}
   \caption{Application latency and costs comparison between \name{} and Step
     Functions. Running applications on \name{} is 3.7x to 27.3x cheaper than
