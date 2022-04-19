@@ -1,21 +1,39 @@
 \section{Background \& Motivation}\label{sec:bg}
 
 \begin{table}[]
-\centering
-\scriptsize
-\resizebox{\linewidth}{!}{
-\begin{tabular}{|l|p{0.05\textwidth}<{\centering}|p{0.06\textwidth}<{\centering}|p{0.05\textwidth}<{\centering}|p{0.04\textwidth}<{\centering}|}
-\hline
- & \textbf{Trigger-based} & \textbf{Driver functions} & \textbf{Orchestr-ators} & \textbf{\name{}} \\ \hline
-\textit{No new services}   &  \cmark & \cmark & \xmark & \cmark \\ \hline
-\textit{Higher-level interface}     & \xmark & \xmark & \cmark & \cmark \\ \hline
-\textit{Exactly-once semantics} & \xmark & \xmark & \cmark & \cmark \\ \hline
-\textit{Pay-for-what-you-use billing}       & \cmark & \xmark & \cmark & \cmark \\ \hline
-\end{tabular}
-}
-\caption{Comparison with existing approaches}
-\label{table:positioning}
+  \centering
+  \begin{tabular}{|m{0.2\linewidth}|m{0.75\linewidth}|}
+    \hline
+  \textbf{Workflow} & A directed graph of functions that takes an input and produces one or more outputs. \\
+    \hline
+  \textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
+    \hline
+  \textbf{Invocation} & An invocation of a function one request of the FaaS platform to run a function and is associated with an argument to the function. \\
+    \hline
+  \textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
+    \hline
+  \end{tabular}
+  \caption{\name{} terminology.}
+  \label{table:terms}
 \end{table}
+
+
+%\begin{table}[]
+%\centering
+%\scriptsize
+%\resizebox{\linewidth}{!}{
+%\begin{tabular}{|l|p{0.05\textwidth}<{\centering}|p{0.06\textwidth}<{\centering}|p{0.05\textwidth}<{\centering}|p{0.04\textwidth}<{\centering}|}
+%\hline
+% & \textbf{Trigger-based} & \textbf{Driver functions} & \textbf{Orchestr-ators} & \textbf{\name{}} \\ \hline
+%\textit{No new services}   &  \cmark & \cmark & \xmark & \cmark \\ \hline
+%\textit{Higher-level interface}     & \xmark & \xmark & \cmark & \cmark \\ \hline
+%\textit{Exactly-once semantics} & \xmark & \xmark & \cmark & \cmark \\ \hline
+%\textit{Pay-for-what-you-use billing}       & \cmark & \xmark & \cmark & \cmark \\ \hline
+%\end{tabular}
+%}
+%\caption{Comparison with existing approaches}
+%\label{table:positioning}
+%\end{table}
 
 
 %\begin{figure}[t!]
