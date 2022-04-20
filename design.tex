@@ -60,56 +60,49 @@ invocation of the target function.
 	\label{fig:arch}
 \end{figure*}
 
-Figure~\ref{fig:arch:unum-compile-time} depicts how a developer goes from a high
-level workflow description and functions to running the workflow in a
-decentralized manner using \name{}.
-
-Developers write individual functions and describe the workflow using a
-high-level workflow language, such as Step Function's expression language. They
-pass this description and functions through a front-end \name{} compiler that
-extracts portable \name{} IR for each node in the graph and ``attaches'' it to
-the function (e.g.\ by placing a file containing the IR alongside the function
-code). A backend \name{} linker ``links'' each function with a
+Figure~\ref{fig:arch:unum-compile-time} depicts how developers run serverless
+workflows using \name{}. Developers write individual functions and describe the
+workflow using a high-level workflow language, such as Step Function's
+expression language. An \name{} front-end compiler uses these to extract
+portable \name{} IR for each node in the graph and ``attaches'' it to the
+function (e.g.\ by placing a file containing the IR alongside the function
+code). A platform-specific \name{} linker ``links'' each function with a
 platform-specific \name{} runtime library.~\footnote{Since functions are
 typically written in dynamic languages, the \name{} library source code is
 placed alongside the function and dynamically imported, rather than statically
-linking an object file}
+linking an object file} Developers deploy each linked function along with its IR
+to the FaaS platform.  Invoking the first function in the graph (e.g.\ using an
+HTTP or storage trigger) starts a workflow.
 
-Each runtime is composed of an ingress and egress component that run,
-respectively, before and after the user-defined function and unwrap and wrap the
-results of the function in \name{} execution state
+The runtime library is composed of an ingress and egress component that run
+before and after the user-defined function and unwrap and wrap the results of
+the function in \name{} execution state, respectively
 (Figure~\ref{fig:design:unum-request}). The ingress component coalesces input
 data from each incoming edge (e.g.\ in a fan-in), resolves input data if passed
 by name rather than by value, and passes the input value to the function. The
-egress component uses the function's result to invoke the next function(s) as
-determined by the node's IR, ensures execution semantics using checkpoints,
-performs coordination with sibling branches in fan-in, and deletes intermediate
-states no longer needed for the workflow.
-
-Developers deploy each linked function along with its IR to the FaaS platform.
-The workflow is invoked by invoking the first function in the graph.  The
-\name{} runtime is responsible for interpreting the \name{} IR at each node and
-invoking next functions, performing coordination, checkpointing, and garbage
-collection to execute the workflow in-situ with functions, in lieu of a
+egress component uses the function's result to invoke the next function(s),
+enforces execution semantics using checkpoints, performs coordination with
+sibling branches in fan-in, and deletes intermediate states no longer needed for
+the workflow, executing the workflow in-situ with the functions, in lieu of a
 centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
 
 \subsection{\name{} Intermediate Representation}\label{sec:design:ir}
 
 \begin{table}[t]
   \centering
-  \begin{tabular}{|m{0.18\linewidth}|m{0.73\linewidth}|}
+  \begin{tabular}{|m{0.45\linewidth}|m{0.45\linewidth}|}
     \hline
-  \texttt{Invoke} & Queue a single invocation of a function.\\
+  \texttt{Invoke(Fn)} & Queue a single invocation of a function.\\
     \hline
-  \texttt{Map} & Queue one function invocation for each element in the current function's result.\\
+  \texttt{Map(Fn)} & Queue one function invocation for each element in the current function's result.\\
     \hline
-  \texttt{FanIn} & Queue a fan-in to a function using the provided coordination set object and size.\\
+  \texttt{FanIn(Set, Size, Fn)} & Queue a fan-in to a function using the provided coordination set object and size.\\
     \hline
   \texttt{Pop} & Pops the top frame of the execution state stack (passed via \name{} requests). \\
     \hline
   \texttt{Next} & Increments the current execution state frame's iteration counter.\\
     \hline
-  \texttt{CreateSet} & Creates a coordination set object in the datastore with the provided name.\\
+  \texttt{CreateSet(Name)} & Creates a coordination set object in the datastore with the provided name.\\
     \hline
   \end{tabular}
   \caption{\name{} intermediate representation instructions.}
@@ -158,8 +151,8 @@ functions and operate on state metadata passed between functions in
 The egress component, which receives the function's user-code output, executes
 the IR and uses it to determine which next steps to take. An invocation can be
 protected by a conditional---a boolean expression that operates on the
-invocation request and the current function's output. There are three kinds of
-invocations \name{}'s IR enables:
+invocation request and the current function's output. \name{}'s IR provides
+three kinds of invocations:
 
 \begin{itemize}
   \item \textbf{Invoke} simply invokes the named function using the
@@ -174,18 +167,18 @@ invocations \name{}'s IR enables:
 \end{itemize}
 
 When multiple invocations occur, either using multiple instructions or a single
-\texttt{Map} invocation, each of the invocations adds a fan out frame to the
-invocation request's fan-out stack, including the total number of invocations
-(\texttt{size}) and the index of the particular invocation (\texttt{index}).
-This allows different invocations of the same function to be differentiated for
-naming (\S\ref{sec:design:naming}) and to coordinate fan-in
-(\S\ref{sec:design:fanin}).
+\texttt{Map} invocation, each of the invocations adds a fan-out frame to the
+invocation request's fan-out stack. This allows different invocations of the
+same function to be differentiated for naming (\S\ref{sec:design:naming}) and to
+coordinate fan-in (\S\ref{sec:design:fanin}).
 
-%Finally, the \texttt{IncrIteration} and \texttt{PopFanOut} instructions operate
-%to, respectively, increment the iteration field and pop the \texttt{fan\_out}
-%stack in next functions' invocation request.
+The IR also includes instructions for manipulating the \name{} request data and
+an instruction that creates a new coordination set, typically for use in later
+nodes to coordinate fan-in (\S\ref{sec:design:fanin}) or garbage collection
+(\S\ref{sec:design:garbage}).
 
-This IR is sufficient to represent the most common patterns.
+This IR is sufficient to represent basic patterns, as well as more complex
+fan-in patterns (described in \S\ref{sec:design:fanin}).
 
 \paragraph{Chain \& Fan-out.}
 \name{} encodes passing the output of a function to one (chaining) or more
@@ -259,7 +252,7 @@ object exists, it bypasses the user-defined function and passes the checkpoint
 value directly to the egress component to invoke downstream functions. This is
 not necessary for correctness (and it is, of course, possible for the checkpoint
 to be added after a concurrent execution checks for its existence in the ingress
-component) but helps reduce computation that we know to be unused.
+component) but helps reduce computation that we know will go unused.
 
 \begin{figure}
 \begin{minted}[
@@ -295,12 +288,11 @@ rather than the result their own execution returned.}
 
 \subsubsection{Fault Tolerance}
 
-The FaaS platform guarantees that even in the presence of faults, at least one
-execution of a function invocation will complete. \name{}'s checkpointing
-mechanism ensures that while faults may occur at any point during the execution of a
-function's user code or the \name{} library, and while downstream functions may
-be invoked multiple times by different executions of the same invocation, a
-single value is always used to invoke downstream functions.
+\name{}'s checkpointing mechanism ensures that while faults may occur at any
+point during the execution of a function's user code or the \name{} library, and
+while downstream functions may be invoked multiple times by different executions
+of the same invocation, a single value is always used to invoke downstream
+functions.
 
 If there is a fault after the user code completes but before creating the
 checkpoint, its value is ignored (indeed, never seen) by other attempts to
@@ -319,20 +311,20 @@ target node. Such patterns are a particular challenge for decentralized
 orchestration because invoking the target function cannot happen until all
 branches complete, but there is no centralized orchestrator to wait for this
 condition. Designating one of the dependent functions as a coordinator for the
-fan-in would address this directly, however it waiting could be indefinite
-(there is no guarantee that branches for a fan-in complete soon after each
-other), incurring a potentially large resource cost to do virtually no work, or
-exceed platform enforced time limits on function invocations. Moreover,
-functions typically cannot communicate with each other directly, so it is not
-obvious how other branches would notify this coordinator of their completion.
+fan-in would address this directly, however there is no guarantee that branches
+for a fan-in complete soon after each other, incurring a potentially large
+resource cost to do virtually no work, or exceeding platform enforced time
+limits on function invocations. Moreover, functions typically cannot communicate
+with each other directly, so it is not obvious how other branches would notify
+this coordinator of their completion.
 
-\name{}, instead, leverages the same insight as checkpoints---that the datastore
-is provides strong consistency and thus can provide a sufficient coordination
-point. Rather than designate a single branch function as the coordinator, all
-branches are empowered to invoke the fan-in function once all other branches
-have completed. To determine this condition, branches in a fan-in add the name
-of their checkpoint object to a shared set in the datastore. Any branch that
-sees the set has size equal to the total number of branches invokes the target
+\name{}, instead, leverages the same insight as checkpoints---the datastore
+provides strong consistency that can serve as a coordination point. Rather than
+designate a single branch function as the coordinator, all branches are
+empowered to invoke the fan-in function once all other branches have completed.
+To determine this condition, branches in a fan-in add the name of their
+checkpoint object to a shared ``Set'' in the datastore. Any branch that reads a
+the set with size equal to the total number of branches invokes the target
 function using all the branches' checkpoints as input.
 
 Importantly, functions do not wait for any other to complete. As long as all
@@ -348,7 +340,7 @@ which is either specified explicitly, or using a variable from the invocation
 request, commonly the fan-out size.
 
 
-This enables more patterns that commonly arise in applications.
+This enables more patterns that commonly arise in applications:
 
 \paragraph{Aggregation}
 After processing data with many parallel branches, applications commonly want to
@@ -447,31 +439,34 @@ the \emph{fan-out} at the same level as the target node.
 
 \subsection{Naming}\label{sec:design:naming}
 
-Both fan-in patterns and checkpointing require a way of uniquely naming function
-invocations. Fan-in uses the target aggregation function's invocation to name
-the set object to coordinate between fan-in branches and checkpoint object
-are named using the current function's invocation name.
+Much of \name{}'s functionality relies on unique naming. A workflow invocation
+must be named to differentiate it from other concurrent invocations of the
+workflow; functions must be named to invoke them; different invocations of
+functions must have different names to uniquely name invocation checkpoints and
+coordination sets for fan-in.
 
 Each workflow invocation has a unique name that is passed through the execution
 graph. The name is either generated in the ingress to the first function using,
 e.g., a UUID library or, when available, is taken from the FaaS platform's
 invocation identifier for the first function. This enables functions to have
-different names when invoked as part of invocations of the workflow. However,
-this is not sufficient as functions may be invoked multiple times in the same
-workflow due to map patterns---which invoke the same function multiple times over
-an iterable output---and cycles.
+different names when invoked as part of a specific workflow invocations. The
+function's name is either user-defined or determined by the FaaS platform (e.g.\
+the ARN on AWS Lambda) and determined at ``compile-time'' (i.e.\ when generating
+\name{} IR).
 
-Moreover, invocation names must be determined using local information only. Once
-running, each function only has access to it's own code (including the IR) and
-metadata passed in its input. Nonetheless a particular invocation must be able
-to determine its own name for checkpointing as well as, if it is part of a
-fan-in, the name of downstream invocations to coordinate with other branches.
+However, this is not sufficient as functions may be invoked multiple times in
+the same workflow due to map patterns---which invoke the same function multiple
+times over an iterable output---and cycles. Moreover, invocation names must be
+determined using local information only. Once running, each function only has
+access to it's own code (including the IR) and metadata passed in its input.
+Nonetheless a particular invocation must be able to determine its own name for
+checkpointing as well as, if it is part of a fan-in, the name of downstream
+invocations to coordinate with other branches.
 
 As a result, \name{} names function invocations using a combination of the
-global function name, an iteration number, a vector of branch indexes leading to
-the invocation, and the workflow invocation name. The function's global name is
-either user-defined or determined by the FaaS platform (e.g.\ the ARN on AWS
-Lambda) and available to the function at runtime. The remaining items are
+global function name, a vector of branch indexes and iteration numbers (taken
+from the \name{} request fan-out stack) leading to the invocation, and the
+workflow invocation name. Function names are global and the remaining items are
 propagated by \name{} in invocation arguments.
 
 During a fan-out pattern (multiple scalar invocations or a map invocation), a
@@ -482,27 +477,9 @@ if there are nested cycles since it is only important that different invocations
 of the same function have \emph{different} names, not that the iteration field
 is sequential. Thus, a monotonically increasing iteration field is sufficient.
 
-\begin{figure}
-\begin{minted}[
-    frame=single,
-    fontsize=\scriptsize
-    ]{rust}
-fn invocation_name(function_name: String,
-                   iteration: int,
-                   branches: Vec<int>,
-                   workflow_id: String) -> String;
-\end{minted}
-\caption{Function invocation names are determined from the function name
-(available in the function's IR) as well as the iteration number, a vector of
-branch indexes, and the workflow invocation name, all available from the
-invocation argument.}
-\label{fig:design:names}
-\end{figure}
-
-Figure~\ref{fig:design:names} shows a function signature for determining the name of a
-function invocation from the relevant inputs. The format of this name is not
-significant and, importantly, it need not be interpretable. It must only be
-deterministic and unique for its inputs. A reasonable implementation, for
-example, would serialize the inputs and take a cryptographic hash over the
-result. This would guarantee uniqueness (with very high probably) while
-preventing names from growing too large to use as object names.
+We note that the format of this name is not significant and, importantly, it
+need not be interpretable. It must only be deterministic and unique for its
+inputs. For example, a reasonable implementation could serialize the inputs and
+take a cryptographic hash over the result, guaranteeing uniqueness (with very
+very high probably) while preventing names from growing too large to use as
+object names.
