@@ -12,7 +12,7 @@ using a policy chosen by the cloud provider. They support many applications
 well, but cannot simultaneously satisfy the needs of \emph{all} applications.
 
 We argue that centralized serverless orchestrators are actually unnecessary.
-Instead, a decentralized orchestrators, deployed as a library included by the
+Instead, a decentralized orchestrator, deployed as a library included by the
 serverless application, can support the same application patterns and fault
 tolerance as existing orchestrators using only the basic building blocks of
 serverless platforms---a scalable ``Function'' executor (FaaS) and a consistent
@@ -22,7 +22,7 @@ trade-offs.
 
 To demonstrate this, we describe the design and implementation of \name{}, a
 decentralized serverless workflow system. \name{} compiles workflows written in
-existing high-level workflow languages a partitioned orchestration library that
+existing high-level workflow languages into a partitioned orchestration library that
 executes orchestration logic in-situ with user functions. \name{} provides the same
 strong correctness guarantees under faults as a centralized orchestrator, performs
 similarly, scales better, and costs less than existing centralized workflow
