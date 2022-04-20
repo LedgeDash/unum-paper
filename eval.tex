@@ -56,11 +56,9 @@ Specifically, we answer the following questions:
 
   % \end{itemize}
 
-We use applications taken from repositories of serverless application as well as
-a application built by other researchers. Though we evaluate the applications
-running on both AWS and Google Cloud, we focus our discussion on our \name{}
-implementation on Lambda and DynamoDB, because it runs on the same serverless
-infrastructure as Step Functions.
+Though we evaluate the applications running on both AWS and Google Cloud, we
+focus our discussion on our \name{} implementation on Lambda and DynamoDB,
+because it runs on the same serverless infrastructure as Step Functions.
 
 \subsection{Experimental setup}
 
@@ -75,15 +73,15 @@ Functions in the same region as well. To avoid performance artifacts related
 to cold-starts in comparisons, we ensure all functions are warm by running
 each workflow several times before taking measurements.
 
-We wrote all but one application as AWS Lambda functions and Step Function
-state machines. For Step Function experiments, we ran them directly. For
-\name{} experiments, we first compiled the Step Functions definitions to
-\name{} IR, linked the functions with platform-specific runtime and finally
-executed them as lambdas or Google Cloud functions. The notable exception is
-our \name{} and Step Functions implementations of ExCamera, which differ due
-to a limitation in the Amazon State Language. As a result, the more efficient
-\name{} implementation is written directly in \name{} IR instead of compiled
-from the Step Functions definition (\S~\ref{sec:eval:excamera}).
+All but one application were originally written as AWS Lambda functions with
+Step Function state machines. For Step Function experiments, we ran them
+directly. For \name{} experiments, we first compiled the Step Functions
+definitions to \name{} IR, linked the functions with platform-specific runtime
+and finally executed them as lambdas or Google Cloud functions. The notable
+exception is our \name{} and Step Functions implementations of ExCamera, which
+differ due to a limitation in the Amazon State Language. As a result, the more
+efficient \name{} implementation is written directly in \name{} IR instead of
+compiled from the Step Functions definition (\S~\ref{sec:eval:excamera}).
 
 For the Step Functions experiments, we run the workflows in ``Standard''
 configuration~\cite{aws-step-functions-standard-vs-express}, which provides
@@ -128,10 +126,10 @@ instance itself for the orchestration logic.}
   \label{fig:single-transition-latency-breakdown}
 \end{figure}
 
-For the simple chaining pattern, the \name{} runtime adds to each execution of
-a function a storage read to check whether a checkpoint already exists, a
-storage write to checkpoint the function's result, and an asynchronous
-function invocation to initiate the next function in the chain.
+For the simple chaining pattern, the \name{} runtime performs a storage read to
+check whether a checkpoint already exists, a storage write to checkpoint the
+function's result, and an asynchronous function invocation to initiate the next
+function in the chain.
 
 Figure~\ref{fig:single-transition-latency-breakdown} shows time to perform each
 of these operations for different result sizes. As expected, storage operations
@@ -222,16 +220,15 @@ unum's worse performance.}
 Figure~\ref{fig:mapmicrolatency} shows the latency of a fan-out followed by a
 fan-in at varying branching degrees for both \name{} and Step Functions. At
 low branching degree, \name{} incurs a modest overhead (up to 200ms) relative
-to Step Functions. This is mostly due to our Python implementation that
-invokes each branch in sequence, while Step Functions starts branches in
-parallel. However, at higher branching degrees (as low as 20 branches), Step
+to Step Functions. We believe this is mostly due to our implementation
+initiating each branch invocation sequentially. However, at higher branching degrees (as low as 20 branches), Step
 Functions limits parallel invocation of concurrent fan-out
 branches~\cite{aws-step-functions-map-state} while \name{} is limited only by
 Lambda's scalability, resulting in over 4x lower latency with 512 branches.
 
 These differences manifest in real workloads as well. Wordcount is highly
-parallel (with 262 parallel mappers and 250 reducers) and performs 219\%
-faster on \name{} than on Step Functions. (Table~\ref{table:macro})
+parallel (with 262 parallel mappers and 250 reducers) and performs over 2x
+faster on \name{} than on Step Functions (Table~\ref{table:macro}).
 
 % These differences manifest in real workloads as well. Both the Text Processing
 % and Word Count applications include an fan-out followed by a fan-in. Text
@@ -383,9 +380,13 @@ gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
 % The final \texttt{REBASE} runs a fold pattern rebases each chunk on top of the
 % state from the previous chunk.
 
-We additionally compare the performance of executing ExCamera~\cite{excamera}
-with the original hand-optimized implementation and another implementation,
-gg, by the same author.
+We compare the performance of an application not well-suited to Step Functions.
+ExCamera~\cite{excamera} is a video-processing application designed to take
+advantage of high burst-latency on Lambda using using custom orchestration. We
+compare the results of the original hand-optimized implementation as well as
+another implementation, gg, by the same authors, with a suboptimal Step
+Functions implementation as well as an implementation in hand-written \name{}
+IR.
 
 Using the same experimental setup as the prior work (i.e., encoding the first
 888 chunks of the \texttt{sintel-4k}~\cite{sintel} video using 16 chunks per
@@ -402,14 +403,14 @@ manner while gg has a centralized coordinator on EC2 that proxies
 inter-function communications and invokes lambdas. The reduced number of
 network communications explains why \name{} is slightly faster than gg.
 
-An important limitation of Step Functions is that all concurrent fan-out
-branches must complete before any fan-in starts. This means the Step Functions
-implementation of ExCamera must serialize the encode and re-encode stages.
-Conversely, \name{}'s IR is flexible enough to support ExCamera's original
-pattern where tasks start as soon as their input data becomes available,
-because \name{}'s fan-in uses a low-level primitive to directly express data
-dependency between functions. Thus, the \name{} ExCamera allows more
-parallelism between branches and is 16.7\% faster than Step Functions.
+In comparison, an important limitation of Step Functions is that all concurrent
+fan-out branches must complete before any fan-in starts. This means the Step
+Functions implementation of ExCamera must serialize the encode and re-encode
+stages.  Conversely, \name{}'s IR is flexible enough to support ExCamera's
+original pattern where tasks start as soon as their input data becomes
+available, because \name{}'s fan-in uses a low-level primitive to directly
+express data dependency between functions. Thus, the \name{} ExCamera allows
+more parallelism between branches and is 16.7\% faster than Step Functions.
 
 \dhl{Sync with Design. Explain the difference between unum fan-in and Step
 Functions fan-in in design already. Specifically,
