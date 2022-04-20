@@ -62,37 +62,39 @@ orchestration patterns.
 
 \subsection{Experimental setup}
 
-We run all experiments on AWS Lambda and DynamoDB in the same region,
-\texttt{us-west-1}. All Lambda containers are configured with 128MB of memory
-unless otherwise noted. We use on-demand capacity provisioning for DynamoDB.
+We run all experiments on AWS with Lambda and DynamoDB, and on Google Cloud
+with Cloud Functions and Cloud Storage. All services are in the same region
+(`us-west-1` on AWS and `us-central-1` on Google Cloud). All functions are
+configured with 128MB of memory except for ExCamera where we use 3GB of memory
+to replicate the setup in the original paper~\cite{excamera, gg}. Both
+DynamoDB and Firestore use the serverless option with on-demand provisioning.
 Experiments that use Step Functions as baseline use Step Functions in the same
-region, as well. To avoid performance artifacts related to cold-starts in
+region as well. To avoid performance artifacts related to cold-starts in
 comparisons, we ensure all functions are warm by running each workflow several
 times before taking measurements.
 
 We wrote all but one applications as AWS Lambda functions and Step Function
-state machines that drive those functions and either ran them directly for
-Step Function experiments, or compiled them to unumized functions first and
-executed them as lambdas for \name{} experiments. The notable exception is our
-\name{} and Step Functions implementations of ExCamera, which differ due to a
-limitation in the AWS State Language. As a result, the more efficient \name{}
-implementation is written directly in \name{} IR instead of compiled from the
-Step Functions definition (\S~\ref{sec:eval:excamera}).
+state machines. For Step Function experiments, we ran them directly. For
+\name{} experiments, we first compiled the Step Functions definitions to
+\name{} IR, linked the functions with platform-specific runtime and finally
+executed them as lambdas or Google Cloud functions. The notable exception is
+our \name{} and Step Functions implementations of ExCamera, which differ due
+to a limitation in the AWS State Language. As a result, the more efficient
+\name{} implementation is written directly in \name{} IR instead of compiled
+from the Step Functions definition (\S~\ref{sec:eval:excamera}).
 
-For the Step Functions experiments, we run the workflow definitions using AWS
-Step Functions in \emph{Standard}
+For the Step Functions experiments, we run the workflows in \emph{Standard}
 configuration~\cite{aws-step-functions-standard-vs-express}, which provides
 similarly strong execution guarantees as
 \name{}~\cite{aws-step-functions-exec-gntee}.
 
-In general, we treat Step Functions as a black box as its internal design or
-implementation details are not public. While it is possible that different
-designs for a centralized orchestrator could yield better performance, our
-evaluation goal is to show that \name{}'s architecture and expression language
-result in performance and cost sufficient for practical use. We argue that if
-\name{} matches or improves over Step Functions, one of the most widely used
-centralized orchestrators today, its performance and costs are good enough for
-a wide variety of applications.
+In general, we treat Step Functions as a black box as its internal details are
+not public. While it is possible that different designs for a centralized
+orchestrator could yield better performance, our evaluation goal is to show
+that \name{}'s architecture and IR result in performance and cost sufficient
+for practical use. We argue that if \name{} matches or improves over Step
+Functions, one of the most widely used centralized orchestrators today, its
+performance and costs are good enough for a wide variety of applications.
 
 % We do not consider Step Functions' Express Workflows in our comparison because
 % of its weaker execution guarantee, namely the same invocation could result in
