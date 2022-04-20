@@ -398,10 +398,10 @@ We additionally compare the performance of executing ExCamera~\cite{excamera}
 with the original hand-optimized implementation and another implementation,
 gg, by the same author.
 
-Using the same experimental setup as the prior work (i.e., encoding the
-first 888 chunks of the \texttt{sintel-4k}~\cite{sintel} video using 16 chunks
-per batch and Lambdas configured with 3GB of memory), \name{} is 7.1\% faster
-than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera
+Using the same experimental setup as the prior work (i.e., encoding the first
+888 chunks of the \texttt{sintel-4k}~\cite{sintel} video using 16 chunks per
+batch and Lambdas configured with 3GB of memory), \name{} is 7.1\% faster than
+gg~\cite{gg-atc} and 10.5\% slower than the original, hand-optimized ExCamera
 (Table~\ref{table:excamera}). The original ExCamera pre-loads raw video chunks
 into lambdas before starting, while \name{} and gg do not. The original
 authors attributes the comparatively slower performance of \texttt{gg} to the
@@ -499,7 +499,7 @@ One of the main attractions of building appliactions on serverless platforms
 is lower cost. In particular, because resources are easy to reclaim,
 applications are charged only for resources used to respond to actual events
 or requests. Thus, applications with potential for high burst-parallelism, or
-with intermittant bursts of concurrent requests, can achieve high performance
+with intermittent bursts of concurrent requests, can achieve high performance
 without incurring the cost of long-term provisioning for max capacity. As a
 result, the \emph{cost} of orchestration overhead matters as well as
 performance.
