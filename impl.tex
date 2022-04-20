@@ -10,9 +10,11 @@
 
 \begin{enumerate}
   \item \textbf{Create and write to checkpoint with value}. Uses \texttt{put\_item} with the conditional flag \texttt{attribute\_not\_exists} for the key, where keys are checkpoint names~\ref{sec:naming}. 
-  \item Create Set.
-  \item Add to set.
-  \item Get set size.
+  \item Create Set. We implement a Set using an array of booleans that is initialized to all False. Create Set uses the \texttt{put\_item} with the conditional flag \texttt{attribute\_not\_exists} for the key that creates a document only if the key does not exist.
+  \item Add to set. Add to set. Each function adds to a set by writing True to a particular index of the array. We use the \texttt{update\_item} API with conditional flag \texttt{attribute\_exists} for the key. \texttt{update} fails if the object does not exist.
+
+  Add to set is idempotent. That is adding the same value multiple times should not change the Set's value. To implement this behavior, a function \emph{always writes to the same index} in the array. Therefore if a function calls add to set multiple times, it writes True to the same index multiple time, not changing the array's value.
+  \item Get set size. In the same \texttt{update\_item} call for add to set, we use the \texttt{ALL\_NEW} flag for \texttt{ReturnValues} to read the set's value atomically after the update. Then we calculate the set's size by counting the number of Trues.
 \end{enumerate}
 
 % \subsubsection{S3}
