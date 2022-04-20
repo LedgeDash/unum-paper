@@ -35,7 +35,9 @@
 \begin{enumerate}
   \item \textbf{Create and write to object with value} A firestore document \texttt{create} operation writes a value to a key only if the key doesn't exist.
   \item Create Set. Firestore does not natively support a Set data structure. We implement a Set using an array of booleans that is initialized to all False. Create Set uses Firestore document \texttt{create} API that creates a document only if the key does not exist.
-  \item Add to set. Each function adds to a set by writing True to a particular index of the array. Add to set is idempotent. That is adding the same value multiple times does not change the Set's value. To implement this behavior, a function \emph{always writes to the same index} in the array. Therefore if a function calls add to set multiple times, it writes True to the same index multiple time, not changing the array's value.
+  \item Add to set. Each function adds to a set by writing True to a particular index of the array. We use the \texttt{update} API on Firestore documents. \texttt{update} fails if the object does not exist. 
+
+  Add to set is idempotent. That is adding the same value multiple times should not change the Set's value. To implement this behavior, a function \emph{always writes to the same index} in the array. Therefore if a function calls add to set multiple times, it writes True to the same index multiple time, not changing the array's value.
   \item Get set size. A firestore document \texttt{get} API that returns the boolean array and count the number of Trues.
 \end{enumerate}
 
