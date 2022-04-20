@@ -478,7 +478,7 @@ input.}
 \textit{ExCamera}        & \multicolumn{1}{r|}{84.52}  & \multicolumn{1}{r|}{122.63} & 98.42  & \multicolumn{1}{r|}{\$62,684.29}         & \$114,633.13        \\ \hline
 \end{tabular}
   \caption{Application latency and costs comparison between \name{} and Step
-    Functions. Running applications on \name{} is 3.7x to 27.3x cheaper than
+    Functions. Running applications on \name{} is 1.35x to 9x cheaper than
     on Step Functions. Furthermore, \name{} is faster than Step Functions
     especially for workflows with high degrees of parallelism.}
   \label{table:macro}
@@ -488,10 +488,11 @@ input.}
     \centering
     \includegraphics[width=\columnwidth]{figures/AppCostBreakdown.pdf}
     \caption{Step Functions state transitions dominate the total costs for all
-    applications. While \name{} runtime and checkpoint costs are also the
-    majority in IoT Pipeline (87.2\%) and Text Processing (89\%). For
-    large-scale workflows, \name{} accounts for a much smaller proportion of
-    the total cost (18.1\% in ExCamera and 24.8\% in Wordcount).}
+    applications (99.5\% in IoT Pipeline, 99.4\% in Text Processing, 80.0\% in
+    Wordcount, 72.2\% in ExCamera). While \name{} runtime cost is also the
+    majority, it accounts for a smaller portion of the overall costs (95.7\%
+    in IoT Pipeline, 97.8\% in Text Processing, 72.5\%
+    in Wordcount and 61.0\% in ExCamera).}
     \label{fig:cost-breakdown}
 \end{figure}
 
@@ -512,11 +513,12 @@ data. Conversely, \name{} incurs costs directly from those services:
 additional Lambda compute time and DynamoDB storage on AWS.
 
 Figure~\ref{fig:cost-breakdown} shows the cost to run each application using
-\name{} broken down to each component: storage costs for checkpointing, Lambda
-invocation, and Lambda CPU-time for both the \name{} runtime and user function.
-Storage costs, using DynamoDB, are the largest portion of overall cost. The
-majority of \name{}'s costs come from reading and writing checkpoints to
-DynamoDB.
+\name{} broken down to each component: data store costs for writing and
+reading checkpoints, data store costs for writing coordination sets, data
+store costs for deleting checkpoints and writing coordination sets for garbage
+collection, Lambda invocation, and Lambda CPU-time for both the \name{}
+runtime and user function. Storage costs, using DynamoDB, are the largest
+portion of overall cost and costs for writing to DynamoDB is the majority\footnote{Writes in DynamoDB cost one order-of-magnitude more than reads}. This includes writing checkpoints, writing to coordination set (either for fan-in for garbage collection) and deleting checkpoints for garbage collection.
 
 Nonetheless, \name{} is consistently cheaper than Step Functions for all
 applications we tested. Table~\ref{table:macro} shows the price to run each of
