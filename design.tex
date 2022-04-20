@@ -299,32 +299,20 @@ rather than the result their own execution returned.}
 
 The FaaS platform guarantees that even in the presence of faults, at least one
 execution of a function invocation will complete. \name{}'s checkpointing
-mechanism ensures while faults may occur at any point during the execution of a
+mechanism ensures that while faults may occur at any point during the execution of a
 function's user code or the \name{} library, and while downstream functions may
 be invoked multiple times by different executions of the same invocation, a
 single value is always used to invoke downstream functions.
 
-When there are no faults, \name{} runs the function's user code, attempts to add
-the results to the invocation's checkpoint object and invokes the downstream
-functions using the checkpoint value. If the FaaS platform executes the
-invocation more once, each execution will using the value from whichever
-execution performs the add operation first.
-
 If there is a fault after the user code completes but before creating the
 checkpoint, its value is ignored (indeed, never seen) by other attempts to
 execute the function and another execution's value will be used to invoke
-downstream functions.
-
-If the ``winning'' function crashes after creating a checkpoint, and before
-invoking some or all downstream functions, other executions will use the
-checkpoint value to invoke downstream functions.
-
-Note that, even if multiple executions invoke some or all downstream functions,
+downstream functions.  If the ``winning'' function crashes after creating a
+checkpoint, and before invoking some or all downstream functions, other
+executions will use the checkpoint value to invoke downstream functions.
+Finally, even if multiple executions invoke some or all downstream functions,
 execution guarantees are still satisfied as these invocations will have
-identical inputs and the checkpointing mechanism in these functions treat
-multiple identical invocations the same as re-executions---in fact, the \name{}
-library cannot differentiate between re-executions by the FaaS platform and
-duplicate invocations by preceding functions.
+identical inputs.
 
 \subsection{Fan-in Patterns}\label{sec:design:fanin}
 
@@ -409,17 +397,7 @@ nodes always output the same value. Instead, they must only output the same
 value until all subsequent nodes have committed to their own outputs.
 
 This means that, in non-fan-out cases, once a node checkpoints its result, it
-can delete the previous checkpoint:
-
-\begin{minted}[
-    frame=single,
-    fontsize=\scriptsize
-    ]{python}
-def egress(self, result):
-    result = _checkpoint(result)
-    _egress(result)
-    database_delete(prev_checkpoint)
-\end{minted}
+can delete the previous checkpoint.
 
 Note that \name{} runtime implementations delay garbage collection until after
 invoking next functions, sacrificing some storage overhead in favor of
