@@ -27,9 +27,15 @@ Serverless platforms allow developers to construct applications from modular
 programming units that can scale quickly and independently, promising
 burst-scalability and fine-grained billing. Workflow orchestrators make building
 complex applications out of these event-driven, asynchronous functions
-reasonable, but may introduce performance, cost, scalability, and deployment
-overhead to developers and platform providers. We designed and implemented
-\name{}, a \emph{decentralized} workflow system that requires no additional
-infrastructure to deploy, imposes no additional limits on scalability, and
-performs as well as or better than centralized solutions while providing
-similar expressiveness and execution guarantees.
+reasonable, but are inflexible and may introduce performance, cost, scalability,
+and deployment overhead to developers and platform providers. We designed and
+implemented \name{}, a \emph{decentralized} workflow system that requires no
+additional infrastructure to deploy, imposes no additional limits on
+scalability, and performs as well as or better than centralized solutions while
+providing similar expressiveness and execution guarantees.
+
+Our results show that basic serverless building blocks---function schedulers and
+consistent scalable datastores---are sufficient abstractions for building
+complex, fault-tolerant, and scalable applications. Leveraging decentralized
+orchestration, rather than centralized services can help performance, resource
+usage, flexibility, and portability across cloud providers.
