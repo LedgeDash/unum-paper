@@ -22,7 +22,7 @@ few functions, this paradigm has increasingly proven useful for more complex
 applications composed of many functions with rich, stateful, interaction
 patterns~\cite{excamera, pywren, gg-atc, beldi, boki}. Unfortunately, building
 such applications using basic serverless building blocks is challenging.
-At-least once execution guarantees mean that non-deterministic functions may
+At-least once execution guarantees mean functions with a non-deterministic output may
 pass inconsistent results to downstream functions. Event-driven execution makes
 depending on the results of multiple previous functions challenging. Finally,
 intermediate states must be managed efficiently and deleted promptly to avoid
