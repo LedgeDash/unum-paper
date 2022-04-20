@@ -4,6 +4,12 @@
 	urldate = {1-14-2021},
 }
 
+@misc{aws-lambda,
+    title = {{AWS Lambda}},
+    note = "\url{https://aws.amazon.com/lambda/}",
+	urldate = {1-14-2021},
+}
+
 @misc{aws-step-functions,
 	title = {{AWS Step Functions}},
 	note = "\url{https://aws.amazon.com/step-functions/}",
@@ -158,11 +164,21 @@
 	urldate = {11-14-2021},
 }
 
-
+@misc{azure-functions,
+	title = {{Azure Functions Developers Guide}},
+	note = "\url{https://docs.microsoft.com/en-us/azure/azure-functions}",
+	urldate = {11-14-2021},
+}
 
 @misc{google-cloud-functions-async-invoke,
 	title = {{Asynchronous patterns for Cloud Functions}},
 	note = "\url{https://cloud.google.com/community/tutorials/cloud-functions-async}",
+	urldate = {11-14-2021},
+}
+
+@misc{openfaas,
+	title = {{OpenFaaS Developers Guide}},
+	note = "\url{https://docs.openfaas.com/reference/}",
 	urldate = {11-14-2021},
 }
 
@@ -172,12 +188,23 @@
 	urldate = {11-14-2021},
 }
 
+@misc{openwhisk,
+	title = {{OpenWhisk Actions, OpenWhisk Programming Model}},
+	note = "\url{https://github.com/apache/openwhisk/blob/master/docs/actions.md}",
+	urldate = {11-14-2021},
+}
+
 @misc{openwhisk-async-invoke,
 	title = {{OpenWhisk Actions, OpenWhisk Programming Model}},
 	note = "\url{https://github.com/apache/openwhisk/blob/master/docs/actions.md}",
 	urldate = {11-14-2021},
 }
 
+@misc{gcp-functions,
+	title = {{Google Cloud Functions}},
+	note = "\url{https://cloud.google.com/functions}",
+	urldate = {11-14-2021},
+}
 
 @misc{google-cloud-functions-exec-guarantee,
 	title = {{Execution Guarantee, Cloud Functions Execution Environment, Google Cloud Functions}},
@@ -539,4 +566,128 @@ pages = {427--444},
 url = {https://www.usenix.org/conference/osdi18/presentation/klimovic},
 publisher = {USENIX Association},
 month = oct,
+}
+@inproceedings{10.1145/224056.224076,
+author = {Engler, D. R. and Kaashoek, M. F. and O'Toole, J.},
+title = {Exokernel: An Operating System Architecture for Application-Level Resource Management},
+year = {1995},
+isbn = {0897917154},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/224056.224076},
+doi = {10.1145/224056.224076},
+booktitle = {Proceedings of the Fifteenth ACM Symposium on Operating Systems Principles},
+pages = {251–266},
+numpages = {16},
+location = {Copper Mountain, Colorado, USA},
+series = {SOSP '95}
+}
+
+@article{exokernel,
+author = {Engler, D. R. and Kaashoek, M. F. and O'Toole, J.},
+title = {Exokernel: An Operating System Architecture for Application-Level Resource Management},
+year = {1995},
+issue_date = {Dec. 3, 1995},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {29},
+number = {5},
+issn = {0163-5980},
+url = {https://doi.org/10.1145/224057.224076},
+doi = {10.1145/224057.224076},
+journal = {SIGOPS Oper. Syst. Rev.},
+month = {dec},
+pages = {251–266},
+numpages = {16}
+}
+@inproceedings{10.1145/224056.224077,
+author = {Bershad, B. N. and Savage, S. and Pardyak, P. and Sirer, E. G. and Fiuczynski, M. E. and Becker, D. and Chambers, C. and Eggers, S.},
+title = {Extensibility Safety and Performance in the SPIN Operating System},
+year = {1995},
+isbn = {0897917154},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/224056.224077},
+doi = {10.1145/224056.224077},
+booktitle = {Proceedings of the Fifteenth ACM Symposium on Operating Systems Principles},
+pages = {267–283},
+numpages = {17},
+location = {Copper Mountain, Colorado, USA},
+series = {SOSP '95}
+}
+
+@article{spin,
+author = {Bershad, B. N. and Savage, S. and Pardyak, P. and Sirer, E. G. and Fiuczynski, M. E. and Becker, D. and Chambers, C. and Eggers, S.},
+title = {Extensibility Safety and Performance in the SPIN Operating System},
+year = {1995},
+issue_date = {Dec. 3, 1995},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {29},
+number = {5},
+issn = {0163-5980},
+url = {https://doi.org/10.1145/224057.224077},
+doi = {10.1145/224057.224077},
+journal = {SIGOPS Oper. Syst. Rev.},
+month = {dec},
+pages = {267–283},
+numpages = {17}
+}
+
+@inproceedings{comet,
+author = {Geambasu, Roxana and Levy, Amit A. and Kohno, Tadayoshi and Krishnamurthy, Arvind and Levy, Henry M.},
+title = {Comet: An Active Distributed Key-Value Store},
+year = {2010},
+publisher = {USENIX Association},
+address = {USA},
+abstract = {Distributed key-value storage systems are widely used in corporations and across the Internet. Our research seeks to greatly expand the application space for key-value storage systems through application-specific customization. We designed and implemented Comet, an extensible, distributed key-value store. Each Comet node stores a collection of active storage objects (ASOs) that consist of a key, a value, and a set of handlers. Comet handlers run as a result of timers or storage operations, such as get or put, allowing an ASO to take dynamic, application-specific actions to customize its behavior. Handlers are written in a simple sandboxed extension language, providing properties of safety and isolation.We implemented a Comet prototype for the Vuze DHT, deployed Comet nodes on Vuze from PlanetLab, and built and evaluated over a dozen Comet applications. Our experience demonstrates that simple, safe, and restricted extensibility can significantly increase the power and range of applications that can run on distributed active storage systems. This approach facilitates the sharing of a single storage system by applications with diverse needs, allowing them to reap the consolidation benefits inherent in today's massive clouds.},
+booktitle = {Proceedings of the 9th USENIX Conference on Operating Systems Design and Implementation},
+pages = {323–336},
+numpages = {14},
+location = {Vancouver, BC, Canada},
+series = {OSDI'10}
+}
+
+@inproceedings {active-networks,
+author = {David Tennenhouse},
+title = {Active Networks},
+booktitle = {{USENIX} 2nd Symposium on {OS} Design and Implementation ({OSDI} 96)},
+year = {1996},
+address = {Seattle, WA},
+url = {https://www.usenix.org/conference/osdi-96/active-networks},
+publisher = {USENIX Association},
+month = oct,
+}
+
+@inproceedings {splinter,
+author = {Chinmay Kulkarni and Sara Moore and Mazhar Naqvi and Tian Zhang and Robert Ricci and Ryan Stutsman},
+title = {Splinter: {Bare-Metal} Extensions for {Multi-Tenant} {Low-Latency} Storage},
+booktitle = {13th USENIX Symposium on Operating Systems Design and Implementation (OSDI 18)},
+year = {2018},
+isbn = {978-1-939133-08-3},
+address = {Carlsbad, CA},
+pages = {627--643},
+url = {https://www.usenix.org/conference/osdi18/presentation/kulkarni},
+publisher = {USENIX Association},
+month = oct,
+}
+
+@article{sdn,
+author = {Feamster, Nick and Rexford, Jennifer and Zegura, Ellen},
+title = {The Road to SDN: An Intellectual History of Programmable Networks},
+year = {2014},
+issue_date = {April 2014},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {44},
+number = {2},
+issn = {0146-4833},
+url = {https://doi.org/10.1145/2602204.2602219},
+doi = {10.1145/2602204.2602219},
+abstract = {Software Defined Networking (SDN) is an exciting technology that enables innovation in how we design and manage networks. Although this technology seems to have appeared suddenly, SDN is part of a long history of efforts to make computer networks more programmable. In this paper, we trace the intellectual history of programmable networks, including active networks, early efforts to separate the control and data plane, and more recent work on OpenFlow and network operating systems. We highlight key concepts, as well as the technology pushes and application pulls that spurred each innovation. Along the way, we debunk common myths and misconceptions about the technologies and clarify the relationship between SDN and related technologies such as network virtualization.},
+journal = {SIGCOMM Comput. Commun. Rev.},
+month = {apr},
+pages = {87–98},
+numpages = {12},
+keywords = {programmable networking, software defined networking, network virtualization}
 }

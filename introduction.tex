@@ -17,9 +17,6 @@ low overhead and end-user cost. Moreover, this design simplicity has meant that
 public cloud providers have been able to rapidly develop and deploy similar
 offerings, along with numerous open source solutions deployed in private cloud
 settings~\cite{aws-lambda,gcp-functions,azure-functions,openwhisk,openfaas}.
-While each such offering differs in interface, they are similar enough that
-simple portability layers have enabled developers to build mostly portable
-applications~\cite{boto3,serverless-framework}.
 
 Originally, serverless platforms targeted simple applications with one or a few
 functions and no, or only simple interaction between them. Recently, though,
@@ -68,7 +65,7 @@ These orchestration services make design decisions, e.g., about which
 interactions to support and execution semantics to provide, that fit many, but
 not all applications. This results in a compromise familiar from operating
 systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn}, and storage
-systems~\cite{comet,rust-comet}---well designed centralized systems efficiently
+systems~\cite{comet,splinter}---well designed centralized systems efficiently
 support the needs of many applications but cannot meet all application needs.
 %
 %Indeed, researchers have devised new orchestrators to support FaaS applications
