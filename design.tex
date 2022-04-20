@@ -113,7 +113,7 @@ centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
     \hline
   \end{tabular}
   \caption{\name{} intermediate representation instructions.}
-  \label{table:irschema}
+  \label{table:design:irschema}
 \end{table}
 
 \begin{figure}[t]
@@ -148,10 +148,10 @@ modify it for subsequent functions.}
 
 The \name{} intermediate representation (IR) is designed to allow encoding of
 common workflow patterns but is low-level enough to also support less uncommon
-patterns (\ref{excamera-description}).
+patterns.
 
 Each function's IR includes the function's name and a sequence of instructions
-(Figure~\ref{fig:design:irschema}). Instructions direct the runtime to invoke
+(Figure~\ref{table:design:irschema}). Instructions direct the runtime to invoke
 functions and operate on state metadata passed between functions in
 \name{}-wrapped function inputs (Figure~\ref{fig:design:unum-request}).
 
@@ -287,12 +287,12 @@ def _egress(self, result)
     for f in next_functions:
         faas.async_invoke(f, result)
 \end{minted}
-\label{fig:design:checkpoint}
 \caption{Pseudo-code showing \name{}'s checkpointing mechanism. As different
 executions of a function may return different results, \name{}'s egress
 component checkpoints the first successful execution using an atomic add
 datastore operation. All subsequent executions will uses this committed value
 rather than the result their own execution returned.}
+\label{fig:design:checkpoint}
 \end{figure}
 
 \subsubsection{Fault Tolerance}
@@ -470,7 +470,7 @@ fan-in, the name of downstream invocations to coordinate with other branches.
 As a result, \name{} names function invocations using a combination of the
 global function name, an iteration number, a vector of branch indexes leading to
 the invocation, and the workflow invocation name. The function's global name is
-available from the function's IR (Figure~\ref{fig:design:irschema}) and is
+available from the function's IR (Figure~\ref{table:design:irschema}) and is
 either user-defined or determined by the FaaS platform (e.g.\ the ARN on AWS
 Lambda). The remaining items are propagated by \name{} in invocation arguments.
 
@@ -492,11 +492,11 @@ fn invocation_name(function_name: String,
                    branches: Vec<int>,
                    workflow_id: String) -> String;
 \end{minted}
-\label{fig:design:names}
 \caption{Function invocation names are determined from the function name
 (available in the function's IR) as well as the iteration number, a vector of
 branch indexes, and the workflow invocation name, all available from the
 invocation argument.}
+\label{fig:design:names}
 \end{figure}
 
 Figure~\ref{fig:design:names} shows a function signature for determining the name of a

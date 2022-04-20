@@ -3,13 +3,13 @@
 \subsection{AWS Lambda}
 
 \begin{enumerate}
-  \item \textbf{Asynchronous invocation} supported natively with via the \texttt{Invoke} API and \texttt{InvocationType} ``Event''~\cite{aws-asyn-invoke}. In practice, functions call the \texttt{Invoke} API using Amazon's \texttt{boto3} library.
+  \item \textbf{Asynchronous invocation} supported natively with via the \texttt{Invoke} API and \texttt{InvocationType} ``Event''~\cite{aws-lambda-async-invoke}. In practice, functions call the \texttt{Invoke} API using Amazon's \texttt{boto3} library.
 \end{enumerate}
 
 \subsubsection{DynamoDB}
 
 \begin{enumerate}
-  \item \textbf{Create and write to checkpoint with value}. Uses \texttt{put\_item} with the conditional flag \texttt{attribute\_not\_exists} for the key, where keys are checkpoint names~\ref{sec:naming}. 
+  \item \textbf{Create and write to checkpoint with value}. Uses \texttt{put\_item} with the conditional flag \texttt{attribute\_not\_exists} for the key, where keys are checkpoint names~\ref{sec:design:naming}. 
   \item Create Set. We implement a Set using an array of booleans that is initialized to all False. Create Set uses the \texttt{put\_item} with the conditional flag \texttt{attribute\_not\_exists} for the key that creates a document only if the key does not exist.
   \item Add to set. Add to set. Each function adds to a set by writing True to a particular index of the array. We use the \texttt{update\_item} API with conditional flag \texttt{attribute\_exists} for the key. \texttt{update} fails if the object does not exist.
 
