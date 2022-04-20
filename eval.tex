@@ -59,34 +59,11 @@ orchestration patterns such as chaining, fan-out and fan-in
 serverless repositories and prior research work that encompass a variety of
 orchestration patterns.
 
-
-\subsection{Experimental setup}
-
-We run all experiments on AWS with Lambda and DynamoDB, and on Google Cloud
-with Cloud Functions and Cloud Storage. All services are in the same region
-(`us-west-1` on AWS and `us-central-1` on Google Cloud). All functions are
-configured with 128MB of memory except for ExCamera where we use 3GB of memory
-to replicate the setup in the original paper~\cite{excamera, gg}. Both
-DynamoDB and Firestore use the serverless option with on-demand provisioning.
-Experiments that use Step Functions as baseline use Step Functions in the same
-region as well. To avoid performance artifacts related to cold-starts in
-comparisons, we ensure all functions are warm by running each workflow several
-times before taking measurements.
-
-We wrote all but one applications as AWS Lambda functions and Step Function
-state machines. For Step Function experiments, we ran them directly. For
-\name{} experiments, we first compiled the Step Functions definitions to
-\name{} IR, linked the functions with platform-specific runtime and finally
-executed them as lambdas or Google Cloud functions. The notable exception is
-our \name{} and Step Functions implementations of ExCamera, which differ due
-to a limitation in the AWS State Language. As a result, the more efficient
-\name{} implementation is written directly in \name{} IR instead of compiled
-from the Step Functions definition (\S~\ref{sec:eval:excamera}).
-
-For the Step Functions experiments, we run the workflows in \emph{Standard}
-configuration~\cite{aws-step-functions-standard-vs-express}, which provides
-similarly strong execution guarantees as
-\name{}~\cite{aws-step-functions-exec-gntee}.
+We focus our discussion on AWS and the comparison between our \name{}
+implemention on Lambda and DynamoDB vs Step Functions, because it is on the
+same cloud provider and the measurements represent the cost and performance of
+``migrating'' your AWS serverless applications from Step Functions to \name{},
+without any changes to your application. \dhl{needs rephrasing}
 
 In general, we treat Step Functions as a black box as its internal details are
 not public. While it is possible that different designs for a centralized
@@ -95,6 +72,34 @@ that \name{}'s architecture and IR result in performance and cost sufficient
 for practical use. We argue that if \name{} matches or improves over Step
 Functions, one of the most widely used centralized orchestrators today, its
 performance and costs are good enough for a wide variety of applications.
+
+\subsection{Experimental setup}
+
+We run all experiments on AWS with Lambda and DynamoDB, and on Google Cloud
+with Cloud Functions and Cloud Storage. All services are in the same region
+(\texttt{us-west-1} on AWS and \texttt{us-central-1} on Google Cloud). All
+functions are configured with 128MB of memory except for ExCamera where we use
+3GB of memory to replicate the setup in the original paper~\cite{excamera,
+gg-atc}. Both DynamoDB and Firestore use the serverless option with on-demand
+provisioning. Experiments that use Step Functions as baseline run Step
+Functions in the same region as well. To avoid performance artifacts related
+to cold-starts in comparisons, we ensure all functions are warm by running
+each workflow several times before taking measurements.
+
+We wrote all but one application as AWS Lambda functions and Step Function
+state machines. For Step Function experiments, we ran them directly. For
+\name{} experiments, we first compiled the Step Functions definitions to
+\name{} IR, linked the functions with platform-specific runtime and finally
+executed them as lambdas or Google Cloud functions. The notable exception is
+our \name{} and Step Functions implementations of ExCamera, which differ due
+to a limitation in the Amazon State Language. As a result, the more efficient
+\name{} implementation is written directly in \name{} IR instead of compiled
+from the Step Functions definition (\S~\ref{sec:eval:excamera}).
+
+For the Step Functions experiments, we run the workflows in ``Standard''
+configuration~\cite{aws-step-functions-standard-vs-express}, which provides
+similarly strong execution guarantees as
+\name{}~\cite{aws-step-functions-exec-gntee}.
 
 % We do not consider Step Functions' Express Workflows in our comparison because
 % of its weaker execution guarantee, namely the same invocation could result in
@@ -112,14 +117,14 @@ performance and costs are good enough for a wide variety of applications.
 
 \subsection{Performance}\label{sec:eval:micro}
 
-\name{}'s performance overhead results from orchestration logic run in each
-function as well as storage and invocation APIs required to implement common
-patterns. We characterize these overheads by measuring the latency to execute
-various patterns consists of \texttt{noop} functions as well as end-to-end
-performance of real applications. Overall we find that \name{} performs
-comparably or significantly better than Step Functions in most cases owing to
-higher parallelism and a more expressive orchestration language, with modest
-slow downs in the remaining cases due to implementation deficiencies.
+\name{}'s performance overhead results from the \name{} runtime logic run in
+each function as well as API calls to data stores and FaaS engines. We
+characterize these overheads by measuring the latency to execute various
+patterns consists of \texttt{noop} functions as well as end-to-end performance
+of real applications. Overall we find that \name{} performs comparably or
+significantly better than Step Functions in most cases owing to higher
+parallelism and a more expressive orchestration language, with modest slow
+downs in the remaining cases due to implementation deficiencies.
 
 \subsubsection{Chaining}\label{sec:eval:chain}
 
@@ -152,7 +157,7 @@ the case that the difference between Step Functions and \name{} increases by
 think we can elide this figure.}
 
 The \name{} implementation of the IoT pipeline application benefits from this
-difference, with the \name{} version running 21\% faster than the Step Functions
+difference, with the \name{} version running 1.9x faster than the Step Functions
 version (Table~\ref{table:macro}).
 
 %\subsubsection{Chaining performance}\label{sec:eval:chain}
@@ -235,11 +240,16 @@ Functions limits parallel invocation of concurrent fan-out
 branches~\cite{aws-step-functions-map-state} while \name{} is limited only by
 Lambda's scalability, resulting in over 4x lower latency with 512 branches.
 
-These differences manifest in real workloads as well. Both the Text Processing
-and Word Count applications include an fan-out followed by a fan-in. Text
-Processing has low branching degree and, indeed, performs slightly worse on
-\name{} than on Step Functions (1.8\%). Conversely, Word Count is highly
-parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\ref{table:macro})
+These differences manifest in real workloads as well. Wordcount is highly
+parallel (with 262 parallel mappers and 250 reducers) and performs 219\%
+faster on \name{} than on Step Functions. (Table~\ref{table:macro})
+
+% These differences manifest in real workloads as well. Both the Text Processing
+% and Word Count applications include an fan-out followed by a fan-in. Text
+% Processing has low branching degree and, indeed, performs slightly worse on
+% \name{} than on Step Functions (1.8\%). Conversely, Word Count is highly
+% parallel and performs 219\% faster on \name{} than on Step Functions.
+% (Table~\ref{table:macro})
 
 % \subsubsection{Cost comparison}
 
@@ -358,11 +368,12 @@ parallel and performs 219\% faster on \name{} than on Step Functions. (Table~\re
     \hline
     \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
     Original        & 76                         \\ \hline
-    \name{} & 84                         \\ \hline
+    \name{}-aws & 84                         \\ \hline
     gg                       & 90                         \\ \hline
     Step Functions & 98                         \\ \hline
   \end{tabular}
-  \caption{ExCamera performance}
+  \caption{ExCamera performance. \name{} is 7.1\% faster than
+gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
   \label{table:excamera}
 \end{table}
 
@@ -387,18 +398,20 @@ We additionally compare the performance of executing ExCamera~\cite{excamera}
 with the original hand-optimized implementation and another implementation,
 gg, by the same author.
 
-Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
-the \texttt{sintel-4k}~\cite{sintel} video using 16 chunks per batch and
-Lambdas configured with 3GB of memory in all cases. \name{}'s is 7.1\% faster
-than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera. The
-original ExCamera pre-loads raw video chunks into lambdas before starting,
-while \name{} and gg do not. The original authors attributes the comparatively
-slower performance of \texttt{gg} to the lack of pre-loading which is likely
-also the reason for \name{}'s slower performance. But different from gg,
-\name{} executes control-flow logic in a decentralized manner while gg has a
-centralized coordinator on EC2 that proxies inter-function communications and
-invokes lambdas. The reduced number of network communications explains why
-\name{} is slightly faster than gg.
+Using the same experimental setup as the prior work (i.e., encoding the
+first 888 chunks of the \texttt{sintel-4k}~\cite{sintel} video using 16 chunks
+per batch and Lambdas configured with 3GB of memory), \name{} is 7.1\% faster
+than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera
+(Table~\ref{table:excamera}). The original ExCamera pre-loads raw video chunks
+into lambdas before starting, while \name{} and gg do not. The original
+authors attributes the comparatively slower performance of \texttt{gg} to the
+lack of pre-loading which is likely also the reason for \name{}'s slower
+performance.
+
+But different from gg, \name{} executes control-flow logic in a decentralized
+manner while gg has a centralized coordinator on EC2 that proxies
+inter-function communications and invokes lambdas. The reduced number of
+network communications explains why \name{} is slightly faster than gg.
 
 An important limitation of Step Functions is that all concurrent fan-out
 branches must complete before any fan-in starts. This means the Step Functions
