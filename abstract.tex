@@ -1,18 +1,32 @@
-Serverless workflow systems have emerged to meet the demands of large-scale
-serverless applications, offering high-level programming interfaces, rich
-composition semantics and strong execution guarantees that enable applications
-with 10s or 100s of functions and complex interactions. However, current
-designs rely on centralized orchestrators that require additional engineering,
-and resources, and can undermine the cost and scalability advantages of
-serverless.
+Serverless workflow orchestrators make it easier for developers to build complex
+serverless applications by driving the execution of a workflow from a central
+service.  Making orchestrators fault-tolerant and scalable requires engineering
+effort as well as large upfront resource costs to deploy. As a result,
+developers typically rely on multi-tenant services run by cloud providers that
+can amortize these costs across many users.
 
-This paper presents Unum, a \emph{decentralized} serverless workflow
-system. Unum partitions workflows written in high-level languages at
-compile-time, and executes orchestration logic in-situ with user functions in
-a decentralized manner. Unum can run on a minimal serverless infrastructure
-while provides strong execution guarantees, performances and costs similar or
-better than existing centralized workflow systems.
+Unfortunately, this centralization comes at the expense of application
+flexibility. Orchestrators support a fixed set of interactions, and trade-off
+performance, scalability, execution guarantees, and resource efficiency using a
+policy chosen by the cloud provider. They support many applications well, but
+cannot simultaneously satisfy the needs of \emph{all} applications.
 
-We present an implementation of Unum that supports a superset of
-applications expressible using AWS Step Functions, while runs up to 4.58x
-faster, and costs over an order-of-magnitude less.
+We argue that centralized serverless orchestrators are actually unnecessary.
+Instead, decentralized \emph{library} orchestrators can support the same
+application patterns and execution guarantees as existing orchestrators using
+only the basic building blocks of serverless platforms---a scalable ``Function''
+executor (FaaS) and a consistent scalable datastore. This enables different
+applications to use or customize different libraries to implemented different
+patterns or make application-specific trade-offs.
+
+To demonstrate this, we describe the design and implementation of \name{}, a
+decentralized serverless workflow system. \name{} compiles workflows written in
+existing high-level workflow languages a partitioned orchestration library that
+executes orchestration logic in-situ with user functions. Unum provides the same
+strong execution guarantees as centralized orchestrator, performs similarly,
+scales better, and costs less than existing centralized workflow systems.
+
+Our implementation of \name{} supports a superset of applications the AWS Step
+Functions orchestrator supports, runs on both AWS Lambda and Google Cloud
+Functions, and runs as much as 2x faster and up to an order of magnitude cheaper
+than native Step Functions on a representative set of applications.
