@@ -4,67 +4,67 @@ Serverless computing offers a simple but powerful abstraction consisting of
 stateless compute components (Functions as a Service, or FaaS) and scalable,
 multi-tenant data stores~\cite{berkeley}. Developers build applications using
 task-specific, event-driven ``functions'' without the need to provision or
-manage servers. In turn, serverless platforms have been able to offer high
-burst-scalability and quickly reclaim function resources as soon as they are
-idle. Developers are charged in small compute and storage increments (100s of
-milliseconds and per-stored-object and request, respectively), and platforms
-can make efficient use of hardware resources.
-
-Because serverless computing builds on ubiquitous existing cloud
-infrastructure---scalable and performant storage and workload scheduling---it is
+manage servers.
+Serverless computing builds on ubiquitous existing cloud
+infrastructure---scalable and performant storage and workload scheduling---so is
 able to expose highly granular access to datacenter resources with relatively
-low overhead and end-user cost. Moreover, this design simplicity has meant that
-public cloud providers have been able to rapidly develop and deploy similar
-offerings, along with numerous open source solutions deployed in private cloud
-settings~\cite{aws-lambda,gcp-functions,azure-functions,openwhisk,openfaas}.
+low overhead and end-user cost.
+%
+As a result, serverless platforms have been able to offer high burst-scalability
+and quickly reclaim function resources as soon as they are
+idle~\cite{aws-lambda,gcp-functions,azure-functions,openwhisk,openfaas}.
+Developers are charged in small compute and storage increments (100s of
+milliseconds and per-stored-object and request, respectively), and platforms can
+make efficient use of hardware resources.
 
-Originally, serverless platforms targeted simple applications with one or a few
-functions and no, or only simple interaction between them. Recently, though,
-this paradigm has increasingly proven useful for more complex applications
-composed of many functions with rich, stateful, interaction
+While serverless platforms originally targeted simple applications with one or a
+few functions, this paradigm has increasingly proven useful for more complex
+applications composed of many functions with rich, stateful, interaction
 patterns~\cite{excamera, pywren, gg-atc, beldi, boki}. Unfortunately, building
-such applications using basic serverless building blocks is challenging.  Due to
-the event driven nature of FaaS functions, fan-in interaction patterns (e.g.\
-aggregations or folds) are difficult to express. Moreover, implementing such
-patterns correctly is hard as FaaS platforms may attempt to execute a function
-invocation more than once, due to lost messages, infrastructure failures, or
-inconsistency in invocation queues, and individual functions may be
-non-deterministic.  Finally, intermediate states must be managed efficiently and
-deleted promptly to avoid incurring unbounded storage costs over repeated
-executions of a workflow.
+such applications using basic serverless building blocks is challenging.
+At-least once execution guarantees mean that non-deterministic functions may
+pass inconsistent results to downstream functions. Event-driven execution makes
+depending on the results of multiple previous functions challenging. Finally,
+intermediate states must be managed efficiently and deleted promptly to avoid
+incurring unbounded storage costs over repeated executions of a workflow.
 
-In order to support complex FaaS applications, cloud providers have built and
-deployed specialized centralized workflow
+Cloud providers have deployed specialized centralized workflow
 orchestrators~\cite{aws-step-functions, google-cloud-composer, google-workflows,
-durable-functions}. Developers provide a description of an execution
-graph---nodes in the graph represent FaaS functions and edges represent
-invocations of a function with the output of one or more functions---while the
-orchestrator drives the execution of this graph and hosts the state of execution
-(outstanding invocations and intermediate results) centrally.
+durable-functions} to support such applications. Developers provide a
+description of an execution graph---nodes in the graph represent FaaS functions
+and edges represent invocations of a function with the output of one or more
+functions---while the orchestrator drives the execution of this graph and hosts
+the state of execution (outstanding invocations and intermediate results)
+centrally.
 
 Centralization makes supporting complex interactions simple---e.g.\ an
-orchestrator can support fan-in by simply waiting for all branches to complete
-before invoking an aggregation function. Similarly, a centralized orchestrator
-can ensure that workflow results are consistent with an exactly-once execution
-by simply choosing one result for each function invocation in the workflow, even
-if some functions are executed multiple times and return different results. As a
-result, these orchestrators can offer high-level programming interfaces that
-express complex function interactions while promising that workflow results are
-consistent even if individual function invocations execute more than once.
+orchestrator can support fan-in patterns by simply waiting for all branches to
+complete before invoking an aggregation function. Similarly, a centralized
+orchestrator can ensure that workflow results appear to be the result of
+executing each constituent function exactly-once simply choosing one result for
+each function invocation. Finally, centralizing orchestration into a
+multi-tenant service amortizes the engineering and resource cost of making such
+a service fault tolerant, correct, and scalable. As a result, these
+orchestrators can offer high-level programming interfaces that express complex
+function interactions while promising that workflow results are consistent even
+if individual function invocations execute more than once.
 
-In principle, developers could deploy their own orchestrators, written as
-sequential programs running on a dedicated machine function. However, such a
-solution isn't tolerant to faults in the orchestrator and does not provide burst
-scalability to many workflow invocations. Instead, application developers
-typically rely on a multi-tenant orchestration service run by the cloud provider
-that amortizes the engineering and resource cost of making orchestration fault
-tolerant, correct, and scalable. In turn, these overheads are typically
-reflected in high end-user prices compared to invoking FaaS functions natively.
+%In principle, developers could deploy their own orchestrators, written as
+%sequential programs running on a dedicated machine function. However, such a
+%solution isn't tolerant to faults in the orchestrator and does not provide burst
+%scalability to many workflow invocations. Instead, application developers
+%typically rely on a multi-tenant orchestration service run by the cloud provider
+%that amortizes the engineering and resource cost of making orchestration fault
+%tolerant, correct, and scalable. In turn, these overheads are typically
+%reflected in high end-user prices compared to invoking FaaS functions natively.
 
-These orchestration services make design decisions, e.g., about which
-interactions to support and execution semantics to provide, that fit many, but
-not all applications. This results in a compromise familiar from operating
-systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn}, and storage
+However, centralized orchestrators also preclude the user from making their own
+trade-offs between available interactions or execution guarantees and
+performance, resource overhead, scalability and expressiveness. For example, an
+application with some deterministic functions in their workflow may not be able
+to reap performance benefits for those functions. This results in a compromise
+familiar from operating systems~\cite{exokernel,spin},
+networks~\cite{active-networks,sdn}, and storage
 systems~\cite{comet,splinter}---well designed centralized systems efficiently
 support the needs of many applications but cannot meet all application needs.
 %
@@ -74,8 +74,7 @@ support the needs of many applications but cannot meet all application needs.
 
 In this paper, we try to answer a simple question: \textit{is centralization
 \emph{necessary} to achieve the benefits of workflow  orchestrators?} We argue
-it is not. In particular, the scalable and strongly consistent datastores
-already provided as a basis for serverless platforms resolve the hardest
+it is not. In particular, scalable and strongly consistent datastores, which already serve as a critical component of serverless platforms, resolve the hardest
 challenge of centralization: coordination. Using such datastores, we show that a
 decentralized orchestrator can achieve strong execution guarantees and run
 complex execution graphs efficiently. We argue that decentralizing orchestration
