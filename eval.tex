@@ -1,25 +1,29 @@
 \section{Evaluation}\label{sec:eval}
 
-In this section, we evaluate \name{}'s decentralized design and compare
-with a state-of-the-art production workflow orchestrator---AWS Step
-Functions---on latency and costs of running applications. Specifically, we ask
-the following questions:
+\name{} argues for eschewing centralized orchestration and, instead, relying
+only on existing building blocks of serverless platforms---a function scheduler
+and consistent scalable datastore. The loss of flexibility and application
+control from centralization often enables better performance, more efficient
+resource usage, or better scalability.
+
+We, therefore, focus our quantitative evaluation on whether orchestrator
+decentralization comes at a reasonable performance and resource overhead. In
+particular, we run several applications implemented to run on a state-of-the-art
+production workflow orchestrator---AWS Step Functions--both on their intended
+target as well as using \name{}, on both the same cloud provider and Google
+Cloud.  Given the opacity of public cloud infrastructure, we cannot measure
+resource usage directly and instead use billed costs as a proxy.
+
+Specifically, we answer the following questions:
+
 
 \begin{enumerate}
 
-  \item Given the same application, what is the end-to-end latency of
-    running it with \name{} and how does it compare with Step Functions?
+  \item What overhead does \name{} incur in end-to-end latency and resources?
 
-  \item What are the sources of \name{'s} latency overhead? How much does
-    the overhead come from API calls to the underlying serverless components?
+  \item How well does \name{} support an application that Step Functions cannot support well?
 
-  \item Given the same application, what is the billing cost of running it
-  with \name{} vs that with Step Functions?
-
-  \item What are the sources of \name{'s} billing costs? How much additional
-  costs does the \name{} runtime incur in Lambda duration billing? And how
-  much does it cost to provide exactly-once execution semantics from writing
-  and reading checkpoints?
+  \item What are the sources of \name{'s} latency overhead overheads?
 
 \end{enumerate}
 
@@ -52,26 +56,11 @@ the following questions:
 
   % \end{itemize}
 
-We use a combination of both microbenchmarks and 4 real-world applications,
-for end-to-end analysis of \name{}. The micro-benchmarks target basic
-orchestration patterns such as chaining, fan-out and fan-in
-(\S\ref{sec:eval:micro}). The real-world apps consist of applications from
-serverless repositories and prior research work that encompass a variety of
-orchestration patterns.
-
-We focus our discussion on AWS and the comparison between our \name{}
-implemention on Lambda and DynamoDB vs Step Functions, because it is on the
-same cloud provider and the measurements represent the cost and performance of
-``migrating'' your AWS serverless applications from Step Functions to \name{},
-without any changes to your application. \dhl{needs rephrasing}
-
-In general, we treat Step Functions as a black box as its internal details are
-not public. While it is possible that different designs for a centralized
-orchestrator could yield better performance, our evaluation goal is to show
-that \name{}'s architecture and IR result in performance and cost sufficient
-for practical use. We argue that if \name{} matches or improves over Step
-Functions, one of the most widely used centralized orchestrators today, its
-performance and costs are good enough for a wide variety of applications.
+We use applications taken from repositories of serverless application as well as
+a application built by other researchers. Though we evaluate the applications
+running on both AWS and Google Cloud, we focus our discussion on our \name{}
+implementation on Lambda and DynamoDB, because it runs on the same serverless
+infrastructure as Step Functions.
 
 \subsection{Experimental setup}
 
