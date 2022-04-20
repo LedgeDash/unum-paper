@@ -1,81 +1,59 @@
 \section{Implementation}\label{sec:impl}
 
-\subsection{AWS Lambda}
+We implement a prototype \name{} runtime that supports AWS Lambda and Google
+Cloud Functions, leveraging DynamoDB and Firestore, respectively, as
+intermediate datastores. We also implemented a front-end compiler that takes
+arbitrary AWS Step Function state-machine definitions and compiles them to
+\name{} IR, which can be run on either. Currently our runtime only supports
+Python functions and is itself written in 1,119 lines-of-code. The Step
+Functions compiler is 549 lines-of-code.
 
-\begin{enumerate}
-  \item \textbf{Asynchronous invocation} supported natively with via the \texttt{Invoke} API and \texttt{InvocationType} ``Event''~\cite{aws-lambda-async-invoke}. In practice, functions call the \texttt{Invoke} API using Amazon's \texttt{boto3} library.
-\end{enumerate}
+Implementing the runtime primarily requires specializing high-level
+functionality the IR depends on for a particular FaaS platform and datastore.
+The FaaS platform must support asynchronous function invocation and the
+datastore must be linearizable with support for atomic creation and set
+operations.
 
-\subsubsection{DynamoDB}
+Importantly, we choose datastores and primitives that only incur per-use costs,
+rather than including baseline provisioning cost, and scale on-demand. For
+example, we use DynamoDB in on-demand capacity mode, rather than provisioned
+capacity mode, and avoid long-running services such as a hosted Redis or cache.
+As a result, \name{} workflows, like their centralized counterparts, incur
+resource costs \emph{only} to actually execute a workflow.
 
-\begin{enumerate}
-  \item \textbf{Create and write to checkpoint with value}. Uses \texttt{put\_item} with the conditional flag \texttt{attribute\_not\_exists} for the key, where keys are checkpoint names~\ref{sec:design:naming}. 
-  \item Create Set. We implement a Set using an array of booleans that is initialized to all False. Create Set uses the \texttt{put\_item} with the conditional flag \texttt{attribute\_not\_exists} for the key that creates a document only if the key does not exist.
-  \item Add to set. Add to set. Each function adds to a set by writing True to a particular index of the array. We use the \texttt{update\_item} API with conditional flag \texttt{attribute\_exists} for the key. \texttt{update} fails if the object does not exist.
+\subsection{AWS Lambda \& DynamoDB}
 
-  Add to set is idempotent. That is adding the same value multiple times should not change the Set's value. To implement this behavior, a function \emph{always writes to the same index} in the array. Therefore if a function calls add to set multiple times, it writes True to the same index multiple time, not changing the array's value. We implement this using the \texttt{set} expression in \texttt{update\_item}. The \texttt{set} expression supports modifying a single element in an array at a particular index and the write is strongly consistent.
+Asynchronous invocation in Lambda is natively supported. In particular, the
+Lambda \texttt{Invoke} API is asynchronous when passed.
 
-  \item Get set size. In the same \texttt{update\_item} call for add to set, we use the \texttt{ALL\_NEW} flag for \texttt{ReturnValues} to read the set's value atomically after the update. Then we calculate the set's size by counting the number of Trues.
-\end{enumerate}
+DynamoDB organizes data into tables, with each item in a table named by a key.
+Within tables, items are unstructured by default. Our implementation of \name{}
+uses a single table for each workflow invocation. Each item in the table
+corresponds to a checkpoint, or a coordination set for fan-in or garbage
+collection.
 
-% \subsubsection{S3}
+DynamoDB supports atomic item creation by passing the conditional flag
+\texttt{attribute\_not\_exists} to the \texttt{put\_item} API call. We use this
+for creating both checkpoint blobs and coordination sets. DynamoDB supports set
+addition natively using the \texttt{Map} field type. In particular, we use
+update expressions to atomically set a named map element to true.  As an
+optimization, we use the \texttt{ALL\_NEW} flag when adding to a set to
+atomically get the new value after a set in a single operation.
 
-% \begin{enumerate}
-%   \item Create and write to object with value
-%   \item Create Set
-%   \item Add to set
-%   \item Get set size
-% \end{enumerate}
+\subsection{Google Cloud Functions \& Firestore}
 
-\subsection{Google Cloud Functions}
+Google Cloud Functions (GCF) do not have an asynchronous invocation API.
+Instead, we allocate function-specific publish-subscribe queues and subscribe
+each function to its respective queue.  \name{} then performs asynchronous
+invocation of a function by publishing the input data as an event to the
+function's queue.
 
-\begin{enumerate}
-  \item \textbf{Asynchronous invocation} enqueue the event in a function-specific Pub/Sub queue. On deployment, the function is set up as a subscriber to the queue to run for each event. A function invokes another function by publishing an event to its Pub/Sub queue.
-\end{enumerate}
-
-\subsubsection{Firestore}
-
-\begin{enumerate}
-  \item \textbf{Create and write to object with value} A firestore document \texttt{create} operation writes a value to a key only if the key doesn't exist.
-  \item Create Set. Firestore does not natively support a Set data structure. We implement a Set using an array of booleans that is initialized to all False. Create Set uses Firestore document \texttt{create} API that creates a document only if the key does not exist.
-  \item Add to set. Each function adds to a set by writing True to a particular index of the array. We implement using a Firestore transaction that consists of a \texttt{get} and a \texttt{update} on the document. The \texttt{get} API returns the entire array. The function then writes True to the particular index in the local copy of the array, and calls \texttt{update} to write the local copy to Firestore. The transaction makes sure that no concurrent writes can happen between the read and write in the transaction. If the document does not exist, the transaction will fail without creating the set.
-
-  Add to set is idempotent. That is adding the same value multiple times should not change the Set's value. To implement this behavior, a function \emph{always writes to the same index} in the array. Therefore if a function calls add to set multiple times, it writes True to the same index multiple time, not changing the array's value.
-
-  \item Get set size. Count the number of Trues in the array to decide the set's size.
-\end{enumerate}
-
-
-We implement a prototype of \name{} that runs Python functions on AWS Lambda
-with DynamoDB as the intermediary data store. The frontend compiler
-supports workflows written as AWS Step Functions state machines. The compiler
-is written in Python with 1,277 lines of code.
-% \dhl{How the frontend compiler
-%transforms a Step Functions state machine to a directed graph and then
-%transforms it to the \name{} IR is beyond the scope of this paper}. 
-The runtime are written in Python with 2,957 lines of code. We also integrate
-our toolchain with AWS SAM to build and deploy \name{} workflows as Amazon
-CloudFormation stacks, which automates the development process. Developers can
-list all resources in a workflow, including the intermediary data store, and
-deploy them with one simple command.
-
-The runtime uses the \texttt{boto3} library to interact with AWS services.
-Lambda functions are invoked asynchronously (\texttt{InvocationType='Event'})
-with the \texttt{invoke()} API. Checkpointing to DynamoDB is a
-\texttt{PutItem} operation with a condition that the item does not already
-exist (\texttt{ConditionExpression=attribute\_not\_exists()}). Check
-checkpoint existence is a consistent read via \texttt{GetItem} operation. For
-fan-in functions, reading input from DynamoDB uses the \texttt{BatchGetItem}
-operation with consistent reads.
-\name{} by default uses the on-demand capacity mode when creating DynamoDB
-tables where applications are charged by the amount of read and write it
-performs instead of a fixed hourly rate.
-
-One important implementation detail is that synchronization among fan-in
-functions must be idempotent because functions can crash and retries might
-execute synchronization logic again. Therefore, many common synchronization
-data structures, such as an atomic counter where parallel functions increments
-the counter to signal completion, cannot be used. Instead, \name{} uses an
-array of booleans initialized to all false. The egress runtime on each fan-in
-function sets the value to true at the array index that is equal to the node's
-branch index.
+Firestore organizes data into logical collections (which are created and deleted
+implicitly) containing unstructured items, named by a unique key. Similar to
+DynamoDB, we use a separate collection for each workflow. Atomic item creation
+is supported using a special \texttt{create} API call, which only succeeds if
+the key does not already exist. Firestore supports an \texttt{Array} field type
+which can act as a set by using the \texttt{ArrayUnion} and \texttt{update}
+operation, which atomically sets the field to the union of its existing elements
+and the provided elements. The \texttt{update} operation always returns the
+new value data.
