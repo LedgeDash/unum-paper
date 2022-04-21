@@ -8,7 +8,7 @@
     \hline
   \textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
     \hline
-  \textbf{Invocation} & An invocation of a function one request of the FaaS platform to run a function and is associated with an argument to the function. \\
+  \textbf{Invocation} & An request to the FaaS platform to run a function. \\
     \hline
   \textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
     \hline
@@ -76,8 +76,8 @@ pipelines using triggers. In trigger-based composition~\cite{netherite} each
 function in a chain invokes the next asynchronously or each function writes to a
 data-store configured to invoked the next function in response to the storage
 event. Similarly, developers might use a ``driver-function''~\cite{beldi} to
-drive more intricate control-flow logic. A driver function is a function that
-that invokes one or more other functions, waits for their responses, and invokes
+drive more intricate control-flow logic. A driver function is a functio that
+invokes one or more other functions, waits for their responses, and invokes
 subsequent functions with their response.
 
 %\subsubsection{Ad-hoc composition: triggers and driver functions}

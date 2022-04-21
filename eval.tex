@@ -8,11 +8,11 @@ resource usage, or better scalability.
 
 We, therefore, focus our quantitative evaluation on whether orchestrator
 decentralization comes at a reasonable performance and resource overhead. In
-particular, we run several applications implemented to run on a state-of-the-art
-production workflow orchestrator---AWS Step Functions--both on their intended
-target as well as using \name{}, on both the same cloud provider and Google
-Cloud.  Given the opacity of public cloud infrastructure, we cannot measure
-resource usage directly and instead use billed costs as a proxy.
+particular, we run applications implemented for a state-of-the-art
+production workflow orchestrator---AWS Step Functions---both on their intended
+target as well as using \name{}. Given the opacity of public cloud
+infrastructure, we cannot measure resource usage directly and instead use billed
+costs as a proxy.
 
 Specifically, we answer the following questions:
 
@@ -23,7 +23,7 @@ Specifically, we answer the following questions:
 
   \item How well does \name{} support an application that Step Functions cannot support well?
 
-  \item What are the sources of \name{'s} latency overhead overheads?
+  \item What are the sources of \name{'s} overheads?
 
 \end{enumerate}
 
@@ -486,7 +486,7 @@ input.}
     \label{fig:cost-breakdown}
 \end{figure}
 
-One of the main attractions of building appliactions on serverless platforms
+One of the main attractions of building applications on serverless platforms
 is lower cost. In particular, because resources are easy to reclaim,
 applications are charged only for resources used to respond to actual events
 or requests. Thus, applications with potential for high burst-parallelism, or

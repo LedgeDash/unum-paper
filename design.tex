@@ -1,7 +1,7 @@
 \section{\name{} Design}\label{sec:design}
 
 \name{} is an orchestration system that achieves the flexibility of ad-hoc
-orchestration without comprosmising the scalability, fault-tolerance, and
+orchestration without compromising the scalability, fault-tolerance, and
 execution guarantees of centralized orchestrators. It does so by placing
 decentralized orchestration logic in a library that runs in-situ with FaaS
 fucntions and leverages a scalable consistent storage service for coordination
@@ -56,13 +56,13 @@ invocation of the target function.
 	\caption{\name{}'s Decentralized Orchestration. \name{} partitions
 	orchestration logic at compile time and a \name{} runtime runs in-situ
 	with user functions to perform only the orchestration logic local to its
-	subsection of the graph.}
+	node.}
 	\label{fig:arch}
 \end{figure*}
 
 Figure~\ref{fig:arch:unum-compile-time} depicts how developers run serverless
 workflows using \name{}. Developers write individual functions and describe the
-workflow using a high-level workflow language, such as Step Function's
+workflow using a high-level workflow language, such as Step Functions'
 expression language. An \name{} front-end compiler uses these to extract
 portable \name{} IR for each node in the graph and ``attaches'' it to the
 function (e.g.\ by placing a file containing the IR alongside the function

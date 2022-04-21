@@ -90,9 +90,9 @@ orchestration as a library that runs in-situ with user defined FaaS functions,
 rather than as a separate service. The library relies on a minimal set of
 existing serverless APIs---function invocation and a few basic datastore
 operations---that are common across cloud platforms. \name{} introduces an
-intermediate representation (IR) language to express interactions execution
-graphs using only node-local information while supporting front-end compilers
-that can transform high-level workflow descriptions into the IR.
+intermediate representation (IR) language to express execution graphs using only
+node-local information while supporting front-end compilers that can transform
+high-level workflow descriptions into the IR.
 
 At a high level, \name{} relies on the FaaS scheduler to run each function
 invocation \emph{at least} once and consistent datastore operations to
@@ -120,8 +120,7 @@ with existing black-box production orchestrators---both are influenced by
 deployment and pricing decisions that may not reflect the underlying efficiency
 or cost of the system---\name{} performs well in practice (\S\ref{sec:eval}). We
 find that a representative set of applications scale better with \name{} than
-AWS Step Functions, typically complete faster low scale, and cost
-significantly less (by over an order of magnitude) to run. We also demonstrate
-that \name{}'s IR allows hand-tuned applications to run faster than their Step
-Functions equivalent by using application-specific optimizations and supporting
-a richer set of interaction patterns.
+AWS Step Functions, run faster, and cost significantly less to run. We also
+demonstrate that \name{}'s IR allows hand-tuned applications to run faster than
+their Step Functions equivalent by using application-specific optimizations and
+supporting a richer set of interaction patterns.

@@ -24,7 +24,7 @@ resource costs \emph{only} to actually execute a workflow.
 \subsection{AWS Lambda \& DynamoDB}
 
 Asynchronous invocation in Lambda is natively supported. In particular, the
-Lambda \texttt{Invoke} API is asynchronous when passed.
+Lambda \texttt{Invoke} API is asynchronous when passed \texttt{InvocationType=Event}.
 
 DynamoDB organizes data into tables, with each item in a table named by a key.
 Within tables, items are unstructured by default. Our implementation of \name{}
