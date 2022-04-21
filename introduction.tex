@@ -41,7 +41,7 @@ Centralization makes supporting complex interactions simple---e.g.\ an
 orchestrator can support fan-in patterns by simply waiting for all branches to
 complete before invoking an aggregation function. Similarly, a centralized
 orchestrator can ensure that workflow results appear to be the result of
-executing each constituent function exactly-once simply choosing one result for
+executing each constituent function exactly-once by choosing one result for
 each function invocation. Finally, centralizing orchestration into a
 multi-tenant service amortizes the engineering and resource cost of making such
 a service fault tolerant, correct, and scalable. As a result, these
