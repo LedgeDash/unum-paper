@@ -9,7 +9,7 @@ Serverless computing builds on ubiquitous existing cloud
 infrastructure---scalable and performant storage and workload scheduling---so is
 able to expose highly granular access to datacenter resources with relatively
 low overhead and end-user cost.
-%
+
 As a result, serverless platforms have been able to offer high burst-scalability
 and quickly reclaim function resources as soon as they are
 idle~\cite{aws-lambda,gcp-functions,azure-functions,openwhisk,openfaas}.
@@ -49,15 +49,6 @@ orchestrators can offer high-level programming interfaces that express complex
 function interactions while promising that workflow results are consistent even
 if individual function invocations execute more than once.
 
-%In principle, developers could deploy their own orchestrators, written as
-%sequential programs running on a dedicated machine function. However, such a
-%solution isn't tolerant to faults in the orchestrator and does not provide burst
-%scalability to many workflow invocations. Instead, application developers
-%typically rely on a multi-tenant orchestration service run by the cloud provider
-%that amortizes the engineering and resource cost of making orchestration fault
-%tolerant, correct, and scalable. In turn, these overheads are typically
-%reflected in high end-user prices compared to invoking FaaS functions natively.
-
 However, centralized orchestrators also preclude users from making their own
 trade-offs between available interactions or execution guarantees and
 performance, resource overhead, scalability and expressiveness. For example, an
@@ -67,26 +58,23 @@ familiar from operating systems~\cite{exokernel,spin},
 networks~\cite{active-networks,sdn}, and storage
 systems~\cite{comet,splinter}---well designed centralized systems efficiently
 support the needs of many applications but cannot meet all application needs.
-%
-%Indeed, researchers have devised new orchestrators to support FaaS applications
-%that cannot be efficiently run using existing
-%orchestrators~\cite{excamera,gg-atc}.
 
 In this paper, we try to answer a simple question: \textit{is centralization
-necessary to achieve the benefits of workflow  orchestrators?} We argue
-it is not. In particular, scalable and strongly consistent datastores, which already serve as a critical component of serverless platforms, resolve the hardest
-challenge of centralization: coordination. Using such datastores, we show that a
-decentralized orchestrator can achieve strong execution guarantees and run
-complex execution graphs efficiently. We argue that decentralizing orchestration
-is better for cloud providers as they need not develop and maintain yet another
-complex service. It is better for developers as it gives applications more
-flexibility to use more performant, applications-specific orchestration
-optimizations and makes porting applications between different cloud platforms
-easier.
+necessary to achieve the benefits of workflow  orchestrators?} We argue it is
+not. In particular, scalable and strongly consistent datastores, which already
+serve as a critical component of serverless platforms, resolve the hardest
+challenge of centralization: coordination. Using such datastores, we show that
+a decentralized orchestrator can achieve strong execution guarantees and run
+complex execution graphs efficiently. We argue that decentralizing
+orchestration is better for cloud providers as they need not develop and
+maintain yet another complex service. It is better for developers as it gives
+applications more flexibility to use more performant, applications-specific
+orchestration optimizations and makes porting applications between different
+cloud platforms easier.
 
 To support these arguments, we present \name{}, a system for decentralized
 serverless workflow orchestration (\S\ref{sec:design}). \name{} provides
-orchestration as a library that runs in-situ with user defined FaaS functions,
+orchestration as a library that runs in-situ with user-defined FaaS functions,
 rather than as a separate service. The library relies on a minimal set of
 existing serverless APIs---function invocation and a few basic datastore
 operations---that are common across cloud platforms. \name{} introduces an
