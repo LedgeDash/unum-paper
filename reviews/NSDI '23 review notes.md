@@ -185,3 +185,86 @@ Again, I think the fundamental issue here is how is Unum different compared with
 
 
 
+### Reviewer E
+
+Reviewer E's main issue is about our motivation and claimed benefits of Unum:
+
+> I find your motivation for Unum is weak and vague. 
+
+E argues that:
+
+> > centralized orchestrators also preclude users from making their own trade-offs between available interactions or execution guarantees and performance, resource overhead, scalability and expressiveness.
+>
+> However, throughout the paper, I didn’t find strong qualitative or quantitative evidence
+> that supports this statement.
+
+Specifically, E disagrees that Unum can relieve cloud providers from the task of developing and maintaining orchestrators because
+
+> who is going to develop the decentralized orchestrator? The users? Or, some third parties? Eventually someone needs to “develop and maintain” the orchestrator, and cloud providers have the best interests to do it. Note that the decentralized orchestrator is more complex than the centralized one. So you are
+> essentially increasing the complexity, rather than reducing it.
+
+Also, E disagrees that Unum gives applications more flexibility to do optimization:
+
+> > It is better for developers as it gives applications more flexibility to use more
+> > performant, applications-specific orchestration optimizations and makes porting
+> > applications between different cloud platforms easier
+>
+> I’m also not convinced by the more performant, optimization-friendly argument. I don’t
+> see from the paper how the decentralized orchestrator can achieve it. In terms of
+> portability, it is orthogonal to whether the design is centralized or decentralized. If
+> your argument is that Unum provides an independent IR and that’s why it’s more portable.
+> Then, the same thing can apply to centralized designs too.
+
+E then deconstructed what his/her understanding of Unum's claimed benefits: 
+
+> Overall, you mentioned four things: (1) execution guarantee, (2) performance (3) resource
+> overhead, (4) scalability, and (3) expressive.
+
+On performance, E had two questions:
+
+>  What prevents a centralized orchestrator from achieving high parallelism? You mentioned
+> that AWS Step Function limits parallel invocation of concurrent branches; why?
+
+>  Intuitively, Unum needs to pay the overhead of checkpointing, which is not needed by a
+> centralized design. How does it affect the performance?
+
+On expressiveness, E thinks orchestrators can support the same level of expressiveness, and demand more examples for the lack of expressiveness in orchestrators than ExCamera. 
+
+> For (3) expressiveness, the ExCamera example in which you optimize the data dependency is
+> interesting. OTOH, I don’t find it supports your argument too strongly, because it can be
+> achieved by a centralized orchestrator also. The key point you are making is that the
+> existing orchestrator is hard to customize, which is orthogonal to whether the design is
+> centralized or decentralized. Is it fair to say that the expressiveness can be provided
+> by a centralized design also (by providing more fine-grained control)?
+> Besides the ExCamera example, what are the other limitations of expressiveness of
+> existing orchestrators?
+
+On scalability, E is confused by what we mean and didn't see evidence in the evaluation. 
+
+> For (4) scalability, what are you referring to? It's not evaluated or discussed.
+
+
+
+Next, he argues that orchestrators typically performs other functionalities: 
+
+> I’d like to point out that orchestrators typically perform many other functionalities,
+> such as admission control to prevent overload and permission checks. How do Unum achieve those? One question I have is how to prevent malicious or unauthorized users from
+> invoking protected functions? How do you achieve security?
+
+Finally, E had 3 questions;
+
+> How is the frontend compiler implemented? Given that your IR is likely more expressive
+> than existing offering; how do you translate existing manifest into your IR?
+
+> What exactly is your IR? What you described is less a complete instruction set but more a
+> few APIs. Why do you think your IR is expressive enough?
+
+> What are the evaluation applications? Are those representative serverless workflows? Who
+> implemented them? How big are they (e.g., how many functions and what is the length)?
+> What are the workloads you use?
+
+
+
+
+
+Will need to rewrite the 
