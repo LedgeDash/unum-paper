@@ -70,15 +70,16 @@ if an end-user uploads their whole photo library at once---the platform can
 scale by spawning many parallel instances of the function to respond to events
 within seconds and reclaim resources when the bust subsides.
 
-This simple abstraction can be used to compose many simple applications with one
-or a few functions. For example, developers can chain functions for data
+This simple abstraction can be used to compose many simple applications with
+one or a few functions. For example, developers can chain functions for data
 pipelines using triggers. In trigger-based composition~\cite{netherite} each
-function in a chain invokes the next asynchronously or each function writes to a
-data-store configured to invoked the next function in response to the storage
-event. Similarly, developers might use a ``driver-function''~\cite{beldi} to
-drive more intricate control-flow logic. A driver function is a functio that
-invokes one or more other functions, waits for their responses, and invokes
-subsequent functions with their response.
+function in a chain invokes the next asynchronously or each function writes to
+a data-store configured to invoked the next function in response to the
+storage event. Similarly, developers might use a
+``driver-function''~\cite{beldi} to drive more intricate control-flow logic. A
+driver function acts as a centralized controller that invokes other functions
+in the application, waits for their responses, and invokes subsequent
+functions with their responses.
 
 %\subsubsection{Ad-hoc composition: triggers and driver functions}
 %
@@ -136,31 +137,16 @@ subsequent functions with their response.
 %\emph{synchronously}. Figure~\ref{fig:chain-example} depicts an example of
 %chaining functions with the two approaches. \shadi{shouldn't the first figure (a) have a storage in the middle?} \shadi{from the figure and text it is not clear what is the diff between driver and coordinator. }
 
-Such ad-hoc approaches work ``out-of-the-box'', i.e.\ they require no additional
-platform provided infrastructure. However neither is well suited to complex
-applications with 10s or 100s of functions~\cite{excamera, hello-retail}.
-Trigger-based composition can only support chaining of individual functions or
-fan-out from one function to multiple, but cannot, for example, fan-in from
-multiple functions to one. As a result, only a limited class of applications can
-take advantage of burst parallelism for each application request. Moreover,
-trigger-based composition scatters control-flow logic across each function or in
-configured storage events making development unwieldy for long chains.
-
-%Although both approaches are ``purely serverless'', i.e., they do not require
-%adding additional components to the serverless infrastructure, neither is
-%well-suited for the complexities of emerging serverless applications that
-%consists of 10s or 100s of functions~\cite{excamera, hello-retail}.
-%Trigger-based composition scatters control-flow logic across constituent
-%functions, thus, development quickly gets unwieldy as the number of functions in the
-%application increases. More importantly, it does not support all forms of
-%composition such as fan-in that aggregates results from multiple (potentially)
-%concurrent functions after \textit{all} are complete \footnote{\shadi{This is due to the asynchronous invocations of triggers with no support for either synchronizing across concurrent
-%	instances, or the inability to pass caller's data other function's data to the callee.}}.
-
-%, \dhl{as
-%asynchronous invocation alone do not support synchronizing across concurrent
-%instances and can only pass the caller's data, and not other functions' data,
-%to the callee.}
+Such ad-hoc approaches work ``out-of-the-box'', i.e.\ they require no
+additional platform provided infrastructure. However neither is well suited to
+complex applications with 10s or 100s of functions~\cite{excamera,
+hello-retail}. Trigger-based composition can only support chaining of
+individual functions or fan-out from one function to multiple, but cannot, for
+example, fan-in from multiple functions to one. As a result, only a limited
+class of applications can take advantage of burst parallelism for each
+application request. Moreover, trigger-based composition scatters control-flow
+logic across each function or in configured storage events, making development
+unwieldy when application complexity grows.
 
 On the other hand, driver functions concentrate control flow in a single
 function and support arbitrary composition. However, they result in ``double
@@ -172,40 +158,12 @@ complete.
 
 Finally, both ad-hoc approaches require developers to handle function crashes,
 retries and multiple invocations gracefully~\cite{aws-lambda-retry,
-azure-functions-retry, aws-lambda-async-invoke, azure-functions-exec-guarantee}.
-Application typically want to ensure ``exactly once'' semantics~\cite{netherite,
-beldi, boki, formal-foundation-exec-gtnee, durable-semantics} for an entire call-graph, but both
-failing and multiple invocations of individual constituent functions can subvert
-this goal without careful consideration.
-
-
-%\dhl{Maybe explain why fan-in is not supported as a contrast to \name{}. But
-%tricky because there's nothing fundamentally stopping unstructured composition
-%from achieving fan-in as \name{} also demonstrated. Maybe the main difference
-%is ad-hoc vs ..not. Or maybe the main difference is the addition of strongly
-%consistent data stores and how we use them.} \shadi{I agree that you should
-%say why fan-in is not supported. does the current text handle that?}\dhl{Yes
-%but I'm not confident with the current explanation. Please take a look at the
-%end of the 3rd to last paragraph. I wrote it in red text.}
-
-
-
-%Although both approaches are purely serverless and do not require adding
-%additional components to the serverless infrastructure, they each have
-%important drawbacks. Unstructured composition scatters control flow across
-%constituent functions. As the number of functions increases, development can
-%quickly get unwieldy. Moreover, it does not support important composition
-%patterns such as fan-in, where we want to invoke a function to aggregate the
-%results of multiple upstream functions only after all of them are complete.
-
-
-%Compared with unstructured composition, driver functions concentrate control
-%flow in a single function and supports \shadi{complex patterns such as}aggregation. However, users pay for the
-%time when driver functions idly wait for callees to return. This causes
-%\emph{double billing}~\cite{double-billing}. \shadi{how about the fact that it is sync? doesn't that add delay, e.g., in a fan-out} Also, serverless platforms
-%commonly impose timeouts. A driver function instance has to wait until all
-%functions in the application are complete, which risks timeouts and limits
-%application scale.
+azure-functions-retry, aws-lambda-async-invoke,
+azure-functions-exec-guarantee}. Application typically want to ensure
+``exactly once'' semantics~\cite{netherite, beldi, boki,
+formal-foundation-exec-gtnee, durable-semantics} for an entire call-graph, but
+failures and multiple invocations of individual constituent functions can
+subvert this goal without careful consideration.
 
 %Moreover, both approaches suffer from weak execution guarantees of the
 %underlying serverless system. Functions can crash mid-execution due to runtime
@@ -217,16 +175,17 @@ this goal without careful consideration.
 
 \subsection{Workflow Orchestrators}\label{sec:bg:orchestrator}
 
-A common solution to address the needs of complex serverless applications is to
-introduce a workflow orchestrator~\cite{excamera, gg-atc, aws-step-functions,
-google-cloud-composer, google-workflows, durable-functions}.  Orchestrators
-operate similarly to driver-functions---they drive an application workflow by
-invoking each function in the application from the orchestrator---but are
-separate hosted services, usually multi-tenant. Typically, orchestrators provide
-a high-level programming interface to describe applications in terms of their
-control-flow graph and constituent functions.  They offer a  rich set of
-composition primitives, such as branching, chaining, fan-out and fan-in, while
-ensuring exactly-once semantics.
+A common solution to address the needs of complex serverless applications is
+to introduce a workflow orchestrator~\cite{excamera, gg-atc,
+aws-step-functions, google-cloud-composer, google-workflows,
+durable-functions}.  Orchestrators operate similarly to
+driver-functions---they drive an application workflow by invoking functions in
+the application---but are separate hosted services, usually multi-tenant.
+Typically, orchestrators provide a high-level programming interface to
+describe applications in terms of their control-flow graph and constituent
+functions.  They offer a  rich set of composition primitives, such as
+branching, chaining, fan-out and fan-in, while ensuring exactly-once
+semantics.
 
 %Orchestrators provide these features by hosting a separate ``orchestration''
 %service alongside the low-level functions to manage the execution of a
