@@ -56,9 +56,10 @@ such a service fault tolerant, correct, and scalable. As a result, these
 orchestrators can offer high-level programming interfaces that express complex
 function interactions while promising that workflow results are consistent
 even if individual function invocations execute more than once.}\dhl{not sure
-if striked-out text is relevant to our argument. In particular, why amortizing
-the costs \emph{causes} ("As a result") orchestrators to offer high-level
-programming interfaces and exactly-once guarantees.}
+if striked-out text is relevant enough to our argument to be in Intro. In
+particular, why amortizing the costs \emph{causes} ("As a result")
+orchestrators to offer high-level programming interfaces and exactly-once
+guarantees.}
 
 \remove{However, centralized orchestrators also preclude users from making their
 own trade-offs between available interactions or execution guarantees and
@@ -88,7 +89,7 @@ application needs.}
 \dhledit{For example, applications that need orchestration patterns not
 supported by existing standalone orchestrator services have to either
 compromise performance by using less-efficient but supported patterns or first
-repeat the hard work of building and deploying their own custom
+repeat the hard work of building and managing their own custom
 orchestrator~(\S~\ref{sec:eval:excamera}). An application with deterministic
 functions, which requires weaker execution guarantees, may not be able to reap
 performance benefits if the orchestrator service only supports strong
