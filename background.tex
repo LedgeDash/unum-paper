@@ -210,7 +210,7 @@ function timeouts and can be arbitrarily
 long-running~\cite{step-functions-timeouts}. Moreover, as standalone services,
 orchestrators can be distributed and employ techniques such as sharding and
 replication to provide strong execution guarantees and fault-tolerance. For
-example, orchestrators can ensure that workflows appears to execute
+example, orchestrators can ensure that workflows appear to execute
 exactly-once by choosing one result for each function invocation, even if FaaS
 engines only guarantee at-least once execution. Orchestrators can also persist
 or replicate states during execution so that in face of orchestrator failures,
@@ -222,7 +222,9 @@ the needs of complex serverless applications, introducing a new
 \remove{platform} \dhledit{standalone} service has significant drawbacks.
 Building performant, scalable \dhledit{and fault-tolerant} multi-tenant
 systems is hard and orchestrators introduce yet-another potential performance
-and scalability bottleneck.
+and scalability bottleneck. \dhledit{Indeed, we find (Section~\ref{sec:eval})
+that, in practice, production systems limit end-to-end performance for
+highly-parallel applications.}
 
 \remove{Moreover, hosting such services can be expensive, as they require
 dedicated resources in addition to those allocated to FaaS and storage
@@ -234,35 +236,39 @@ dedicated resources. Deploying a custom orchestrator per user risks
 under-utilization as it cannot multiplex over many users and users pay even
 when orchestrator is not actively in use, breaking the fine-grained billing
 benefit of serverless. Provider-hosted orchestrators amortizes this cost but
-still incur engineering expenses as they require teams on-call.}
+still incur engineering expenses as they require teams on-call. Indeed, we
+find (Section~\ref{sec:eval}) that provider-hosted orchestrators cost
+developers significantly and dominate the cost of running applicatoins.}
 
-\dhledit{Additional, provider-hosted orchestrators preclude users from making
-application-specific optimizations. Each provider typical offers just a single
-orchestrator service option. While the interface and implementation of the
-orchestrator might efficiently support the needs of many application, it
-cannot meet all application needs, resulting in a compromise familiar from
+\dhledit{Additionally, provider-hosted orchestrators preclude users from
+making application-specific optimizations. Each provider typically offers just
+a single orchestrator service option. While the interface and implementation
+of the orchestrator might efficiently support the needs of many application,
+it cannot meet all application needs, resulting in a compromise familiar from
 operating systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn},
-and storage systems~\cite{comet,splinter}}
+and storage systems~\cite{comet,splinter}. Indeed, we find
+(Section~\ref{sec:eval}) that provider-hosted orchestrators force applications
+to compromise performance by using less-efficient but supported patterns.}
 
 \remove{Indeed, we find (Section~\ref{sec:eval}) that, in practice, production
 systems limit end-to-end performance and scalability, and cost developers
 significantly more than necessary in some cases.}
 
-\amit{I can't figure out a way to include developer flexibility here cleanly.
-I'm in favor of adding it, but also it might be a sort of tacit contribution
-that the reader deduces themselves... It could also come out in discussion
-instead. I think it's a really good point, but perhaps not as central to the
-argument? Not sure...}
-%
-\shadi{should we give a cost comparison example here? something in the lines of
-"For example, the pricing schema of AWS step functions makes running a simple X
-app Y times more expensive that running directly on AWS Lambda, and the
-developers have no control on this pricing."}
+% \amit{I can't figure out a way to include developer flexibility here cleanly.
+% I'm in favor of adding it, but also it might be a sort of tacit contribution
+% that the reader deduces themselves... It could also come out in discussion
+% instead. I think it's a really good point, but perhaps not as central to the
+% argument? Not sure...}
+% %
+% \shadi{should we give a cost comparison example here? something in the lines of
+% "For example, the pricing schema of AWS step functions makes running a simple X
+% app Y times more expensive that running directly on AWS Lambda, and the
+% developers have no control on this pricing."}
 
 
-\shadi{" Platform-specific orchestrators force developers to write with
-proprietary APIs and locks them in a particular cloud provider." move and
-merge into goals or later section}
+% \shadi{" Platform-specific orchestrators force developers to write with
+% proprietary APIs and locks them in a particular cloud provider." move and
+% merge into goals or later section}
 
 
 
