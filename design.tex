@@ -213,11 +213,9 @@ multiple different results for the same invocation.}
 \dhledit{FaaS functions only provides weak execution guarantee: (1). functions can fail
 mid-execution and be retried. (2). FaaS engines only guarantee at-least once
 execution. Thus, even in the absence of failures, one invocation may result in
-more than one execution of the function.
-
-This presents a challenge for large applications whose constituent functions
-are non-deterministic because a single invocation can produce multiple
-\emph{diverging} results.}
+more than one execution of the function. This is problematic for large
+applications whose functions are non-deterministic because a single workflow
+invocation can produce multiple \emph{diverging} results.}
 
 \remove{One of the benefits of an orchestrator is to provide strong workflow execution
 semantics. While individual functions within a workflow may execute more than
@@ -232,7 +230,7 @@ forward, providing these execution guarantees is conceptually straightforward
 (though doing scalably and tolerant of orchestrator faults may not be
 straightforward).}
 
-\dhledit{One of the benefits of orchestrators is strong execution semantics
+\dhledit{An important benefit of orchestrators is strong execution semantics
 such that applications appear to execute \emph{exactly-once} even if
 individual functions in the application may run multiple times. Because
 standalone orchestrators are logically centralized, guaranteeing exactly-once
@@ -264,8 +262,8 @@ such a checkpoint already exists, a concurrent or previous execution of the
 invocation must have already completed and the operation will fail. To invoke
 downstream functions, the egress component \emph{always} uses the value stored
 in the checkpoint, rather than the result of the recently completed function.
-Essentially, \name{} ``commits'' to result of the first successful execution of
-the function.
+Essentially, \name{} ``commits'' to result of the first successful executions of
+\remove{the function}\dhledit{invocations}.
 
 As a further optimization, the ingress component in the \name{} library checks
 for the checkpoint object before executing the user-defined function. If the
@@ -316,14 +314,39 @@ of the same invocation, a single value is always used to invoke downstream
 functions.
 
 If there is a fault after the user code completes but before creating the
-checkpoint, its value is ignored (indeed, never seen) by other attempts to
-execute the function and another execution's value will be used to invoke
-downstream functions.  If the ``winning'' function crashes after creating a
-checkpoint, and before invoking some or all downstream functions, other
-executions will use the checkpoint value to invoke downstream functions.
+checkpoint, \remove{its value}\dhledit{user code result} is ignored (indeed,
+never seen) by other \remove{attempts to execute the
+function}\dhledit{executions} and another execution's value will be used to
+invoke downstream functions.  If the ``winning'' function crashes after
+creating a checkpoint, and before invoking some or all downstream functions,
+other executions will use the checkpoint value to invoke downstream functions.
 Finally, even if multiple executions invoke some or all downstream functions,
 execution guarantees are still satisfied as these invocations will have
 identical inputs.
+
+\dhledit{Retries in \name{} rely on FaaS engines' error handline support. All
+popular FaaS engines provide error handling when functions crash mid-execution
+so that applications do not crash silently without a way to react to failures.
+Common mechanisms include automatic retry that re-executes the same
+function~\cite{lambda-retry, azure-function-retry, gcf-retry, openfaas-retry,
+openwhisk-retry} or failure redirection that triggers a pre-configured
+error-handler function~\cite{lambda-failure-destination,
+openwhich-action-error-handling}.
+\name{} just needs a way to regain control on the application-level and can
+therefore work with both mechanisms.}
+
+\dhledit{When a function crashes, the FaaS engine retries the failed function
+or run \name{}'s error handling function. In either case, the \name{} runtime
+in the new execution checks the nature of the failure and, if a re-execution
+is necessary, invokes the failed function again. The error handling function
+itself does not run user code. In other words, \name{} does not rely on FaaS
+engine's automatic retry mechanism for re-executing failed functions; it only
+uses automatic retry to run the error handling functionality in the
+\name{} runtime which in turn manually retries failed function by invoking
+it. This enables \name{} to circumvent potential limitations on FaaS engine's
+automatic retry mechanism\footnote{For instance, Lambda's automatic retry
+only retries up to 3 times}. As long as a FaaS engine allows applications to
+run error handle code in response to failures, \name{} retry can work.}
 
 \subsection{Fan-in Patterns}\label{sec:design:fanin}
 
