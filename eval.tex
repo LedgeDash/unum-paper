@@ -334,138 +334,72 @@ faster on \name{} than on Step Functions (Table~\ref{table:macro}).
 
 
 
-\subsubsection{ExCamera}\label{sec:eval:excamera}
+\subsubsection{\remove{ExCamera}}\label{sec:eval:excamera}
 
-% \begin{table}[]
-  % \begin{tabular}{llllll}
-    % \hline
-    %                      &                        & \multicolumn{2}{l}{\textbf{unum}}                                                                                                   & \multicolumn{2}{l}{\textbf{Step Functions}}                                                                     \\
-    % \textbf{Application} & Pattern                & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                                                 & \textit{e2e latency} & \textit{cost (per 1M exec.)}                                                             \\ \hline
-    % IoT Pipeline         & chain                  & 120.9ms              & $0.2*2+(73+28)*$0.0021+2*\$1.3942                                                                            & 226.52               & $0.2*2+ 4*$27.9                                                                          \\
-    % Text Processing      & fan-out, fan-in        & 562.69ms             & $0.2*6+ (105+149+70+68+144+100)*$0.0021 + 6*$1.3942+2*2*$0.279                                               & 552.46ms             & $0.2*5+7*$27.9                                                                           \\
-    % Wordcount            & chain, fan-out, fan-in & 410s                 & $0.2*(1+262+1+250+1) + (277+6264*262 + 348 + 667*250 +68)*$0.0021 +(1+262+1+250+1)*$1.3942 + 262*2*$0.279+ 250*2* $0.279    & 898s                 & $0.2*(1+262+1+250+1) + (5913*262 + 154 + 633*250 +5)*$0.0021 +(1+262+1+1+250+1+1)*\$27.9 \\
-    % ExCamera             & chain, fan-out, fold   & 84s                  & $0.2*(1+16+15+15+14) + (6500+1500+350+4500+5000)*$0.0021+ (1+16+15+15+14)*$1.3942 + 15*2*$0.279+14*2*\$0.279 & 98s                  & $0.2*(16+16+1+16+15)+(6300+1400+2+5500+5300)*$0.0021+(1+16+16+1+1+16+1+1)*\$27.9      \\ \hline
-    % \end{tabular}
-  % \end{table}
+% \begin{table}
+%   \centering
+%   \begin{tabular}{|r|r|}
+%     \hline
+%     \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
+%     Original        & 76                         \\ \hline
+%     \name{}-aws & 84                         \\ \hline
+%     gg                       & 90                         \\ \hline
+%     Step Functions & 98                         \\ \hline
+%   \end{tabular}
+%   \caption{ExCamera performance. \name{} is 7.1\% faster than
+% gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
+%   \label{table:excamera}
+% \end{table}
 
-\begin{table}
-  \centering
-  \begin{tabular}{|r|r|}
-    \hline
-    \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
-    Original        & 76                         \\ \hline
-    \name{}-aws & 84                         \\ \hline
-    gg                       & 90                         \\ \hline
-    Step Functions & 98                         \\ \hline
-  \end{tabular}
-  \caption{ExCamera performance. \name{} is 7.1\% faster than
-gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
-  \label{table:excamera}
-\end{table}
+\remove{We compare the performance of an application not well-suited to Step
+Functions. ExCamera~\mbox{\cite{excamera}} is a video-processing application
+designed to take advantage of high burst-latency on Lambda using using custom
+orchestration. We compare the results of the original hand-optimized
+implementation as well as another implementation, gg, by the same authors,
+with a suboptimal Step Functions implementation as well as an implementation
+in hand-written \name{} IR.}
 
-% The ExCamera~\cite{excamera} video encoder applications encodes large raw
-% videos with thousands of concurrent functions. It breaks a large video into
-% small chunks and attempts to runs expensive steps in parallel and fast steps
-% in series. The original ExCamera design~\cite{excamera} used a custom
-% centralized orchestrator that implemented specialized workflow patterns which
-% Step Functions is unable to express efficiently.
+\remove{Using the same experimental setup as the prior work (i.e., encoding
+the first 888 chunks of the \texttt{sintel-4k}~\mbox{\cite{sintel}} video
+using 16 chunks per batch and Lambdas configured with 3GB of memory), \name{}
+is 7.1\% faster than gg~\mbox{\cite{gg-atc}} and 10.5\% slower than the
+original, hand-optimized ExCamera (Table~\ref{table:excamera}). The original
+ExCamera pre-loads raw video chunks into lambdas before starting, while
+\name{} and gg do not. The original authors attributes the comparatively
+slower performance of \texttt{gg} to the lack of pre-loading which is likely
+also the reason for \name{}'s slower performance.}
 
-% The workflow consists of three stages, \texttt{ENCODE},
-% \texttt{ENCODE-GIVEN-STATE} and \texttt{REBASE}, where functions interact in
-% complex patterns. The first stage is a \texttt{map} that runs many
-% \texttt{ENCODE} functions entirely in parallel, the second stage fans-in
-% adjacent branches of \texttt{ENCODE} into a \texttt{ENCODE-GIVEN-STATE} branch
-% in parallel. In particular, the $i^{th}$ \texttt{ENCODE-GIVEN-STATE} branch
-% starts when the $(i)^{th}$ and $(i-1)^{th}$ \texttt{ENCODE} branch complete.
-% The final \texttt{REBASE} runs a fold pattern rebases each chunk on top of the
-% state from the previous chunk.
+\remove{But different from gg, \name{} executes control-flow logic in a
+decentralized manner while gg has a centralized coordinator on EC2 that
+proxies inter-function communications and invokes lambdas. The reduced number
+of network communications explains why \name{} is slightly faster than gg.}
 
-We compare the performance of an application not well-suited to Step Functions.
-ExCamera~\cite{excamera} is a video-processing application designed to take
-advantage of high burst-latency on Lambda using using custom orchestration. We
-compare the results of the original hand-optimized implementation as well as
-another implementation, gg, by the same authors, with a suboptimal Step
-Functions implementation as well as an implementation in hand-written \name{}
-IR.
-
-Using the same experimental setup as the prior work (i.e., encoding the first
-888 chunks of the \texttt{sintel-4k}~\cite{sintel} video using 16 chunks per
-batch and Lambdas configured with 3GB of memory), \name{} is 7.1\% faster than
-gg~\cite{gg-atc} and 10.5\% slower than the original, hand-optimized ExCamera
-(Table~\ref{table:excamera}). The original ExCamera pre-loads raw video chunks
-into lambdas before starting, while \name{} and gg do not. The original
-authors attributes the comparatively slower performance of \texttt{gg} to the
-lack of pre-loading which is likely also the reason for \name{}'s slower
-performance.
-
-But different from gg, \name{} executes control-flow logic in a decentralized
-manner while gg has a centralized coordinator on EC2 that proxies
-inter-function communications and invokes lambdas. The reduced number of
-network communications explains why \name{} is slightly faster than gg.
-
-In comparison, an important limitation of Step Functions is that all concurrent
-fan-out branches must complete before any fan-in starts. This means the Step
-Functions implementation of ExCamera must serialize the encode and re-encode
-stages.  Conversely, \name{}'s IR is flexible enough to support ExCamera's
-original pattern where tasks start as soon as their input data becomes
-available, because \name{}'s fan-in uses a low-level primitive to directly
-express data dependency between functions. Thus, the \name{} ExCamera allows
-more parallelism between branches and is 16.7\% faster than Step Functions.
-
-\dhl{Sync with Design. Explain the difference between unum fan-in and Step
-Functions fan-in in design already. Specifically,
-inputs are available, whereas Step Functions fan-in first requires all
-branches to complete even if a branch is not part of the fan-in function's
-input.}
-
-% Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
-% the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
-% Lambdas configured with 3GB of memory in all cases.
-
-%While ExCamera process all 888 chunks in parallel, each batch is a
-%\texttt{map} with only 16 branches. From the result in
-%\S\ref{sec:eval:fan-out}, we know that \name{} is around 200ms slower than
-%Step Functions when launching 16 parallel branches. However, \name{} is able
-%to win back 14.24s or 17\% of latency performance because fan-in in \name{} is
-%wait-free. \name{} invokes the fan-in function whenever its input becomes
-%available, whereas Step Functions first requires all branches to complete even
-%if a branch is not part of the fan-in function's input, and lacks programming
-%constructs to express fine-grained data dependencies between branches that can
-%enable ``partial fan-in''.
-
-
-
-% Table~\ref{table:excamera} compares the time to encode the first 888 chunks of
-% the \texttt{sintel-4k}~\cite{sintel-4k} video using 16 chunks per batch and
-% Lambdas configured with 3GB of memory in all cases. \name{}'s is 7.1\% faster
-% than gg~\cite{gg-atc} and 10.5\% slower than the original ExCamera. The
-% original ExCamera pre-loads raw video chunks into lambdas before starting,
-% while \name{} and gg do not. The original authors attributes the comparatively
-% slower performance of \texttt{gg} to the lack of pre-loading which is likely
-% also the reason for \name{}'s slower performance. But different from gg,
-% \name{} executes control-flow logic in a decentralized manner while gg has a
-% centralized coordinator on EC2 that proxies inter-function communications and
-% invokes lambdas. The reduced number of network communications  explains why
-% \name{} is slightly faster than gg.
-
+\remove{In comparison, an important limitation of Step Functions is that all
+concurrent fan-out branches must complete before any fan-in starts. This means
+the Step Functions implementation of ExCamera must serialize the encode and
+re-encode stages.  Conversely, \name{}'s IR is flexible enough to support
+ExCamera's original pattern where tasks start as soon as their input data
+becomes available, because \name{}'s fan-in uses a low-level primitive to
+directly express data dependency between functions. Thus, the \name{} ExCamera
+allows more parallelism between branches and is 16.7\% faster than Step
+Functions.}
 
 \subsection{Cost}
 
 \begin{table*}[t]
   \centering
-  \begin{tabular}{|l|rrr|rr|}
+  \begin{tabular}{|l|rr|rr|}
 \hline
-                         & \multicolumn{3}{c|}{\textbf{Latency (seconds)}}                    & \multicolumn{2}{c|}{\textbf{Costs (\$ per 1 mil. executions)}} \\ \hline
+                         & \multicolumn{2}{c|}{\textbf{Latency (seconds)}} & \multicolumn{2}{c|}{\textbf{Costs (\$ per 1 mil. executions)}} \\ \hline
 \textbf{App} &
   \multicolumn{1}{c|}{\textit{Unum-aws}} &
-  \multicolumn{1}{l|}{\textit{Unum-gcloud}} &
   \multicolumn{1}{l|}{\textit{Step Functions}} &
   \multicolumn{1}{c|}{\textit{Unum-aws}} &
   \multicolumn{1}{l|}{\textit{Step Functions}} \\ \hline
-\textit{IoT Pipeline}    & \multicolumn{1}{r|}{0.12}   & \multicolumn{1}{r|}{0.81}   & 0.23   & \multicolumn{1}{r|}{\$12.38}             & \$112.02            \\ \hline
-\textit{Text Processing} & \multicolumn{1}{r|}{0.52}   & \multicolumn{1}{r|}{3.56}   & 0.55   & \multicolumn{1}{r|}{\$60.42}             & \$225.29            \\ \hline
-\textit{Wordcount}       & \multicolumn{1}{r|}{408.88} & \multicolumn{1}{r|}{484.12} & 898.56 & \multicolumn{1}{r|}{\$13,433.67}         & \$18,141.19         \\ \hline
-\textit{ExCamera}        & \multicolumn{1}{r|}{84.52}  & \multicolumn{1}{r|}{122.63} & 98.42  & \multicolumn{1}{r|}{\$62,684.29}         & \$114,633.13        \\ \hline
+\textit{IoT Pipeline}    & \multicolumn{1}{r|}{0.12}         & 0.23        & \multicolumn{1}{r|}{\$6.75}              & \$112.02            \\ \hline
+\textit{Text Processing} & \multicolumn{1}{r|}{0.52}         & 0.55        & \multicolumn{1}{r|}{\$29.53}             & \$225.29            \\ \hline
+\textit{Wordcount}       & \multicolumn{1}{r|}{408.88}       & 898.56      & \multicolumn{1}{r|}{\$7,056.55}          & \$18,141.19         \\ \hline
+\textit{ExCamera}        & \multicolumn{1}{r|}{84.52}        & 98.42       & \multicolumn{1}{r|}{\$48,451.53}         & \$114,633.13        \\ \hline
 \end{tabular}
   \caption{Application latency and costs comparison between \name{} and Step
     Functions. Running applications on \name{} is 1.35x to 9x cheaper than
@@ -508,7 +442,11 @@ reading checkpoints, data store costs for writing coordination sets, data
 store costs for deleting checkpoints and writing coordination sets for garbage
 collection, Lambda invocation, and Lambda CPU-time for both the \name{}
 runtime and user function. Storage costs, using DynamoDB, are the largest
-portion of overall cost and costs for writing to DynamoDB is the majority\footnote{Writes in DynamoDB cost one order-of-magnitude more than reads}. This includes writing checkpoints, writing to coordination set (either for fan-in for garbage collection) and deleting checkpoints for garbage collection.
+portion of overall cost and costs for writing to DynamoDB is the
+majority\footnote{Writes in DynamoDB cost one order-of-magnitude more than
+reads}. This includes writing checkpoints, writing to coordination set (either
+for fan-in for garbage collection) and deleting checkpoints for garbage
+collection.
 
 Nonetheless, \name{} is consistently cheaper than Step Functions for all
 applications we tested. Table~\ref{table:macro} shows the price to run each of
@@ -576,32 +514,89 @@ performance and consistency guarantees to DynamoDB but charges 5x less to
 perform a write operation (the dominant constituent of \name{} storage cost on
 AWS).
 
-% \subsubsection{Questions}
 
-% \begin{enumerate}
+\dhledit{\subsection{Case Study: ExCamera}\label{sec:eval:excamera}}
 
-%     \item How do we evaluate and present execution guarantee? Anything to show
-%      to convince our reader that it's correct?
+\begin{table}
+  \centering
+  \begin{tabular}{|r|r|}
+    \hline
+    \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
+    Original        & 76                         \\ \hline
+    \name{}-aws & 84                         \\ \hline
+    gg                       & 90                         \\ \hline
+    Step Functions & 98                         \\ \hline
+  \end{tabular}
+  \caption{ExCamera performance. \name{} is 7.1\% faster than
+gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
+  \label{table:excamera}
+\end{table}
 
-%     \item How do we evaluate other benefits that stem from a simpler design
-%      (the fact that unum gets rid of the needs for a separate orchestrator
-%      service), such as resource management, required staffing and other
-%      hosting costs? Further on the resource utilization point, do we want to
-%      say that dollar costs of running applications is a reasonable enough
-%      proxy to resource consumption and therefore lower price = less resource
-%      consumption = better resource utilization?
+\dhledit{ExCamera~\mbox{\cite{excamera}} is a video-processing application
+designed to take advantage of high burst-scalability on Lambda using custom
+orchestration. We compare our \name{} implementation with three others: (1).
+the original hand-optimized ExCamera using the mu framework, (2). gg which is
+another implementation by the same authors, and (3). a suboptimal Step
+Functions implementation that we wrote.}
 
-%     \item Should we run experiments with S3 and present those numbers?
+\dhledit{Both gg and mu employ standalone orchestrators to proxy
+inter-function communications, store application states and invoke lambdas.
+However, mu uses a fleet of long-running identical lambdas where all
+application code is co-located and raw video chunks are pre-loaded, whereas gg
+lambdas are event-driven, task-specific and cannot leverage pre-loading.
+Nonetheless, the application logic are identical for gg ExCamera and mu
+ExCamera. \name{} ExCamera replicates the application logic exactly. On the
+other hand, the Step Functions ExCamera had to serialize the encode and
+re-encode stages because the Map pattern requires all concurrent branches to
+complete before any fan-in starts.}
 
-%     \item How to discuss the expressiveness advantage? Specifically,
+\dhledit{\subsubsection{Performance}}
 
-%         Step Functions has no way to express a for loop or fold.
+\dhledit{Using the same experimental setup as the prior work (i.e., encoding
+the first 888 chunks of the \texttt{sintel-4k}~\mbox{\cite{sintel}} video
+using 16 chunks per batch and Lambdas configured with 3GB of memory), \name{}
+is 7.1\% faster than gg~\mbox{\cite{gg-atc}} and 10.5\% slower than the
+original, hand-optimized ExCamera (Table~\ref{table:excamera}). The original
+authors attributes the slower performance of gg ExCamera to the lack of
+pre-loading which is likely also the reason for \name{}'s slower performance.}
 
-%         Step Functions has no way to express pipeline parallelism.
+\dhledit{But different from gg, \name{} executes orchestration in a
+decentralized manner while gg has a standalone centralized coordinator on EC2.
+The reduced number of network communications likely explains why \name{} is
+slightly faster.}
 
-%         Step Functions fan-in needs to make sure the aggregate data doesn't exceed a
-%         limit, unum automatically passes data in using pointers to the intermediary
-%         data store.
+\dhledit{Comparing with Step Functions, \name{}'s design allows the
+flexibility to implement ExCamera's original application pattern where tasks
+start as soon as their input data becomes available, whereas the Step
+Functions implementation had to use the less-efficient Map pattern without the
+flexbility to add new orchestration patterns easily. As a result, the \name{}
+ExCamera enables more parallelism between branches and is 16.7\% faster than
+Step Functions.}
 
-% \end{enumerate}
+\dhledit{\subsubsection{Cost}}
 
+\dhledit{Different from \name{}, neither gg nor mu aimed to reduce the monetary
+cost of running serverless applications and neither discussed costs in detail.
+Nevertheless, there are several important factors when comparing
+\name{} with gg and mu in relation to costs.}
+
+\dhledit{First, similar to Step Functions, gg and mu both rely on standalone
+orchestrators. Thus, the fundamental costs difference is also similar, namely
+\name{}'s use of storage vs gg's and mu's use of VMs. mu's orchestrator
+consists of a cooridnator server and a rendezvous server~\cite{excamera},
+while gg's only a coordinator server~\cite{gg-atc}. mu used a 64-core VM
+(\texttt{m4.16xlarge}) as the rendezvous server. Neither mu nor gg specified
+the instance type of its coordinator server. However, just the cost of the
+rendezvous server alone for 1 million sequential executions will be around
+\$90,000 with a single \texttt{m4.16xlarge}.}
+
+\dhledit{Furthermore, all standalone orchestrators need to separately consider
+fault-tolerance in case of orchestrator failures. This will lead to
+provisioning additional orchestrator instances for replication and failover.
+Thus a production deployment of mu or gg will likely cost more than the setup
+in the original experiments.}
+
+\dhledit{Lastly, deploying an orchestrator per application or per user limits
+the ability to amortize costs through multiplexing. A provider-hosted
+orchestrator, such as Step Functions, is likely to be cheaper as it can
+simultaneously serve many users.}
