@@ -1,23 +1,5 @@
 \section{Background \& Motivation}\label{sec:bg}
 
-\begin{table}
-  \centering
-  \begin{tabular}{|m{0.18\linewidth}|m{0.73\linewidth}|}
-    \hline
-  \textbf{Workflow} & A directed graph of functions that takes an input and produces one or more outputs. \\
-    \hline
-  \textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
-    \hline
-  \textbf{Invocation} & An request to the FaaS platform to run a function. \\
-    \hline
-  \textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
-    \hline
-  \end{tabular}
-  \caption{\name{} terminology.}
-  \label{table:terms}
-\end{table}
-
-
 %\begin{table}[]
 %\centering
 %\scriptsize
@@ -191,15 +173,15 @@ applications is to introduce a workflow orchestrator that provides a
 high-level programming interface with support for a rich set of composition
 primitives (e.g., branching, chaining, fan-out and fan-in)~\cite{excamera,
 gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
-durable-functions,temporal}. Cloud providers typically offer serverless
+durable-functions,temporal}. Many cloud providers offer serverless
 orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
-google-workflows, durable-functions}. Alternatively, developers can build
-custom orchestrators~\cite{temporal, gg-atc, excamera} and deploy in
-long-running VMs alongside their functions.}
+google-workflows, durable-functions}. Alternatively, users can build custom
+orchestrators~\cite{temporal, gg-atc, excamera} and deploy in VMs or
+containers alongside their functions.}
 
 \dhledit{Similar to driver-functions, orchestrators operate as
 \emph{logically} centralized controllers. They drive a workflow by invoking
-the functions and hosting application states such as function outputs and
+its functions and hosting application states such as function outputs and
 outstanding invocations. Centralization simplifies support for stateful
 patterns. For example, to support fan-in, orchestrator can simply wait for all
 branches to complete before invoking the aggregation function.}
@@ -207,7 +189,7 @@ branches to complete before invoking the aggregation function.}
 \dhledit{However, an important difference of orchestrators is that they are
 standalone services. Unlike driver functions, orchestrators are not limited by
 function timeouts and can be arbitrarily
-long-running~\cite{step-functions-timeouts}. Moreover, as standalone services,
+long-running~\cite{aws-step-functions-quotas}. Moreover, as standalone services,
 orchestrators can be distributed and employ techniques such as sharding and
 replication to provide strong execution guarantees and fault-tolerance. For
 example, orchestrators can ensure that workflows appear to execute
@@ -217,14 +199,14 @@ or replicate states during execution so that in face of orchestrator failures,
 applications do not lose executions or retry from beginning.}
 
 
-While \remove{workflow} \dhledit{standalone} orchestrators are able to address
-the needs of complex serverless applications, introducing a new
-\remove{platform} \dhledit{standalone} service has significant drawbacks.
-Building performant, scalable \dhledit{and fault-tolerant} multi-tenant
-systems is hard and orchestrators introduce yet-another potential performance
-and scalability bottleneck. \dhledit{Indeed, we find (Section~\ref{sec:eval})
-that, in practice, production systems limit end-to-end performance for
-highly-parallel applications.}
+While \remove{workflow} orchestrators are able to address the needs of complex
+serverless applications, introducing a new \remove{platform}
+\dhledit{standalone} service has significant drawbacks. Building performant,
+scalable \dhledit{and fault-tolerant} multi-tenant systems is hard and
+orchestrators introduce yet-another potential performance and scalability
+bottleneck. \dhledit{Indeed, we find that, in practice, production systems
+limit end-to-end performance for highly-parallel applications
+(\S~\ref{sec:eval}).}
 
 \remove{Moreover, hosting such services can be expensive, as they require
 dedicated resources in addition to those allocated to FaaS and storage
@@ -237,18 +219,18 @@ under-utilization as it cannot multiplex over many users and users pay even
 when orchestrator is not actively in use, breaking the fine-grained billing
 benefit of serverless. Provider-hosted orchestrators amortizes this cost but
 still incur engineering expenses as they require teams on-call. Indeed, we
-find (Section~\ref{sec:eval}) that provider-hosted orchestrators cost
-developers significantly and dominate the cost of running applicatoins.}
+find that provider-hosted orchestrators cost developers significantly and
+dominate the total cost of running applicatoins (\S~\ref{sec:eval}).}
 
-\dhledit{Additionally, provider-hosted orchestrators preclude users from
-making application-specific optimizations. Each provider typically offers just
-a single orchestrator service option. While the interface and implementation
-of the orchestrator might efficiently support the needs of many application,
-it cannot meet all application needs, resulting in a compromise familiar from
+\dhledit{Lastly, provider-hosted orchestrators preclude users from making
+application-specific optimizations. Each provider typically offers just a
+single orchestrator service option. While the interface and implementation of
+the orchestrator might efficiently support the needs of many application, it
+cannot meet all applications' needs, resulting in a compromise familiar from
 operating systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn},
-and storage systems~\cite{comet,splinter}. Indeed, we find
-(Section~\ref{sec:eval}) that provider-hosted orchestrators force applications
-to compromise performance by using less-efficient but supported patterns.}
+and storage systems~\cite{comet,splinter}. Indeed, we find that
+provider-hosted orchestrators force applications to compromise performance by
+using less-efficient but supported patterns (\S~\ref{sec:eval}).}
 
 \remove{Indeed, we find (Section~\ref{sec:eval}) that, in practice, production
 systems limit end-to-end performance and scalability, and cost developers

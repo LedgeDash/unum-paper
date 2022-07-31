@@ -86,6 +86,8 @@ sibling branches in fan-in, and deletes intermediate states no longer needed for
 the workflow, executing the workflow in-situ with the functions, in lieu of a
 centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
 
+
+
 \subsection{\name{} Intermediate Representation}\label{sec:design:ir}
 
 \begin{table}[t]
@@ -201,6 +203,8 @@ one of the patterns above, otherwise it notifies the user of the error.
 expression that has access to the function output and execution metadata
 (Figure~\ref{fig:design:unum-request}).
 
+
+
 \subsection{Execution Guarantees Using Checkpoints}\label{sec:design:execution}
 
 \dhl{Rewrite first 3 para to also mention the challenge of function failures.}
@@ -273,6 +277,24 @@ not necessary for correctness (and it is, of course, possible for the checkpoint
 to be added after a concurrent execution checks for its existence in the ingress
 component) but helps reduce computation that we know will go unused.
 
+\begin{table}
+  \centering
+  \begin{tabular}{|m{0.18\linewidth}|m{0.73\linewidth}|}
+    \hline
+  \textbf{Workflow} & A directed graph of functions that takes an input and produces one or more outputs. \\
+    \hline
+  \textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
+    \hline
+  \textbf{Invocation} & An request to the FaaS platform to run a function. \\
+    \hline
+  \textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
+    \hline
+  \end{tabular}
+  \caption{\name{} terminology.}
+  \label{table:terms}
+\end{table}
+
+
 \begin{figure}
 \begin{minted}[
     frame=single,
@@ -328,25 +350,27 @@ identical inputs.
 popular FaaS engines provide error handling when functions crash mid-execution
 so that applications do not crash silently without a way to react to failures.
 Common mechanisms include automatic retry that re-executes the same
-function~\cite{lambda-retry, azure-function-retry, gcf-retry, openfaas-retry,
-openwhisk-retry} or failure redirection that triggers a pre-configured
-error-handler function~\cite{lambda-failure-destination,
-openwhich-action-error-handling}.
+function~\cite{aws-lambda-retry, azure-functions-retry,
+google-cloud-functions-retry, openfaas-retry} or failure redirection that
+triggers a pre-configured error-handler
+function~\cite{aws-lambda-failure-destination,
+openwhisk-action-error-handling}.
 \name{} just needs a way to regain control on the application-level and can
 therefore work with both mechanisms.}
 
 \dhledit{When a function crashes, the FaaS engine retries the failed function
-or run \name{}'s error handling function. In either case, the \name{} runtime
-in the new execution checks the nature of the failure and, if a re-execution
-is necessary, invokes the failed function again. The error handling function
-itself does not run user code. In other words, \name{} does not rely on FaaS
-engine's automatic retry mechanism for re-executing failed functions; it only
-uses automatic retry to run the error handling functionality in the
-\name{} runtime which in turn manually retries failed function by invoking
-it. This enables \name{} to circumvent potential limitations on FaaS engine's
-automatic retry mechanism\footnote{For instance, Lambda's automatic retry
-only retries up to 3 times}. As long as a FaaS engine allows applications to
-run error handle code in response to failures, \name{} retry can work.}
+or direct the error to \name{}'s error handling function. In either case, the
+\name{} runtime in the new execution checks the nature of the failure and, if
+a re-execution is necessary, invokes the failed function again. The error
+handling function itself does not run user code. In other words, \name{} does
+not rely on FaaS engine's automatic retry mechanism for re-executing failed
+functions; it only uses automatic retry to run the error handling
+functionality in the \name{} runtime which in turn manually retries failed
+function by invoking it. This enables \name{} to circumvent potential
+limitations on FaaS engine's automatic retry mechanism\footnote{For instance,
+Lambda's automatic retry only retries up to 3 times}. As long as a FaaS engine
+allows applications to run error handle code in response to failures, \name{}
+retry can work.}
 
 \subsection{Fan-in Patterns}\label{sec:design:fanin}
 
