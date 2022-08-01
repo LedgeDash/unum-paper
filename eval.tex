@@ -515,7 +515,7 @@ perform a write operation (the dominant constituent of \name{} storage cost on
 AWS).
 
 
-\dhledit{\subsection{Case Study: ExCamera}\label{sec:eval:excamera}}
+\majoredits{\subsection{Case Study: ExCamera}\label{sec:eval:excamera}}
 
 \begin{table}
   \centering
@@ -532,14 +532,14 @@ gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
   \label{table:excamera}
 \end{table}
 
-\dhledit{ExCamera~\mbox{\cite{excamera}} is a video-processing application
+\majoredits{ExCamera~\mbox{\cite{excamera}} is a video-processing application
 designed to take advantage of high burst-scalability on Lambda using custom
 orchestration. We compare our \name{} implementation with three others: (1).
 the original hand-optimized ExCamera using the mu framework, (2). gg which is
 another implementation by the same authors, and (3). a suboptimal Step
 Functions implementation that we wrote.}
 
-\dhledit{Both gg and mu employ standalone orchestrators to proxy
+\majoredits{Both gg and mu employ standalone orchestrators to proxy
 inter-function communications, store application states and invoke lambdas.
 However, mu uses a fleet of long-running identical lambdas where all
 application code is co-located and raw video chunks are pre-loaded, whereas gg
@@ -550,9 +550,9 @@ other hand, the Step Functions ExCamera had to serialize the encode and
 re-encode stages because the Map pattern requires all concurrent branches to
 complete before any fan-in starts.}
 
-\dhledit{\subsubsection{Performance}}
+\majoredits{\subsubsection{Performance}}
 
-\dhledit{Using the same experimental setup as the prior work (i.e., encoding
+\majoredits{Using the same experimental setup as the prior work (i.e., encoding
 the first 888 chunks of the \texttt{sintel-4k}~\mbox{\cite{sintel}} video
 using 16 chunks per batch and Lambdas configured with 3GB of memory), \name{}
 is 7.1\% faster than gg~\mbox{\cite{gg-atc}} and 10.5\% slower than the
@@ -560,12 +560,12 @@ original, hand-optimized ExCamera (Table~\ref{table:excamera}). The original
 authors attributes the slower performance of gg ExCamera to the lack of
 pre-loading which is likely also the reason for \name{}'s slower performance.}
 
-\dhledit{But different from gg, \name{} executes orchestration in a
+\majoredits{But different from gg, \name{} executes orchestration in a
 decentralized manner while gg has a standalone centralized coordinator on EC2.
 The reduced number of network communications likely explains why \name{} is
 slightly faster.}
 
-\dhledit{Comparing with Step Functions, \name{}'s design allows the
+\majoredits{Comparing with Step Functions, \name{}'s design allows the
 flexibility to implement ExCamera's original application pattern where tasks
 start as soon as their input data becomes available, whereas the Step
 Functions implementation had to use the less-efficient Map pattern without the
@@ -573,14 +573,14 @@ flexbility to add new orchestration patterns easily. As a result, the \name{}
 ExCamera enables more parallelism between branches and is 16.7\% faster than
 Step Functions.}
 
-\dhledit{\subsubsection{Cost}}
+\majoredits{\subsubsection{Cost}}
 
-\dhledit{Different from \name{}, neither gg nor mu aimed to reduce the monetary
+\majoredits{Different from \name{}, neither gg nor mu aimed to reduce the monetary
 cost of running serverless applications and neither discussed costs in detail.
 Nevertheless, there are several important factors in comparing
 \name{} with gg and mu in relation to costs.}
 
-\dhledit{First, similar to Step Functions, gg and mu both rely on standalone
+\majoredits{First, similar to Step Functions, gg and mu both rely on standalone
 orchestrators. Thus, the fundamental costs difference is also similar, namely
 \name{}'s use of storage vs gg's and mu's use of VMs. mu's orchestrator
 consists of a cooridnator server and a rendezvous server~\cite{excamera},
@@ -590,13 +590,13 @@ the instance type of its coordinator server. However, just the cost of the
 rendezvous server alone for 1 million sequential executions will be around
 \$90,000 with a single \texttt{m4.16xlarge}.}
 
-\dhledit{Furthermore, all standalone orchestrators need to separately consider
+\majoredits{Furthermore, all standalone orchestrators need to separately consider
 fault-tolerance in case of orchestrator failures. This will lead to
 provisioning additional orchestrator instances for replication and failover.
 Thus a production deployment of mu or gg will likely cost more than the setup
 in the original experiments.}
 
-\dhledit{Lastly, deploying an orchestrator per application or per user limits
+\majoredits{Lastly, deploying an orchestrator per application or per user limits
 the ability to amortize costs through multiplexing. A provider-hosted
 orchestrator, such as Step Functions, is likely cheaper as it can
 simultaneously serve many users.}

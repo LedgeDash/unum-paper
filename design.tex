@@ -214,12 +214,12 @@ invocations. As a result, an invocation may result in more than one execution of
 the function and, because functions may be non-deterministic, this can result in
 multiple different results for the same invocation.}
 
-\dhledit{FaaS functions only provides weak execution guarantee: (1). functions can fail
-mid-execution and be retried. (2). FaaS engines only guarantee at-least once
-execution. Thus, even in the absence of failures, one invocation may result in
-more than one execution of the function. This is problematic for large
+\majoredits{FaaS functions only provide weak execution guarantees. Functions can
+fail mid-execution and be retried. Even in the absence of failures, one
+function invocation may result in more than one execution because most FaaS
+engines only ensure at-least once execution. This is problematic for large
 applications whose functions are non-deterministic because a single workflow
-invocation can produce multiple \emph{diverging} results.}
+invocation can produce multiple \emph{diverging} outputs.}
 
 \remove{One of the benefits of an orchestrator is to provide strong workflow execution
 semantics. While individual functions within a workflow may execute more than
@@ -234,12 +234,12 @@ forward, providing these execution guarantees is conceptually straightforward
 (though doing scalably and tolerant of orchestrator faults may not be
 straightforward).}
 
-\dhledit{An important benefit of orchestrators is strong execution semantics
+\majoredits{An important benefit of orchestrators is strong execution semantics
 such that applications appear to execute \emph{exactly-once} even if
 individual functions in the application may run multiple times. Because
 standalone orchestrators are logically centralized, guaranteeing exactly-once
 is conceptually straightforward: the orchestrator can choose a single result
-from executions of same invocation and use it as input for all downstream
+from executions of the same invocation and use it as input for all downstream
 functions. At the end of the workflow, the result is consistent with an
 execution of the workflow where each function invocation executed
 exactly-once}.
@@ -248,15 +248,16 @@ A key challenge for \name{} is to provide the same semantics without
 centralizing orchestration. Moreover, because failures and, thus, retries are
 the exception, not the rule, \name{} should provide these semantics without
 expensive coordination---function instances should be able to proceed without
-blocking to avoid unnecessary resource usage and cost in the common case.
+blocking \remove{to avoid unnecessary resource usage and cost} in the common,
+fault-free case.
 
 \name{} leverages two key insights to achieve these semantics.  First, it is ok
 for different executions of the same function invocation to return different
-results as long as \name{} ensures downstream functions are always invoked with
-exactly one of those results. Second, a workflow's output is \emph{correct} even
-if a function invocation is requested more than once, as long as the invocations
-uses the same input, since additional, but identical, invocations are
-indistinguishable from additional executions.
+results as long as \name{} ensures downstream functions are always invoked
+with exactly one of those results. Second, a workflow's output is
+\emph{correct} even if a function is invoked more than once, as long as the
+invocations uses the same input, since additional, but identical, invocations
+are indistinguishable from additional executions.
 
 The \name{} library employs an atomic \texttt{create\_if\_not\_exists} operation
 in the serverless datastore to \emph{checkpoint} exactly one execution of each
@@ -267,7 +268,7 @@ invocation must have already completed and the operation will fail. To invoke
 downstream functions, the egress component \emph{always} uses the value stored
 in the checkpoint, rather than the result of the recently completed function.
 Essentially, \name{} ``commits'' to result of the first successful executions of
-\remove{the function}\dhledit{invocations}.
+\remove{the function}\majoredits{invocations}.
 
 As a further optimization, the ingress component in the \name{} library checks
 for the checkpoint object before executing the user-defined function. If the
@@ -336,9 +337,9 @@ of the same invocation, a single value is always used to invoke downstream
 functions.
 
 If there is a fault after the user code completes but before creating the
-checkpoint, \remove{its value}\dhledit{user code result} is ignored (indeed,
+checkpoint, \remove{its value}\majoredits{user code result} is ignored (indeed,
 never seen) by other \remove{attempts to execute the
-function}\dhledit{executions} and another execution's value will be used to
+function}\majoredits{executions} and another execution's value will be used to
 invoke downstream functions.  If the ``winning'' function crashes after
 creating a checkpoint, and before invoking some or all downstream functions,
 other executions will use the checkpoint value to invoke downstream functions.
@@ -346,7 +347,7 @@ Finally, even if multiple executions invoke some or all downstream functions,
 execution guarantees are still satisfied as these invocations will have
 identical inputs.
 
-\dhledit{Retries in \name{} rely on FaaS engines' error handline support. All
+\majoredits{Retries in \name{} rely on FaaS engines' error handline support. All
 popular FaaS engines provide error handling when functions crash mid-execution
 so that applications do not crash silently without a way to react to failures.
 Common mechanisms include automatic retry that re-executes the same
@@ -358,7 +359,7 @@ openwhisk-action-error-handling}.
 \name{} just needs a way to regain control on the application-level and can
 therefore work with both mechanisms.}
 
-\dhledit{When a function crashes, the FaaS engine retries the failed function
+\majoredits{When a function crashes, the FaaS engine retries the failed function
 or direct the error to \name{}'s error handling function. In either case, the
 \name{} runtime in the new execution checks the nature of the failure and, if
 a re-execution is necessary, invokes the failed function again. The error
