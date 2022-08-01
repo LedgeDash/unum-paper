@@ -267,4 +267,29 @@ Finally, E had 3 questions;
 
 
 
-Will need to rewrite the 
+Most of the CR revision work will be on the writing side. Will need to rewrite the intro on motivation, rephrase the identified research question and rename our approach.
+
+​	How? Just write a few more drafts on the intro, editing on the existing text.
+
+The anchor will be naming the technical problem and our approach.
+
+A few possibilities. 
+
+Instead of "centralized", use "centralized-provisioned".
+
+Instead of "decentralized, decentralization, decentralized orchestration", use "application-level orchestration".
+
+
+
+*Can orchestration be moved to the application level?*
+
+*Is centralized orchestrator necessary?* No, orchestration can be moved to application-level.
+
+*Is centralized-provisioned orchestrator necessary?* No, orchestration can be moved to application-level.
+
+
+
+High-level. Mostly writing. Potentially some additional experiments. In terms of writing, 1. clarification. 2. Reframe the research question particularly around the decentralization and centralization. 
+
+How does the shepherding process usually work? how many rounds of draft and comments?
+
