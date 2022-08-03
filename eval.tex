@@ -431,10 +431,12 @@ performance.
 
 The source of costs for \name{} and Step Functions is quite different. Step
 Functions imposes a cost to developers, in addition to running Lambda
-functions, for each workflow transition. This abstracts the underlying, likely
-shared, costs to run the Step Functions servers, persist state and checkpoint
-data. Conversely, \name{} incurs costs directly from those services:
-additional Lambda compute time and DynamoDB storage on AWS.
+functions, for each workflow transition~\cite{aws-step-functions-pricing}.
+This abstracts the underlying, likely shared, costs to run the Step Functions
+servers, persist state and checkpoint data. Conversely, \name{} incurs costs
+directly from those services: additional Lambda
+runtime~\cite{aws-lambda-pricing} and DynamoDB storage on
+AWS~\cite{dynamodb-pricing}.
 
 Figure~\ref{fig:cost-breakdown} shows the cost to run each application using
 \name{} broken down to each component: data store costs for writing and
