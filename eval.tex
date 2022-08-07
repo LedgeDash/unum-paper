@@ -27,35 +27,6 @@ Specifically, we answer the following questions:
 
 \end{enumerate}
 
-% We show that 
-
-% \begin{itemize}
-
-  %     \item over 97\% of \name{}'s latency overhead comes from API calls to
-  %     Lambda and data stores, which means the bulk of \name{}'s performance will
-  %     automatically improve with the underlying platform (e.g., a faster Lambda
-  %     or data store) without any modification to \name{} itself.
-
-  %     % \item The additional Lambda duration billing for executing \name{} runtime
-  %     % is negligible across all data sizes
-
-  %     \item \name{} is slightly faster (11-28\%) in chaining performance and
-  %     much faster in parallel fan-out and fan-in performance (up to 4.58x),
-  %     especially at higher level of parallelism, than Step Functions.
-
-  %     \item \name{} delivers more than one order-of-magnitude cost savings for
-  %     almost all applications we evaluated, even when using the more expensive
-  %     DynamoDB as the intermediary data store. The applications we use cover all
-  %     orchestration patterns that Step Functions currently support.
-
-  %     \item \name{} is able to express all orchestration patterns that Step
-  %     Functions currently support. Additionally, with the ExCamera
-  %     implementation, we demonstrate that \name{} can express fold or for loops
-  %     and support pipeline parallelism, neither of which is expressible in Step
-  %     Functions.
-
-  % \end{itemize}
-
 Though we evaluate the applications running on both AWS and Google Cloud, we
 focus our discussion on our \name{} implementation on Lambda and DynamoDB,
 because it runs on the same serverless infrastructure as Step Functions.
@@ -87,20 +58,6 @@ For the Step Functions experiments, we run the workflows in ``Standard''
 configuration~\cite{aws-step-functions-standard-vs-express}, which provides
 similarly strong execution guarantees as
 \name{}~\cite{aws-step-functions-exec-gntee}.
-
-% We do not consider Step Functions' Express Workflows in our comparison because
-% of its weaker execution guarantee, namely the same invocation could result in
-% multiple and potentially diverging results if any part of the workflow logic
-% is nonidempotent~\cite{aws-step-functions-exec-gntee}.
-
-% Note that even though Step Functions claims that the Standard Workflows
-% provides "exactly-once workflow
-% execution"~\cite{aws-step-functions-exec-gntee}, it is not clear whether it
-% implies exactly-once execution for component functions of the workflows. Our
-% interpretation is that the internal states of a standard workflow will appear
-% to execute exactly once, but component functions might not run exactly-once
-% due to failures and retries, which is identical to \name{}. \shadi{this
-  % paragraph is a bit confusing... }
 
 \subsection{Performance}\label{sec:eval:micro}
 
@@ -147,54 +104,7 @@ The \name{} implementation of the IoT pipeline application benefits from this
 difference, with the \name{} version running 1.9x faster than the Step Functions
 version (Table~\ref{table:macro}).
 
-%\subsubsection{Chaining performance}\label{sec:eval:chain}
-%
-%\emph{Highlight: Maybe just a repeat of the previous point with a different experiment}
-%
-%
-% \begin{figure}[t]
-%  \centering
-%  \includegraphics[width=\columnwidth]{figures/ChainMicroLatency.pdf}
-%  \caption{End-to-end latency of chaining N functions. All constituent
-%    functions in the experiment only run for 1-2ms, so the results mostly
-%    reflect the latency of the workflow systems. \name{} is marginally
-%    (11-28\%) faster than Step Functions on average. The results show that
-%    \name{} is basically as fast in the most fundamental orchestration
-%    primitive of transitioning from one function to the next.}
-%  \label{fig:chainmicrolatency}
-% \end{figure}
-%
-%
-%We evaluate how \name{} performs on executing a series of functions in
-%sequence and then compare with Step Functions. We measure the end-to-end
-%latency of executing a chain of functions with varying chain lengths (2 to 10
-%functions). Our goal is to allow the end-to-end latency to maximally reflect
-%the performance of the workflow system, with minimum interference from the
-%latency of user code. Therefore, we use a constituent function that simply
-%returns its input without any computations to keep the user code runtime
-%intentionally short (less than 2ms).
-%
-%Figure~\ref{fig:chainmicrolatency} shows the end-to-end latency of Step
-%Functions and \name{} with DynamoDB. Overall, \name{} is around 43-173ms or
-%11-28\% faster in chaining than Step Functions. A plausible explanation for
-%the shorter latency is that a transition in \name{} from one function to the
-%next involves a single network communication to Lambda when the source
-%function calls the target function asynchronously. The same transition in Step
-%Functions, however, requires not only an invocation from the orchestrator to
-%Lambda but also a network communication from the source function to the
-%orchestrator to send back the function output first. \name{} reduces
-%the number of network communications because control-flow states and logic are
-%decentralized to constituent functions without being managed by a centralized
-%orchestrator.
-
 \subsubsection{Fan-out and fan-in}\label{sec:eval:fan-out}
-
-% \emph{Highlight: fan-out doesn't require any additional storage; fan-in requires
-% additional reads and more expensive writes; compared to Step Functions, this
-% overhead results in slower fan-out/fan-in patterns at low branching factor;
-% conversely, \name{}'s parallelism is not limited by the orchestrator, so with
-% large branching factors, \name{} is much faster than Step Functions as fan-out
-% branches run in parallel.}
 
 \begin{figure}[t]
   \centering
@@ -221,135 +131,17 @@ Figure~\ref{fig:mapmicrolatency} shows the latency of a fan-out followed by a
 fan-in at varying branching degrees for both \name{} and Step Functions. At
 low branching degree, \name{} incurs a modest overhead (up to 200ms) relative
 to Step Functions. We believe this is mostly due to our implementation
-initiating each branch invocation sequentially. However, at higher branching degrees (as low as 20 branches), Step
-Functions limits parallel invocation of concurrent fan-out
-branches~\cite{aws-step-functions-map-state} while \name{} is limited only by
-Lambda's scalability, resulting in over 4x lower latency with 512 branches.
+initiating each branch invocation sequentially. However, at higher branching
+degrees (as low as 20 branches), Step Functions limits parallel invocation of
+concurrent fan-out branches~\cite{aws-step-functions-map-state} while \name{}
+is limited only by Lambda's scalability, resulting in over 4x lower latency
+with 512 branches.
 
 These differences manifest in real workloads as well. Wordcount is highly
 parallel (with 262 parallel mappers and 250 reducers) and performs over 2x
 faster on \name{} than on Step Functions (Table~\ref{table:macro}).
 
-% These differences manifest in real workloads as well. Both the Text Processing
-% and Word Count applications include an fan-out followed by a fan-in. Text
-% Processing has low branching degree and, indeed, performs slightly worse on
-% \name{} than on Step Functions (1.8\%). Conversely, Word Count is highly
-% parallel and performs 219\% faster on \name{} than on Step Functions.
-% (Table~\ref{table:macro})
-
-% \subsubsection{Cost comparison}
-
-% \begin{figure}[t]
-  %     \centering
-  %     \includegraphics[width=\columnwidth]{figures/TotalCost.pdf}
-  %     \caption{Total costs comparison of 1 million state transitions between
-    %     Step Functions and \name{}. Computation assumes Lambda size of 3GB. \shadi{colors are hard to read}}
-  %     \label{fig:total-costs-single}
-  % \end{figure}
-
-% \begin{figure}[t!]
-  %     \centering
-  %     \includegraphics[width=\columnwidth]{figures/TotalMapCost.pdf}
-  %     \caption{Total costs comparison of fan-out and fan-in between Step
-    %     Functions and \name{}. Computation assumes Lambda size of 3GB and 1KB data
-    %     size for function outputs and checkpoints.}
-  %     \label{fig:total-costs-map}
-  % \end{figure}
-
-% In this section, we break down the cost of running workflows with \name{} and
-% compare with that of Step Functions. We discuss the costs for a single transition,
-% chaining and fan-out.
-
-% Costs numbers are calculated based on AWS pricing for \texttt{us-west-1}
-% region. We do not "measure" the cost of running workflows because AWS does not
-% provide real-time billing data. We scale costs numbers by 1 million to ease
-% reading.
-
-% Step Functions charges based on the number of state
-% transitions~\cite{aws-step-functions-pricing}. Each state transition is charged
-% a fixed rate of \$27.9 $ \times 10^{-6}$.
-
-% There are two parts to \name{}'s costs: (1). additional Lambda duration
-% billing for running the \name{} runtime, and (2). data store reads and writes.
-
-% We do not count the storage costs in the intermediary data store because after
-% a workflow execution, checkpoints can be immediately deleted or moved to
-% cheaper storage by the user.
-
-% Figure~\ref{fig:total-costs-single} shows the total cost of transitions for
-% function data size varying between 0-255KB. The computation assumes Lambda
-% memory size of 3GB. We can see that the additional Lambda duration costs from
-% running \name{} runtime is a small fraction when compared with the costs of
-% DynamoDB writes. \shadi{how is the figure showing this? how do you translate lambda duration to cost in the figure? this figure is hard to understand. }
-% In fact, even at 255KB, the additional Lambda
-% duration costs is only abour \$10. If using the smallest 128MB lambdas \shadi{(instead of 3GB)}, the
-% costs diminishes to merely \$0.46.
-
-% DynamoDB writes dominates the costs in \name{} because the on-demand mode
-% charges only not on the number of writes but also on the amount of data
-% written. For 1KB of data, DynamoDB charges $1.3942 \times 10^{-6}$ for a write
-% and $0.279 \times 10^{-6}$ for a read. Because checkpoint reads do not return
-% any data when there are no faults, the cost of checkpoint reads does not
-% increase with the data size and stays merely \$0.279 for the computation in
-% Figure~\ref{fig:total-costs-single}.
-
-% Even though the simulation in Figure~\ref{fig:total-costs-single} shows the
-% costs of \name{} outpacing that of Step Functions at larger data sizes, our
-% macrobenchmark results demonstrate that functions in real-world serverless
-% workflows do not output large amount of data. In fact, workflows tend to use
-% their own storage and manage application data manually. Checkpoints in the
-% \name{} intermediary data store are normally under 1KB. 
-
-% Figure~\ref{fig:total-costs-map} shows the total costs of fan-out and fan-in
-% when function checkpoints are under 1KB. In addition to the costs discussed
-% for a single transition, the entry function performing the fan-out incurs
-% higher Lambda duration costs for invoking each fan-out function. The fan-in
-% function at the end also causes extra costs because it reads the checkpoints
-% of all fan-out branches. However, the total costs of this microbenchmark is
-% more than 3.2x lower with \name{} than Step Functions.
-
-% \begin{itemize}
-
-  %     \item S3 charges \$5.5 per 1M PUT requests (for checkpoint write) and \$0.44
-  %     per 1M GET requests (for checkpoint read).
-
-  %     \item DynamoDB on-demand capcity mode charges reads and writes based on
-  %     the data size. 1M requests for writing 1KB data costs \$1.3942 and 1M
-  %     requests for reading 1KB data costs \$0.279. Note that in the case of
-  %     DynamoDB, if no faults happen during execution, the checkpoint read will
-  %     return "item not found", which costs the same as returning 1KB of data.
-
-  %     \item For 1M state transitions, \name{}'s costs for S3:
-
-  %     \[  r(d)\times0.05 + 5.94 \]
-
-  %     and for DynamoDB:
-
-  %     \[  r(d)\times0.05 + d\times1.3942 +0.279\],
-
-  %     where $r$ is the total additional runtime of \name{}, $d$ is the data
-  %     size.
-
-  % \end{itemize}
-
-
-
-\subsubsection{\remove{ExCamera}}\label{sec:eval:excamera}
-
-% \begin{table}
-%   \centering
-%   \begin{tabular}{|r|r|}
-%     \hline
-%     \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
-%     Original        & 76                         \\ \hline
-%     \name{}-aws & 84                         \\ \hline
-%     gg                       & 90                         \\ \hline
-%     Step Functions & 98                         \\ \hline
-%   \end{tabular}
-%   \caption{ExCamera performance. \name{} is 7.1\% faster than
-% gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
-%   \label{table:excamera}
-% \end{table}
+% \subsubsection{\remove{ExCamera}}\label{sec:eval:excamera}
 
 \remove{We compare the performance of an application not well-suited to Step
 Functions. ExCamera~\mbox{\cite{excamera}} is a video-processing application
@@ -388,18 +180,20 @@ Functions.}
 
 \begin{table*}[t]
   \centering
-  \begin{tabular}{|l|rr|rr|}
+  \begin{tabular}{|l|rrr|rrr|}
 \hline
-                         & \multicolumn{2}{c|}{\textbf{Latency (seconds)}} & \multicolumn{2}{c|}{\textbf{Costs (\$ per 1 mil. executions)}} \\ \hline
+                         & \multicolumn{3}{c|}{\textbf{Latency (seconds)}}                    & \multicolumn{3}{c|}{\textbf{Costs (\$ per 1 mil. executions)}} \\ \hline
 \textbf{App} &
   \multicolumn{1}{c|}{\textit{Unum-aws}} &
+  \multicolumn{1}{l|}{\textit{Unum-gcloud}} &
   \multicolumn{1}{l|}{\textit{Step Functions}} &
   \multicolumn{1}{c|}{\textit{Unum-aws}} &
+  \multicolumn{1}{l|}{\textit{Unum-gcloud}} &
   \multicolumn{1}{l|}{\textit{Step Functions}} \\ \hline
-\textit{IoT Pipeline}    & \multicolumn{1}{r|}{0.12}         & 0.23        & \multicolumn{1}{r|}{\$6.75}              & \$112.02            \\ \hline
-\textit{Text Processing} & \multicolumn{1}{r|}{0.52}         & 0.55        & \multicolumn{1}{r|}{\$29.53}             & \$225.29            \\ \hline
-\textit{Wordcount}       & \multicolumn{1}{r|}{408.88}       & 898.56      & \multicolumn{1}{r|}{\$7,056.55}          & \$18,141.19         \\ \hline
-\textit{ExCamera}        & \multicolumn{1}{r|}{84.52}        & 98.42       & \multicolumn{1}{r|}{\$48,451.53}         & \$114,633.13        \\ \hline
+\textit{IoT Pipeline}    & \multicolumn{1}{r|}{0.12}   & \multicolumn{1}{r|}{0.81}   & 0.23   & \multicolumn{1}{r|}{\$12.38}             & \multicolumn{1}{r|}{\$6.3}         & \$112.02            \\ \hline
+\textit{Text Processing} & \multicolumn{1}{r|}{0.52}   & \multicolumn{1}{r|}{3.56}   & 0.55   & \multicolumn{1}{r|}{\$60.42}             & \multicolumn{1}{r|}{\$31.7}        & \$225.29            \\ \hline
+\textit{Wordcount}       & \multicolumn{1}{r|}{408.88} & \multicolumn{1}{r|}{484.12} & 898.56 & \multicolumn{1}{r|}{\$13,433.67}         & \multicolumn{1}{r|}{\$11,727.3}    & \$18,141.19         \\ \hline
+\textit{ExCamera}        & \multicolumn{1}{r|}{84.52}  & \multicolumn{1}{r|}{122.63} & 98.42  & \multicolumn{1}{r|}{\$62,684.29}         & \multicolumn{1}{r|}{\$51,617.2}    & \$114,633.13        \\ \hline
 \end{tabular}
   \caption{Application latency and costs comparison between \name{} and Step
     Functions. Running applications on \name{} is 1.35x to 9x cheaper than
@@ -431,10 +225,11 @@ performance.
 
 The source of costs for \name{} and Step Functions is quite different. Step
 Functions imposes a cost to developers, in addition to running Lambda
-functions, for each workflow transition~\cite{aws-step-functions-pricing}.
-This abstracts the underlying, likely shared, costs to run the Step Functions
-servers, persist state and checkpoint data. Conversely, \name{} incurs costs
-directly from those services: additional Lambda
+functions, for each workflow
+transition~\cite{aws-step-functions-pricing}\minoredits{, such as each branch
+in a fan-out}. This abstracts the underlying, likely shared, costs to run the
+Step Functions servers, persist state and checkpoint data. Conversely, \name{}
+incurs costs directly from those services: additional Lambda
 runtime~\cite{aws-lambda-pricing} and DynamoDB storage on
 AWS~\cite{dynamodb-pricing}.
 
@@ -455,52 +250,6 @@ applications we tested. Table~\ref{table:macro} shows the price to run each of
 the applications we implemented based on public pricing information for AWS in
 the \texttt{us-west-1} region using \name{} and Step Functions.
 
-
-%Table~\ref{table:macro} are calculated based on public pricing information for
-%AWS \texttt{us-west-1} region. We do not ``measure'' the costs of running
-%workflows because AWS does not provide real-time billing results for all
-%services.
-%
-%For Step Functions, the total costs of running an application consists of i.
-%Lambda duration billing for running user code, ii. Lambda invocation billing
-%for starting functions and iii. Step Functions state transition
-%charges~\cite{aws-step-functions-pricing}. Step Functions charges a fixed rate
-%of \$27.9 $ \times 10^{-6}$ per state transition. A state transition equates
-%to an edge in the workflow graph in the case of chaining and fan-out. But
-%fan-in only counts as one state transition. Additionally, Step Functions adds
-%a \texttt{Start} and \texttt{End} state to each workflow that counts towards
-%state transitions.
-%
-%The total costs of running an application with \name{} consists of i. Lambda
-%duration billing for running the \emph{unumized} functions, that is both the
-%user code and \name{} runtime code, ii. Lambda invocation billing for starting
-%functions, and iii. data store reads and writes for checkpoints. DynamoDB
-%charges $1.3942 \times 10^{-6}$ for writing and $0.279
-%\times 10^{-6}$ for reading 1KB of data. We do not count the costs of storing
-%the data in DynamoDB because after a workflow execution, users can immediately
-%delete the checkpoints or move them to cheaper storage.
-
-%Step Functions state transitions dominate the total costs of running
-%applications, accounting for 72.2\% in ExCamera, 79.6\% in Wordcount and over
-%99\% in IoT Pipeline and Text Processing. While \name{} runtime and checkpoint
-%costs are also the majority in IoT Pipeline (87.2\%) and Text Processing
-%(89\%), for large-scale workflows, \name{} only accounts for 18.1\% of the
-%costs in ExCamera and 24.8\% in Wordcount.
-%
-% A cheaper data store that supports strong consistency and
-%conditional updates can significantly reduce the cost of using \name{}. For
-%instance, Cosmos DB charges $0.279 \times 10^{-6}$ (or one fifth of the write
-%cost of DynamoDB) per 1KB for both reads and writes~\cite{cosmosdb-pricing}.
-
-%While pricing of a particular service can change based on a multitude of
-%factors, the amount of developement efforts and the size of going workloads
-%that has already gone into Lambda and multi-tenant storage systems likely
-%means that they are much more resource efficient than a specialized
-%orchestrator service such as Step Functions. The resource efficiency advantage
-%is likely going to persist given the bigger pool of users and applications for
-%Lambda and DynamoDB as they are more fundamental services. Therefore,
-%\name{}'s cost benefits are likely going to continue and become even larger as
-%FaaS systems and serverless data stores continue to improve.
 
 Of course, developer-facing pricing does not necessarily reflect \emph{actual}
 costs and is only a weak proxy for resource utilization. However, it is clear
