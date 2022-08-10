@@ -24,36 +24,46 @@ resource costs \emph{only} to actually execute a workflow.
 \subsection{AWS Lambda \& DynamoDB}
 
 Asynchronous invocation in Lambda is natively supported. In particular, the
-Lambda \texttt{Invoke} API is asynchronous when passed \texttt{InvocationType=Event}.
+Lambda \texttt{Invoke} API is asynchronous when passed
+\texttt{InvocationType=Event}. \majoredits{In the event of a crash, we use
+Lambda's Failure Destination~\cite{aws-lambda-failure-destination} to redirect
+the fault to an error handler function which runs just the \name{} runtime.
+The error handler checkes if the failed function should be retried (e.g.,
+based on the Step Function definition~\cite{aws-step-functions-retry}) and if so,
+retries the function by explicitly invoking it again.}
 
 DynamoDB organizes data into tables, with each item in a table named by a key.
-Within tables, items are unstructured by default. Our implementation of \name{}
-uses a single table for each workflow invocation. Each item in the table
+Within tables, items are unstructured by default. Our implementation of
+\name{} uses a single table for each workflow. Each item in the table
 corresponds to a checkpoint, or a coordination set for fan-in or garbage
 collection.
 
 DynamoDB supports atomic item creation by passing the conditional flag
-\texttt{attribute\_not\_exists} to the \texttt{put\_item} API call. We use this
-for creating both checkpoint blobs and coordination sets. DynamoDB supports set
-addition natively using the \texttt{Map} field type. In particular, we use
-update expressions to atomically set a named map element to true.  As an
-optimization, we use the \texttt{ALL\_NEW} flag when adding to a set to
-atomically get the new value after a set in a single operation.
+\texttt{attribute\_not\_exists} to the \texttt{put\_item} API call. We use
+this for creating both checkpoint blobs and coordination sets. DynamoDB
+supports set addition natively using the \texttt{Map} field type. In
+particular, we use update expressions to atomically set a named map element to
+true.  As an optimization, we use the \texttt{ALL\_NEW} flag when adding to a
+set to atomically get the new value after a set in a single operation.
 
 \subsection{Google Cloud Functions \& Firestore}
 
 Google Cloud Functions (GCF) do not have an asynchronous invocation API.
-Instead, we allocate function-specific publish-subscribe queues and subscribe
-each function to its respective queue.  \name{} then performs asynchronous
-invocation of a function by publishing the input data as an event to the
-function's queue.
+Instead, we allocate function-specific pub-sub queues and subscribe each
+function to its respective queue.  \name{} then asynchronously invoke a
+function by publishing the input data as an event to the function's queue.
 
-Firestore organizes data into logical collections (which are created and deleted
-implicitly) containing unstructured items, named by a unique key. Similar to
-DynamoDB, we use a separate collection for each workflow. Atomic item creation
-is supported using a special \texttt{create} API call, which only succeeds if
-the key does not already exist. Firestore supports an \texttt{Array} field type
-which can act as a set by using the \texttt{ArrayUnion} and \texttt{update}
-operation, which atomically sets the field to the union of its existing elements
-and the provided elements. The \texttt{update} operation always returns the
-new value data.
+\majoredits{GCF supports automatic retry for asynchronous
+functions~\cite{google-cloud-functions-retry}. In the event of a crash,
+\name{} runtime in the retry execution checks if the failed function should be
+retried and if so, retries the function by explicitly invoking it again.}
+
+Firestore organizes data into logical collections (which are created and
+deleted implicitly) containing unstructured items, named by a unique key.
+Similar to DynamoDB, we use a separate collection for each workflow. Atomic
+item creation is supported using a special \texttt{create} API call, which
+only succeeds if the key does not already exist. Firestore supports an
+\texttt{Array} field type which can act as a set by using the
+\texttt{ArrayUnion} and \texttt{update} operation, which atomically sets the
+field to the union of its existing elements and the provided elements. The
+\texttt{update} operation always returns the new value data.

@@ -357,10 +357,10 @@ Finally, even if multiple executions invoke some or all downstream functions,
 execution guarantees are still satisfied as these invocations will have
 identical inputs.
 
-\majoredits{Retries in \name{} rely on FaaS engines' error handline support. All
-popular FaaS engines provide error handling when functions crash mid-execution
-so that applications do not crash silently without a way to react to failures.
-Common mechanisms include automatic retry that re-executes the same
+\majoredits{Retries in \name{} rely on FaaS engines' error handling support.
+All popular FaaS engines provide error handling so that applications do not
+just crash silently without a way to react to failures. Common mechanisms
+include ``automatic retry'' that re-executes the same
 function~\cite{aws-lambda-retry, azure-functions-retry,
 google-cloud-functions-retry, openfaas-retry} or failure redirection that
 triggers a pre-configured error-handler
