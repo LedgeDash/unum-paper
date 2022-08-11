@@ -451,15 +451,30 @@ expressible in \name{}.
 
 \subsection{Garbage Collection}\label{sec:design:garbage}
 
-Both checkpointing, to provide correct workflow execution semantics, and fan-in
-require storing intermediate data in the datastore. This poses a garbage
-collection challenge.
+\remove{Both checkpointing, to provide correct workflow execution semantics,
+and fan-in require storing intermediate data in the datastore. This poses a
+garbage collection challenge.}
 
-Both checkpoints and fan-in coordination sets may be numerous in a workflow and only
-temporally useful. Deleting checkpoints or bitmaps too early can compromise
-execution guarantees and deleting too late incurs unnecessary storage charges
-from the datastore. \name{} deletes checkpoints and bitmaps as soon as they are
-no longer needed for execution correctness.
+\remove{Both checkpoints and fan-in coordination sets may be numerous in a
+workflow and only temporally useful. Deleting checkpoints or bitmaps too early
+can compromise execution guarantees and deleting too late incurs unnecessary
+storage charges from the datastore. \name{} deletes checkpoints and bitmaps as
+soon as they are no longer needed for execution correctness.}
+
+\majoredits{Both checkpointing and fan-in require storing intermediate data
+(e.g., checkpoints and coordination sets) in the datastore. These intermediate
+data is only temporally useful and grows with each invocation. This poses a
+garbage collection challenge. Deleting them too early can compromise execution
+guarantees while deleting too late incurs storage costs.}
+
+\majoredits{As an application-level library, \name{}'s design allows
+applications to customize their GC strategy. Simple policies such as deleting
+intermediate data older than a set limit are easily implementable via data
+stores or as a cron job. However, in this section, we demonstrate the
+algorithm in \name{}'s standard library that deletes checkpoints and
+coordination sets \emph{as soon as} they are no longer needed for execution
+correctness, to show that \name{}'s decentralized design allows the most
+aggressive strategy.}
 
 \subsubsection{Checkpoint Collection}
 
@@ -475,14 +490,22 @@ value.
 
 In particular, \name{} collects checkpoints by relaxing the constraint that
 nodes always output the same value. Instead, they must only output the same
-value until all subsequent nodes have committed to their own outputs.
+value until all subsequent nodes have committed to their own outputs. This
+means that, in non-fan-out cases, once a node checkpoints its result, it can
+delete the previous checkpoint.
 
-This means that, in non-fan-out cases, once a node checkpoints its result, it
-can delete the previous checkpoint.
+\majoredits{Note that a duplicate execution that checkpoints after the
+previous checkpoint is garbage collected is treated as a separate invocation.
+Indeed, exactly-once guarantees are only ensured until intermediate states are
+deleted. Any GC policy, no matter how conservative, has the potential to
+compromise exactly-once guarantee if duplicates can happen after an unbounded
+amount of time. The same applies to centralized orchestrators where users can
+choose to delete execution records after a certain time
+period~\cite{aws-step-functions-exec-gntee}.}
 
-Note that \name{} runtime implementations delay garbage collection until after
-invoking next functions, sacrificing some storage overhead in favor of
-minimizing end-to-end latency for a workflow.
+\remove{Note that }\name{} runtime implementations delay garbage collection
+until after invoking next functions, sacrificing some storage overhead in
+favor of minimizing end-to-end latency for a workflow.
 
 Fan-out cases are more complicated because deleting the checkpoint must wait
 until all branches have committed to an output. \name{} repurposes the same
