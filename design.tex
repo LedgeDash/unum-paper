@@ -293,22 +293,22 @@ beyond the scope of this paper. However, \name{} does not preclude
 applications from using libaries, such as Beldi~\cite{beldi}, that can solve
 this problem.}
 
-\begin{table}
-  \centering
-  \begin{tabular}{|m{0.18\linewidth}|m{0.73\linewidth}|}
-    \hline
-  \textbf{Workflow} & A directed graph of functions that takes an input and produces one or more outputs. \\
-    \hline
-  \textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
-    \hline
-  \textbf{Invocation} & An request to the FaaS platform to run a function. \\
-    \hline
-  \textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
-    \hline
-  \end{tabular}
-  \caption{\name{} terminology.}
-  \label{table:terms}
-\end{table}
+% \begin{table}
+%   \centering
+%   \begin{tabular}{|m{0.18\linewidth}|m{0.73\linewidth}|}
+%     \hline
+%   \textbf{Workflow} & A directed graph of functions that takes an input and produces one or more outputs. \\
+%     \hline
+%   \textbf{Function} & A user-defined FaaS function, linked with the \name{} runtime library. \\
+%     \hline
+%   \textbf{Invocation} & An request to the FaaS platform to run a function. \\
+%     \hline
+%   \textbf{Execution} & The FaaS platform may attempt to \emph{execute} a function invocation one or more times, and guarantees that at least one execution completes. \\
+%     \hline
+%   \end{tabular}
+%   \caption{\name{} terminology.}
+%   \label{table:terms}
+% \end{table}
 
 
 \begin{figure}
@@ -521,20 +521,20 @@ set has been deleted. This is safe because it is the origin of the fan-out that
 creates the set, so a branch's attempt to add itself to a, now, non-existent set
 will simply fail.
 
-\begin{minted}[
-    frame=single,
-    fontsize=\scriptsize
-    ]{python}
-def egress_fan_out(self, result):
-    result = _checkpoint(self, result)
-    _do_next(result)
+% \begin{minted}[
+%     frame=single,
+%     fontsize=\scriptsize
+%     ]{python}
+% def egress_fan_out(self, result):
+%     result = _checkpoint(self, result)
+%     _do_next(result)
 
-    completion_set_after =
-        write_set_read_result(fan_out_gc_set, fan_out_index)
-    if all_complete(completion_set_after):
-        database_delete(prev_checkpoint)
-        database_delete(fan_out_gc_set)
-\end{minted}
+%     completion_set_after =
+%         write_set_read_result(fan_out_gc_set, fan_out_index)
+%     if all_complete(completion_set_after):
+%         database_delete(prev_checkpoint)
+%         database_delete(fan_out_gc_set)
+% \end{minted}
 
 \subsubsection{Fan-in Set collection}
 
