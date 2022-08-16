@@ -1,4 +1,4 @@
-LATEXRUN ?= python ./latexrun
+LATEXRUN ?= python3 ./latexrun
 
 #FIGURES=figures/microbench-speedup-vs-exec.pdf figures/microbench-exec.pdf figures/microbench-boot.pdf figures/microbench-e2e.pdf figures/microbench-role-storage.pdf figures/throughput_simulation.pdf
 
