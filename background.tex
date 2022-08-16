@@ -1,165 +1,63 @@
 \section{Background \& Motivation}\label{sec:bg}
 
-%\begin{table}[]
-%\centering
-%\scriptsize
-%\resizebox{\linewidth}{!}{
-%\begin{tabular}{|l|p{0.05\textwidth}<{\centering}|p{0.06\textwidth}<{\centering}|p{0.05\textwidth}<{\centering}|p{0.04\textwidth}<{\centering}|}
-%\hline
-% & \textbf{Trigger-based} & \textbf{Driver functions} & \textbf{Orchestr-ators} & \textbf{\name{}} \\ \hline
-%\textit{No new services}   &  \cmark & \cmark & \xmark & \cmark \\ \hline
-%\textit{Higher-level interface}     & \xmark & \xmark & \cmark & \cmark \\ \hline
-%\textit{Exactly-once semantics} & \xmark & \xmark & \cmark & \cmark \\ \hline
-%\textit{Pay-for-what-you-use billing}       & \cmark & \xmark & \cmark & \cmark \\ \hline
-%\end{tabular}
-%}
-%\caption{Comparison with existing approaches}
-%\label{table:positioning}
-%\end{table}
+The basic serverless abstraction is simple and quite powerful. Developers
+build ``functions'', typically written in a high-level language and packaged
+as OS containers or virtual machines, which run short computations in response
+to a platform event. Events include storage events (e.g.\ the creation of an
+object) or HTTP requests. The platform can scale resources for each function
+to respond to instantaneous bursts in events and developers are absolved from
+capacity planning and resource management tasks.
 
-
-%\begin{figure}[t!]
-%    \centering
-%    \scalebox{.7}{\includegraphics[width=\columnwidth]{figures/ChainExample.pdf}}
-%    \caption{Chaining two functions with triggers, driver functions and
-%    orchestrators. In the trigger-based approach, \texttt{F} asynchronously
-%    invokes \texttt{G} with \texttt{F}'s result. In the driver functions
-%    approach, a driver function first synchronously invokes \texttt{F},
-%    usually via HTTP, and after \texttt{F} returns, synchronously invokes
-%    \texttt{G} with \texttt{F}'s result. Workflow orchestrators provide
-%    higher-level interfaces (e.g., AWS Step Functions state machines) to
-%    express function compositions such that \texttt{F}'s code does not contain
-%    explicit control-flow logic of invoking \texttt{G}. But architecturally,
-%    orchestrators are similar to driver functions: an orchestrator instance
-%    invokes \texttt{F}, waits for \texttt{F} to return and then invokes
-%    \texttt{G} with \texttt{F}'s result.}
-%    \label{fig:chain-example}
-%\end{figure}
-
-The basic serverless abstraction is simple and quite powerful. Developers build
-``functions'', typically written in a high-level language and packaged as OS
-containers or virtual machines, which run short computations in response to a
-platform event. Events include storage events (e.g.\ the creation of a new
-storage object) or HTTP requests. The platform can scale resources for each
-function to respond to instantaneous bursts in events and developers are
-absolved from building scalable applications and from reserving resources for
-maximum capacity.
-
-For example, a developer builds a function that creates thumbnails from large
-images and configures the platform to trigger the function whenever a new image
-is uploaded to their object store. When there is a burst of such events---e.g\
-if an end-user uploads their whole photo library at once---the platform can
-scale by spawning many parallel instances of the function to respond to events
-within seconds and reclaim resources when the bust subsides.
+% For example, a developer builds a function that creates thumbnails from
+% large images and configures the platform to trigger the function whenever a
+% new image is uploaded to their object store. When there is a burst of such
+% events---e.g\ if an end-user uploads their whole photo library at once---the
+% platform can scale by spawning many parallel instances of the function to
+% respond to events within seconds and reclaim resources when the bust
+% subsides.
 
 This simple abstraction can be used to compose many simple applications with
 one or a few functions. For example, developers can chain functions for data
 pipelines using triggers. In trigger-based composition~\cite{netherite} each
 function in a chain invokes the next asynchronously or each function writes to
 a data-store configured to invoked the next function in response to the
-storage event. Similarly, developers might use a
+storage event. Alternatively, developers might use a
 ``driver-function''~\cite{beldi} to drive more intricate control-flow logic. A
-driver function acts as a centralized controller that invokes other functions
-in the application, waits for their responses, and invokes subsequent
-functions with their responses.
-
-%\subsubsection{Ad-hoc composition: triggers and driver functions}
-%
-%The original serverless abstraction is designed around developing individual
-%functions--a \textit{single} unit of work that can run independently on any
-%machine. However, this design does not provide a higher-level interface to
-%easily express control-flow logic \emph{between} functions. To build larger
-%applications that are composed from multiple functions, early adopters use
-%function invocation APIs to exress control-flows in an ad-hoc manner in one of
-%the following two ways: \textit{ i. trigger-based}
-%composition~\cite{netherite} where functions invoke their immediate downstream
-%functions with \emph{asynchronous} triggers, usually via a queue or data
-%store, (e.g., a lambda writes to an SQS queue or S3 bucket which in turn sends
-%an event to Lambda and triggers the next function), and \textit{ii.driver
-%functions}~\cite{beldi} where a single function, similar to the
-%\texttt{main()} function of a program, encompasses the control-flow logic and
-%invokes other functions \emph{synchronously}. Figure~\ref{fig:chain-example}
-%depicts an example of chaining functions with the two approaches.
-%
-%\shadi{shouldn't the first figure (a) have a storage in the middle?}\dhl{For
-%the figure, I was intentionally not showing a storage because 1. the point is
-%that it's \emph{asynchronous}, 2. AWS Lambda's async invoke API actually hides
-%the fact that it's going over a queue. You simply call \texttt{invoke(data,
-%RequestType=Event)}, and that adds an item to Lambda's internal queue, which
-%then generates an event that triggers your lambda. I've adjusted the text to
-%highlight the \emph{asynchronous} nature and downplay the details about
-%storage. Take a look and let me know if it works. If not, we can add storage
-%into Figure 1. But my concern with it is that people might think \name{} needs to
-%manage similar intermediary data stores while in fact it's managed by Lambda.
-%The important feature we care about is just that the invocation is
-%asynchronous. We don't actually care that it's going over a storage.}
-%\shadi{can we add the "async" keyword on the figure. Right now the figure is very simple. Not sure it is worth having the figure at all. It is not adding much more than what is in the text. One option would be to remove the figure entirely and just rely on text. }
-%\shadi{from the figure and text it is not clear what is the diff between
-%driver and coordinator. }\dhl{Edited the figure caption. Take a look and let
-%me know if it's on point and sufficient? High-level note: I think the missing
-%piece in the text is how the different approaches program differently. How
-%developers write actual code.} \shadi{The caption is clear but too detailed for a caption. I still don't see much value in the figure unless you can somehow capture the details in the caption in the figure itself. For example, for (a) you can add async on the arrow, for (c) you can add a small box with "app logic" being submitted to the orchestrator depicting the high level API. If this does not make sense, maybe remove the figure?}
-%
-%\shadi {let's just use trigger based throughout the paper}\dhl{Yes.}
-
-
-
-
-
-%The original serverless abstraction is designed around individual functions
-%and does not provide an interface for programming larger applications with
-%many functions. As a result, early adopters use low-level function invocation
-%APIs to compose functions in an ad-hoc manner, and there are two primary
-%approaches.
-
-%The first approach is called trigger-based or unstructure
-%composition~\cite{netherite} where functions invoke each other
-%\emph{asynchronously} via storage triggers. The second is called driver
-%functions~\cite{beldi} where a single \shadi{driver} function invokes other functions
-%\emph{synchronously}. Figure~\ref{fig:chain-example} depicts an example of
-%chaining functions with the two approaches. \shadi{shouldn't the first figure (a) have a storage in the middle?} \shadi{from the figure and text it is not clear what is the diff between driver and coordinator. }
+driver function acts as a centralized controller that invokes other functions,
+waits for their responses, and invokes subsequent functions with their
+responses.
 
 Such ad-hoc approaches work ``out-of-the-box'', i.e.\ they require no
 additional platform provided infrastructure. However neither is well suited to
 complex applications with 10s or 100s of functions~\cite{excamera,
 hello-retail}. Trigger-based composition can only support chaining of
 individual functions or fan-out from one function to multiple, but cannot, for
-example, fan-in from multiple functions to one. As a result, only a limited
-class of applications can take advantage of burst parallelism for each
-application request. Moreover, trigger-based composition scatters control-flow
-logic across each function or in configured storage events, making development
-unwieldy when application complexity grows.
+example, fan-in from multiple functions to one. Moreover, trigger-based
+composition scatters control-flow logic across each function or in configured
+storage events, making development unwieldy when application complexity grows.
 
 On the other hand, driver functions concentrate control flow in a single
-function and support arbitrary composition. However, they result in ``double
-billing'' since the driver function consumes resources for the entire call-graph
-execution despite spending most of its time idly waiting for callees to return.
-Furthermore, since most serverless platforms impose modest timeouts on
-individual functions driver-functions risks timing out before a call-graph is
-complete.
+function and support arbitrary composition. However, most serverless platforms
+impose modest runtime limits on individual functions, and thus driver
+functions restrict the total runtime of applications. Furthermore, driver
+functions suffer ``double billing'' since they are billed for the entire
+call-graph execution despite spending most time idly waiting for callees to
+return.
 
 Finally, both ad-hoc approaches require developers to handle function crashes,
-retries and multiple invocations gracefully~\cite{aws-lambda-retry,
+retries and duplicate invocations gracefully~\cite{aws-lambda-retry,
 azure-functions-retry, aws-lambda-async-invoke,
 azure-functions-exec-guarantee}. Application typically want to ensure
 ``exactly once'' semantics~\cite{netherite, beldi, boki,
 formal-foundation-exec-gtnee, durable-semantics} for an entire call-graph, but
-failures and multiple invocations of individual constituent functions can
-subvert this goal without careful consideration.
-
-%Moreover, both approaches suffer from weak execution guarantees of the
-%underlying serverless system. Functions can crash mid-execution due to runtime
-%or hardware faults which may lead to automatic retries~\cite{aws-lambda-retry,
-%azure-functions-retry}. Even in the absence of faults, most serverless
-%platforms only ensure at-least-once execution~\cite{aws-lambda-async-invoke,
-%azure-functions-exec-guarantee} so a single invocation can trigger multiple,
-%potentially concurrent, instances. \shadi{if no failures, why would there be multiple invokes?}
+failures and multiple invocations of individual functions can subvert this
+goal without careful consideration.
 
 \subsection{\remove{Workflow}\majoredits{Standalone} Orchestrators}\label{sec:bg:orchestrator}
 
-\remove{A common solution to address the needs of complex serverless applications is
-to introduce a workflow orchestrator~\mbox{\cite{excamera, gg-atc,
-aws-step-functions, google-cloud-composer, google-workflows,
+\remove{A common solution to address the needs of complex serverless
+applications is to introduce a workflow orchestrator~\mbox{\cite{excamera,
+gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
 durable-functions}}.  Orchestrators operate similarly to
 driver-functions---they drive an application workflow by invoking functions in
 the application---but are separate hosted services, usually multi-tenant.
@@ -170,21 +68,19 @@ chaining, fan-out and fan-in, while ensuring exactly-once semantics.}
 
 \majoredits{A common solution to address the needs of complex serverless
 applications is to introduce a workflow orchestrator that provides a
-high-level programming interface with support for a rich set of composition
-primitives (e.g., branching, chaining, fan-out and fan-in)~\cite{excamera,
-gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
+high-level programming interface with support for a rich set of patterns
+(e.g., branching, chaining, fan-out and fan-in)~\cite{excamera, gg-atc,
+aws-step-functions, google-cloud-composer, google-workflows,
 durable-functions,temporal}. Many cloud providers offer serverless
 orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
 google-workflows, durable-functions}. Alternatively, users can build custom
-orchestrators~\cite{temporal, gg-atc, excamera} and deploy in VMs or
-containers alongside their functions.}
+orchestrators~\cite{temporal, gg-atc, excamera} and deploy in VMs alongside
+their functions.}
 
-\majoredits{Similar to driver-functions, orchestrators operate as
-\emph{logically} centralized controllers. They drive a workflow by invoking
+\majoredits{Similar to driver functions, orchestrators operate as
+\emph{logically centralized} controllers. They drive a workflow by invoking
 its functions and hosting application states such as function outputs and
-outstanding invocations. Centralization simplifies support for stateful
-patterns. For example, to support fan-in, orchestrator can simply wait for all
-branches to complete before invoking the aggregation function.}
+outstanding invocations.}
 
 \majoredits{However, an important difference of orchestrators is that they are
 standalone services. Unlike driver functions, orchestrators are not limited by
@@ -216,21 +112,22 @@ developers significantly more than necessary in some cases.}
 \majoredits{Moreover, hosting such services can be expensive as they require
 dedicated resources. Deploying a custom orchestrator per user risks
 under-utilization as it cannot multiplex over many users and users pay even
-when orchestrator is not actively in use, breaking the fine-grained billing
-benefit of serverless. Provider-hosted orchestrators amortizes this cost but
-still incur engineering expenses as they require teams on-call. Indeed, we
-find that provider-hosted orchestrators cost developers significantly and
-dominate the total cost of running applications (\S~\ref{sec:eval}).}
+when the orchestrator is not actively in use, breaking the fine-grained
+billing benefit of serverless. Provider-hosted orchestrators are multi-tenant
+and can amortize this cost. But they still incur engineering expenses as they
+require teams on-call. Indeed, we find that provider-hosted orchestrators cost
+developers significantly and dominate the total cost of running applications
+(\S~\ref{sec:eval}).}
 
 \majoredits{Lastly, provider-hosted orchestrators preclude users from making
 application-specific optimizations. Each provider typically offers just a
 single orchestrator service option. While the interface and implementation of
-the orchestrator might efficiently support the needs of many application, it
-cannot meet all applications' needs, resulting in a compromise familiar from
-operating systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn},
-and storage systems~\cite{comet,splinter}. Indeed, we find that
-provider-hosted orchestrators force applications to compromise performance by
-using less-efficient but supported patterns (\S~\ref{sec:eval}).}
+the orchestrator might efficiently support many applications, it cannot meet
+all applications' needs, resulting in a compromise familiar from operating
+systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn}, and
+storage systems~\cite{comet,splinter}. Indeed, we find that provider-hosted
+orchestrators force applications to compromise performance by using
+less-efficient but supported patterns (\S~\ref{sec:eval}).}
 
 \remove{Indeed, we find (Section~\ref{sec:eval}) that, in practice, production
 systems limit end-to-end performance and scalability, and cost developers
