@@ -1,22 +1,42 @@
-\section{\name{} Design}\label{sec:design}
+\section{Design}\label{sec:design}
 
-\name{} is an orchestration system that achieves the flexibility of ad-hoc
+\majoredits{\name{} is an application-level orchestration system that supports
+complex serverless workflows without a standalone orchestrator service. It
+does so by placing decentralized orchestration logic in a library that runs
+in-situ with user-defined FaaS fucntions and leverages a scalable consistent
+storage service for coordination and deduplication. By removing standalone
+orchestrators, \name{} improves application flexibility and reduces monetary
+costs of running applications.}
+
+\majoredits{While moving orchestration to the application-level, an important
+goal of \name{} is to not compromise essential features of standalone
+orchestrators, such as expressivenss (\S\ref{sec:design:ir}) and execution
+guarantees (\S\ref{sec:design:execution}). Moreover, other important
+functionalities, such as access control and rate limiting, are also preserved.
+Given most FaaS engines already integrate with permission control services
+(e.g., AWS IAM) and support rating limiting for functions, \name{} can easily
+replicate the behavior of standalone orchestrators by controling the
+permissions and concurrency limits of workflows' entry functions.}
+
+
+\remove{\name{} is an orchestration system that achieves the flexibility of ad-hoc
 orchestration without compromising the scalability, fault-tolerance, and
 execution guarantees of centralized orchestrators. It does so by placing
 decentralized orchestration logic in a library that runs in-situ with FaaS
 fucntions and leverages a scalable consistent storage service for coordination
-and deduplication. Similar to many centralized orchestrators, \name{} workflows
-are modeled as a directed execution graph where nodes represent user-defined
-FaaS functions and each edge represents an invocation of one function (incoming
-edge) with the output of one or more other functions (outgoing edges).
+and deduplication. Similar to many centralized orchestrators, \name{}
+workflows are modeled as a directed execution graph where nodes represent
+user-defined FaaS functions and each edge represents an invocation of one
+function (incoming edge) with the output of one or more other functions
+(outgoing edges).}
 
-An \name{} graph may include fan-outs, where output from a node is used to
-invoke several functions or split up and ``mapped'' multiple times on the same
-function. Each such branch may be taken conditionally, based on the output value
-or dynamic states of the graph. Execution graphs may also contain fan-ins, where
-the outputs of multiple nodes are used to invoke a single aggregate function.
-Cycles are also supported and each iteration through a cycle is a different
-invocation of the target function.
+\remove{An \name{} graph may include fan-outs, where output from a node is
+used to invoke several functions or split up and ``mapped'' multiple times on
+the same function. Each such branch may be taken conditionally, based on the
+output value or dynamic states of the graph. Execution graphs may also contain
+fan-ins, where the outputs of multiple nodes are used to invoke a single
+aggregate function. Cycles are also supported and each iteration through a
+cycle is a different invocation of the target function.}
 
 \subsection{Architecture}\label{sec:design:architecture}
 
@@ -141,9 +161,27 @@ modify it for subsequent functions.}
     \label{fig:design:unum-request}
 \end{figure}
 
-The \name{} intermediate representation (IR) is designed to allow encoding of
-common workflow patterns but is low-level enough to also support less uncommon
-patterns.
+\majoredits{Similar to many centralized orchestrators, \name{} workflows are
+modeled as a directed execution graph where nodes represent user-defined FaaS
+functions and each edge represents an invocation of one function (incoming
+edge) with the output of one or more other functions (outgoing edges).
+
+An \name{} graph may include fan-outs, where output from a node is used to
+invoke several functions or split up and ``mapped'' multiple times on the same
+function. Each such branch may be taken conditionally, based on the output
+value or dynamic states of the graph. Execution graphs may also contain
+fan-ins, where the outputs of multiple nodes are used to invoke a single
+aggregate function. Cycles are also supported and each iteration through a
+cycle is a different invocation of the target function.}
+
+\remove{The \name{} intermediate representation (IR) is designed to allow
+encoding of common workflow patterns but is low-level enough to also support
+less uncommon patterns.}
+
+\majoredits{The \name{} intermediate representation (IR) is designed to encode
+directed execution graphs in a way that both allows decentralization of
+orchestration and is low-level enough to support application-specific
+patterns.}
 
 Each function's IR includes the function's name and a sequence of instructions
 (Table~\ref{table:design:irschema}). Instructions direct the runtime to invoke
@@ -345,11 +383,22 @@ rather than the result their own execution returned.}
 
 \subsubsection{Fault Tolerance}
 
+\majoredits{Another source of multiple executions is retrying failed
+functions. Retries in \name{} rely on FaaS engines' error handling support.
+All popular FaaS engines provide error handling so that applications do not
+just crash silently without a way to react to failures. Common mechanisms
+include ``automatic retry'' that re-executes the same
+function~\cite{aws-lambda-retry, azure-functions-retry,
+google-cloud-functions-retry, openfaas-retry} or failure redirection that
+triggers a pre-configured error-handler
+function~\cite{aws-lambda-failure-destination,
+openwhisk-action-error-handling}. \name{} can work with either mechanism.}
+
 \name{}'s checkpointing mechanism ensures that while faults may occur at any
-point during the execution of a function's user code or the \name{} library, and
-while downstream functions may be invoked multiple times by different executions
-of the same invocation, a single value is always used to invoke downstream
-functions.
+point during the execution of a function's user code or the \name{} library,
+and while downstream functions may be invoked multiple times by different
+executions of the same invocation, a single value is always used to invoke
+downstream functions.
 
 If there is a fault after the user code completes but before creating the
 checkpoint, \remove{its value}\majoredits{user code result} is ignored (indeed,
@@ -362,31 +411,31 @@ Finally, even if multiple executions invoke some or all downstream functions,
 execution guarantees are still satisfied as these invocations will have
 identical inputs.
 
-\majoredits{Retries in \name{} rely on FaaS engines' error handling support.
-All popular FaaS engines provide error handling so that applications do not
-just crash silently without a way to react to failures. Common mechanisms
-include ``automatic retry'' that re-executes the same
-function~\cite{aws-lambda-retry, azure-functions-retry,
-google-cloud-functions-retry, openfaas-retry} or failure redirection that
-triggers a pre-configured error-handler
-function~\cite{aws-lambda-failure-destination,
-openwhisk-action-error-handling}.
-\name{} just needs a way to regain control on the application-level and can
-therefore work with both mechanisms.}
+% \majoredits{Retries in \name{} rely on FaaS engines' error handling support.
+% All popular FaaS engines provide error handling so that applications do not
+% just crash silently without a way to react to failures. Common mechanisms
+% include ``automatic retry'' that re-executes the same
+% function~\cite{aws-lambda-retry, azure-functions-retry,
+% google-cloud-functions-retry, openfaas-retry} or failure redirection that
+% triggers a pre-configured error-handler
+% function~\cite{aws-lambda-failure-destination,
+% openwhisk-action-error-handling}.
+% \name{} just needs a way to regain control on the application-level and can
+% therefore work with both mechanisms.}
 
-\majoredits{When a function crashes, the FaaS engine retries the failed function
-or direct the error to \name{}'s error handling function. In either case, the
-\name{} runtime in the new execution checks the nature of the failure and, if
-a re-execution is necessary, invokes the failed function again. The error
-handling function itself does not run user code. In other words, \name{} does
-not rely on FaaS engine's automatic retry mechanism for re-executing failed
-functions; it only uses automatic retry to run the error handling
-functionality in the \name{} runtime which in turn manually retries failed
-function by invoking it. This enables \name{} to circumvent potential
-limitations on FaaS engine's automatic retry mechanism\footnote{For instance,
-Lambda's automatic retry only retries up to 3 times}. As long as a FaaS engine
-allows applications to run error handle code in response to failures, \name{}
-retry can work.}
+% \majoredits{When a function crashes, the FaaS engine retries the failed function
+% or direct the error to \name{}'s error handling function. In either case, the
+% \name{} runtime in the new execution checks the nature of the failure and, if
+% a re-execution is necessary, invokes the failed function again. The error
+% handling function itself does not run user code. In other words, \name{} does
+% not rely on FaaS engine's automatic retry mechanism for re-executing failed
+% functions; it only uses automatic retry to run the error handling
+% functionality in the \name{} runtime which in turn manually retries failed
+% function by invoking it. This enables \name{} to circumvent potential
+% limitations on FaaS engine's automatic retry mechanism\footnote{For instance,
+% Lambda's automatic retry only retries up to 3 times}. As long as a FaaS engine
+% allows applications to run error handle code in response to failures, \name{}
+% retry can work.}
 
 \subsection{Fan-in Patterns}\label{sec:design:fanin}
 
@@ -488,12 +537,6 @@ to some particular output, future invocations, even with \emph{different} inputs
 will produce the same output, as the node will \emph{always} use the checkpoint
 value.
 
-In particular, \name{} collects checkpoints by relaxing the constraint that
-nodes always output the same value. Instead, they must only output the same
-value until all subsequent nodes have committed to their own outputs. This
-means that, in non-fan-out cases, once a node checkpoints its result, it can
-delete the previous checkpoint.
-
 \majoredits{Note that a duplicate execution that checkpoints after the
 previous checkpoint is garbage collected is treated as a separate invocation.
 Indeed, exactly-once guarantees are only ensured until intermediate states are
@@ -502,6 +545,12 @@ compromise exactly-once guarantee if duplicates can happen after an unbounded
 amount of time. The same applies to centralized orchestrators where users can
 choose to delete execution records after a certain time
 period~\cite{aws-step-functions-exec-gntee}.}
+
+In particular, \name{} collects checkpoints by relaxing the constraint that
+nodes always output the same value. Instead, they must only output the same
+value until all subsequent nodes have committed to their own outputs. This
+means that, in non-fan-out cases, once a node checkpoints its result, it can
+delete the previous node's checkpoint.
 
 \remove{Note that }\name{} runtime implementations delay garbage collection
 until after invoking next functions, sacrificing some storage overhead in
