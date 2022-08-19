@@ -69,12 +69,11 @@ chaining, fan-out and fan-in, while ensuring exactly-once semantics.}
 \majoredits{A common solution to address the needs of complex serverless
 applications is to introduce a workflow orchestrator that provides a
 high-level programming interface with support for a rich set of patterns
-(e.g., branching, chaining, fan-out and fan-in)~\cite{excamera, gg-atc,
-aws-step-functions, google-cloud-composer, google-workflows,
+(e.g., branching, chaining, fan-out and fan-in)~\cite{excamera, gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
 durable-functions,temporal}. Many cloud providers offer serverless
 orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
-google-workflows, durable-functions}. Alternatively, users can build custom
-orchestrators~\cite{temporal, gg-atc, excamera} and deploy in VMs alongside
+google-workflows, durable-functions} or users can build custom
+orchestrators~\cite{temporal, gg-atc, excamera} and deploy them in VMs alongside
 their functions.}
 
 \majoredits{Similar to driver functions, orchestrators operate as
@@ -82,18 +81,17 @@ their functions.}
 its functions and hosting application states such as function outputs and
 outstanding invocations.}
 
-\majoredits{However, an important difference of orchestrators is that they are
-standalone services. Unlike driver functions, orchestrators are not limited by
+\majoredits{However, different from driver-functions, orchestrators are
+standalone services. Orchestrators are not limited by
 function timeouts and can be arbitrarily
 long-running~\cite{aws-step-functions-quotas}. Moreover, as standalone services,
-orchestrators can be distributed and employ techniques such as sharding and
-replication to provide strong execution guarantees and fault-tolerance. For
+orchestrators are often internally distributed and employ techniques such as replication and sharding
+to provide strong execution guarantees, fault-tolerance and scalability. For
 example, orchestrators can ensure that workflows appear to execute
 exactly-once by choosing one result for each function invocation, even if FaaS
 engines only guarantee at-least once execution. Orchestrators can also persist
 or replicate states during execution so that in face of orchestrator failures,
-applications do not lose executions or retry from beginning.}
-
+applications do not lose executions or retry from the beginning.}
 
 While \remove{workflow} orchestrators are able to address the needs of complex
 serverless applications, introducing a new \remove{platform}
@@ -127,7 +125,7 @@ all applications' needs, resulting in a compromise familiar from operating
 systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn}, and
 storage systems~\cite{comet,splinter}. Indeed, we find that provider-hosted
 orchestrators force applications to compromise performance by using
-less-efficient but supported patterns (\S~\ref{sec:eval}).}
+less-efficient patterns (\S~\ref{sec:eval}).}
 
 \remove{Indeed, we find (Section~\ref{sec:eval}) that, in practice, production
 systems limit end-to-end performance and scalability, and cost developers
