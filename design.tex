@@ -1,23 +1,14 @@
 \section{Design}\label{sec:design}
 
 \majoredits{\name{} is an application-level orchestration system that supports
-complex serverless workflows without a standalone orchestrator service. It
-does so by placing decentralized orchestration logic in a library that runs
-in-situ with user-defined FaaS fucntions and leverages a scalable consistent
-storage service for coordination and deduplication. By removing standalone
-orchestrators, \name{} improves application flexibility and reduces monetary
-costs of running applications.}
-
-\majoredits{While moving orchestration to the application-level, an important
-goal of \name{} is to not compromise essential features of standalone
-orchestrators, such as expressivenss (\S\ref{sec:design:ir}) and execution
-guarantees (\S\ref{sec:design:execution}). Moreover, other important
-functionalities, such as access control and rate limiting, are also preserved.
-Given most FaaS engines already integrate with permission control services
-(e.g., AWS IAM) and support rating limiting for functions, \name{} can easily
-replicate the behavior of standalone orchestrators by controling the
-permissions and concurrency limits of workflows' entry functions.}
-
+complex serverless workflows without a standalone orchestration service. It
+does so by decentralizing orchestration logic in a library that runs in-situ
+with user-defined FaaS fucntions and leverages a scalable consistent storage
+service for coordination and deduplication. By removing standalone
+orchestrators, \name{} improves application flexibility and reduces the cost
+of running applications. Importantly, \name{} does this while retaining the
+expressiveness and execution guarantees (\S\ref{sec:design:execution}) of
+standalone orchestrators.}
 
 \remove{\name{} is an orchestration system that achieves the flexibility of ad-hoc
 orchestration without compromising the scalability, fault-tolerance, and
@@ -91,8 +82,14 @@ platform-specific \name{} runtime library.~\footnote{Since functions are
 typically written in dynamic languages, the \name{} library source code is
 placed alongside the function and dynamically imported, rather than statically
 linking an object file} Developers deploy each linked function along with its IR
-to the FaaS platform.  Invoking the first function in the graph (e.g.\ using an
-HTTP or storage trigger) starts a workflow.
+to the FaaS platform.
+
+\majoredits{ Each \name{} workflow begins with an ``entry'' function. Invoking
+this function (e.g.\ using an HTTP or storage trigger) starts a workflow.
+Moreover, admission control rules for the workflow, such as access control and
+rate limiting, are implemented by setting appropriate rules on this entry
+function. For example, a workflow can be invoked by a particular principal if
+the entry function is exposed to that principal.}
 
 The runtime library is composed of an ingress and egress component that run
 before and after the user-defined function and unwrap and wrap the results of
@@ -537,14 +534,13 @@ to some particular output, future invocations, even with \emph{different} inputs
 will produce the same output, as the node will \emph{always} use the checkpoint
 value.
 
-\majoredits{Note that a duplicate execution that checkpoints after the
-previous checkpoint is garbage collected is treated as a separate invocation.
-Indeed, exactly-once guarantees are only ensured until intermediate states are
-deleted. Any GC policy, no matter how conservative, has the potential to
-compromise exactly-once guarantee if duplicates can happen after an unbounded
-amount of time. The same applies to centralized orchestrators where users can
-choose to delete execution records after a certain time
-period~\cite{aws-step-functions-exec-gntee}.}
+\majoredits{Note that a duplicate execution that checkpoints after the previous
+checkpoint is garbage collected has the same semantics as a separate
+invocation. It may result in multiple outputs from the workflow, though each
+output is still consistent with an execution of the workflow where each
+function was invoked exactly-once. Any GC policy, no matter how conservative,
+might lead to multiple executions if the FaaS platform might execute
+duplicates of a function invocation an arbitrary time in the future.}
 
 In particular, \name{} collects checkpoints by relaxing the constraint that
 nodes always output the same value. Instead, they must only output the same
