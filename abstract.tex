@@ -1,38 +1,3 @@
-\remove{Serverless workflow orchestrators make it easier for developers to
-build complex serverless applications by driving the execution of a workflow
-from a central service.  Making orchestrators fault-tolerant and scalable
-requires engineering effort as well as large up-front resource costs to
-deploy. As a result, developers typically rely on multi-tenant services run by
-cloud providers that can amortize these costs across many users.
-
-Unfortunately, this centralization comes at the expense of application
-flexibility. Orchestrators support a fixed set of application patterns, and
-trade off performance, scalability, fault tolerance, and resource efficiency
-using a policy chosen by the cloud provider. They support many applications
-well, but cannot simultaneously satisfy the needs of \emph{all} applications.
-
-We argue that centralized serverless orchestrators are actually unnecessary.
-Instead, a decentralized orchestrator, deployed as a library included by the
-serverless application, can support the same application patterns and fault
-tolerance as existing orchestrators using only the basic building blocks of
-serverless platforms---a scalable ``Function'' executor (FaaS) and a
-consistent scalable datastore. This enables different applications to use or
-customize different libraries to implement different patterns or make
-application-specific trade-offs.
-
-To demonstrate this, we describe the design and implementation of \name{}, a
-decentralized serverless workflow system. \name{} compiles workflows written
-in existing high-level workflow languages into a partitioned orchestration
-library that executes orchestration logic in-situ with user functions. \name{}
-provides the same strong correctness guarantees under faults as a centralized
-orchestrator, performs similarly, scales better, and costs less than existing
-centralized workflow systems.
-
-Our implementation of \name{} supports a superset of applications the AWS Step
-Functions orchestrator supports, runs on both AWS Lambda and Google Cloud
-Functions, and runs as much as 2x faster and up 9x cheaper than native Step
-Functions on a representative set of applications.}
-
 \majoredits{Standalone serverless orchestrators simplify the developement of
 complex serverless applications but limit application flexibility and are
 expensive to use. We argue that these additional orchestration services are

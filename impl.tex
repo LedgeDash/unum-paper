@@ -55,8 +55,8 @@ function by publishing the input data as an event to the function's queue.
 
 \majoredits{GCF supports automatic retry for asynchronous
 functions~\cite{google-cloud-functions-retry}. In the event of a crash, the
-\name{} runtime in the retried execution checks if the failed function should
-be retried and if so, retries the function by explicitly invoking it again.}
+\name{} runtime in the retry execution checks if the failed function should be
+retried and if so, retries the function by explicitly invoking it again.}
 
 Firestore organizes data into logical collections (which are created and
 deleted implicitly) containing unstructured items, named by a unique key.

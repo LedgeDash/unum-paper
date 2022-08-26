@@ -141,41 +141,6 @@ These differences manifest in real workloads as well. Wordcount is highly
 parallel (with 262 parallel mappers and 250 reducers) and performs over 2x
 faster on \name{} than on Step Functions (Table~\ref{table:macro}).
 
-% \subsubsection{\remove{ExCamera}}\label{sec:eval:excamera}
-
-\remove{We compare the performance of an application not well-suited to Step
-Functions. ExCamera~\mbox{\cite{excamera}} is a video-processing application
-designed to take advantage of high burst-latency on Lambda using using custom
-orchestration. We compare the results of the original hand-optimized
-implementation as well as another implementation, gg, by the same authors,
-with a suboptimal Step Functions implementation as well as an implementation
-in hand-written \name{} IR.}
-
-\remove{Using the same experimental setup as the prior work (i.e., encoding
-the first 888 chunks of the \texttt{sintel-4k}~\mbox{\cite{sintel}} video
-using 16 chunks per batch and Lambdas configured with 3GB of memory), \name{}
-is 7.1\% faster than gg~\mbox{\cite{gg-atc}} and 10.5\% slower than the
-original, hand-optimized ExCamera (Table~\ref{table:excamera}). The original
-ExCamera pre-loads raw video chunks into lambdas before starting, while
-\name{} and gg do not. The original authors attributes the comparatively
-slower performance of \texttt{gg} to the lack of pre-loading which is likely
-also the reason for \name{}'s slower performance.}
-
-\remove{But different from gg, \name{} executes control-flow logic in a
-decentralized manner while gg has a centralized coordinator on EC2 that
-proxies inter-function communications and invokes lambdas. The reduced number
-of network communications explains why \name{} is slightly faster than gg.}
-
-\remove{In comparison, an important limitation of Step Functions is that all
-concurrent fan-out branches must complete before any fan-in starts. This means
-the Step Functions implementation of ExCamera must serialize the encode and
-re-encode stages.  Conversely, \name{}'s IR is flexible enough to support
-ExCamera's original pattern where tasks start as soon as their input data
-becomes available, because \name{}'s fan-in uses a low-level primitive to
-directly express data dependency between functions. Thus, the \name{} ExCamera
-allows more parallelism between branches and is 16.7\% faster than Step
-Functions.}
-
 \subsection{Cost}
 
 \begin{table*}[t]
@@ -326,15 +291,15 @@ Step Functions.}
 
 \majoredits{\subsubsection{Cost}}
 
-\majoredits{Unlike from \name{}, neither gg nor mu aimed to reduce the
-cost of running serverless applications and neither discussed costs in detail.
+\majoredits{Unlike \name{}, neither gg nor mu aimed to reduce the cost of
+running serverless applications and neither discussed costs in detail.
 Nevertheless, there are several important factors in comparing
 \name{} with gg and mu in relation to costs.}
 
-\majoredits{First, similar to Step Functions, gg and mu both rely on standalone
-orchestrators. Thus, the fundamental costs difference is also similar, namely
-\name{}'s use of storage vs gg's and mu's use of VMs. mu's orchestrator
-consists of a cooridnator server as well as a rendezvous
+\majoredits{First, similar to Step Functions, gg and mu both rely on
+standalone orchestrators. Thus, the fundamental costs difference is also
+similar, namely \name{}'s use of storage vs gg's and mu's use of VMs. mu's
+orchestrator consists of a cooridnator server as well as a rendezvous
 server~\cite{excamera}, while gg's only has a coordinator
 server~\cite{gg-atc}. In the mu authors' experiments, they used a 64-core VM
 (\texttt{m4.16xlarge}) as the rendezvous server. Neither mu nor gg specified
@@ -343,7 +308,10 @@ rendezvous server, at the time of writing, is \$3.20 per hour, or
 approximately \$2352 per month.}
 
 \majoredits{Furthermore, standalone orchestrators must separately consider
-fault-tolerance in case of orchestrator failures. Most commonly, fault-tolerance is achieved by running mutliple coordinating instances (replicas) of the service. As a result, production deployments of mu and gg would likely cost more.}
+fault-tolerance in case of orchestrator failures. Most commonly,
+fault-tolerance is achieved by running mutliple coordinating instances
+(replicas) of the service. As a result, production deployments of mu and gg
+would likely cost more.}
 
 \majoredits{Lastly, deploying an orchestrator per application or per user limits
 the ability to amortize costs through multi-tenancy. A provider-hosted

@@ -53,28 +53,18 @@ formal-foundation-exec-gtnee, durable-semantics} for an entire call-graph, but
 failures and multiple invocations of individual functions can subvert this
 goal without careful consideration.
 
-\subsection{\remove{Workflow}\majoredits{Standalone} Orchestrators}\label{sec:bg:orchestrator}
-
-\remove{A common solution to address the needs of complex serverless
-applications is to introduce a workflow orchestrator~\mbox{\cite{excamera,
-gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
-durable-functions}}.  Orchestrators operate similarly to
-driver-functions---they drive an application workflow by invoking functions in
-the application---but are separate hosted services, usually multi-tenant.
-Typically, orchestrators provide a high-level programming interface to
-describe applications in terms of their control-flow graph and constituent
-functions. They offer a rich set of composition primitives, such as branching,
-chaining, fan-out and fan-in, while ensuring exactly-once semantics.}
+\subsection{\majoredits{Standalone} Orchestrators}\label{sec:bg:orchestrator}
 
 \majoredits{A common solution to address the needs of complex serverless
 applications is to introduce a workflow orchestrator that provides a
 high-level programming interface with support for a rich set of patterns
-(e.g., branching, chaining, fan-out and fan-in)~\cite{excamera, gg-atc, aws-step-functions, google-cloud-composer, google-workflows,
+(e.g., branching, chaining, fan-out and fan-in)~\cite{excamera, gg-atc,
+aws-step-functions, google-cloud-composer, google-workflows,
 durable-functions,temporal}. Many cloud providers offer serverless
 orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
 google-workflows, durable-functions} or users can build custom
-orchestrators~\cite{temporal, gg-atc, excamera} and deploy them in VMs alongside
-their functions.}
+orchestrators~\cite{temporal, gg-atc, excamera} and deploy them in VMs
+alongside their functions.}
 
 \majoredits{Similar to driver functions, orchestrators operate as
 \emph{logically centralized} controllers. They drive a workflow by invoking
@@ -93,20 +83,14 @@ engines only guarantee at-least once execution. Orchestrators can also persist
 or replicate states during execution so that in face of orchestrator failures,
 applications do not lose executions or retry from the beginning.}
 
-While \remove{workflow} orchestrators are able to address the needs of complex
-serverless applications, introducing a new \remove{platform}
-\majoredits{standalone} service has significant drawbacks. Building performant,
-scalable \majoredits{and fault-tolerant} multi-tenant systems is hard and
-orchestrators introduce yet-another potential performance and scalability
-bottleneck. \majoredits{Indeed, we find that, in practice, production systems
-limit end-to-end performance for highly-parallel applications
-(\S~\ref{sec:eval}).}
+While orchestrators are able to address the needs of complex serverless
+applications, introducing a new \majoredits{standalone} service has
+significant drawbacks. Building performant, scalable \majoredits{and
+fault-tolerant} multi-tenant systems is hard and orchestrators introduce
+yet-another potential performance and scalability bottleneck.
+\majoredits{Indeed, we find that, in practice, production systems limit
+end-to-end performance for highly-parallel applications (\S~\ref{sec:eval}).}
 
-\remove{Moreover, hosting such services can be expensive, as they require
-dedicated resources in addition to those allocated to FaaS and storage
-systems.  Indeed, we find (Section~\ref{sec:eval}) that, in practice,
-production systems limit end-to-end performance and scalability, and cost
-developers significantly more than necessary in some cases.}
 \majoredits{Moreover, hosting such services can be expensive as they require
 dedicated resources. Deploying a custom orchestrator per user risks
 under-utilization as it cannot multiplex over many users and users pay even
@@ -126,142 +110,3 @@ systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn}, and
 storage systems~\cite{comet,splinter}. Indeed, we find that provider-hosted
 orchestrators force applications to compromise performance by using
 less-efficient patterns (\S~\ref{sec:eval}).}
-
-\remove{Indeed, we find (Section~\ref{sec:eval}) that, in practice, production
-systems limit end-to-end performance and scalability, and cost developers
-significantly more than necessary in some cases.}
-
-% \amit{I can't figure out a way to include developer flexibility here cleanly.
-% I'm in favor of adding it, but also it might be a sort of tacit contribution
-% that the reader deduces themselves... It could also come out in discussion
-% instead. I think it's a really good point, but perhaps not as central to the
-% argument? Not sure...}
-% %
-% \shadi{should we give a cost comparison example here? something in the lines of
-% "For example, the pricing schema of AWS step functions makes running a simple X
-% app Y times more expensive that running directly on AWS Lambda, and the
-% developers have no control on this pricing."}
-
-
-% \shadi{" Platform-specific orchestrators force developers to write with
-% proprietary APIs and locks them in a particular cloud provider." move and
-% merge into goals or later section}
-
-
-
-%Recently, workflow orchestrators have emerged to tackle the challenges of
-%large serverless applications~\cite{excamera, gg-atc, aws-step-functions,
-%google-cloud-composer, google-workflows, durable-functions}. Orchestrators are
-%separate hosted services that execute workflow definitions, invoke constituent
-%functions and manage workflow states. Architecturally, they are similar to
-%driver functions (Figure~\ref{fig:chain-example}). For every workflow
-%invocation, an orchestrator instance invokes a constituent function, waits for
-%its result and passes it to downstream functions via invocation. All functions
-%invocation are initiated by the orchestrator and all states (e.g., function
-%results) pass through the orchestrator.
-
-%Different from ad-hoc composition, orchestrators offer (1). higher-level
-%programming interfaces that directly express function interactions and hide
-%low-level APIs, (2). a rich set of composition primitives, including
-%branching, chaining, fan-out and fan-in, (3). exactly-once semantics for
-%workflow execution, and (4). long or no runtime limits.
-
-%While fixing the flaws of ad-hoc composition, the orchestrator design creates
-%several important drawbacks that neglect or even compromise key benefits of
-%the serverless abstraction: (1). End-to-end performance now also depends on
-%the orchestrator service that is separate from the FaaS engine. A slow
-%orchestrator can become a bottleneck and nullify the fast autoscale advantage
-%of serverless. (2). Serverless computing already offers compute and storage
-%building blocks that are highly performant and scalable. Adding yet another
-%separate service that is a mixture of compute and storage is repeating the
-%difficult and expensive task of developing and maintaining a large-scale system,
-%which often requires a dedicated engineering team.(3). Platform-specific
-%orchestrators force developers to write with proprietary APIs and locks them
-%in a particular cloud provider.\dhl{I'm hesitant to include the 3rd point
-%because 1. we can't demonstrate that \name{} solves this problem. 2. while
-%it's a benefit, it feels more an engineering problem than a research problem.
-%3. FaaS functions are already platform-specific. Lambda, Azure functions, etc.
-%all have different propritary APIs.} \shadi{I thought the point here was to be a design goal of "interoperability".}
-%\dhl{Yes, but the problem is that current \name{} implementation only works on AWS. So we can't show/prove that we achieved interoperability if we list that as a goal. }
-
-%\section{Goals}\label{sec:goals}
-%In this paper, we examine whether we can have the best of both worlds:
-%\emph{Can we preserve the advantages of workflow orchestrators while building
-%entirely on top of the existing serverless computing abstraction (no
-%supplemental services)?}
-%
-%Table~\ref{table:positioning} compares the current solutions and \name{}.
-%Specifically, we aim for a system that requires \textbf{no new services}. The
-%system should work in a basic, unmodified serverless environment and not require
-%adding any new services.  The system should execute workflows solely as
-%event-driven serverless functions, and use serverless storage, when necessary,
-%to enable stateful control-flow patterns.
-%
-%In addition, we aim to preserve the best properties of existing centralized workflow orchestrators:
-%
-%\squishlist
-%    \item \textbf{High-level API \& support for common interactions.}
-%    Developers should compose functions with high-level primitives similar to
-%    existing workflow orchestrators instead of ad-hoc mechanisms and be able
-%    to simply express common control-flow patterns such as chaining,
-%    branching, fan-out and fan-in.
-%
-%    \item \textbf{Exactly-once semantics.} The system must guarantee workflow
-%    progress and consistency. Specifically, it must retry constituent functions on transient faults;
-%    yet it must record exactly one result\footnote{The result recorded
-%    for a function may be an error result, such as when a retry or time limit is exceeded.}
-%    for each function,
-%    even if there are multiple executions due to retries.% or duplicate invocations.
-%
-%    \item \textbf{Comparable performance and costs.} The system should have
-%comparable costs and performance as the state-of-the-art workflow orchestrators.
-%Similarly, it should avoid idle-billing. Users should only pay for the resources
-%used rather than idle time wait for other functions to return.
-%
-%    \shadi{should we call it idle billing throughout the paper instead of
-%    double billing? It is not exactly double...}\dhl{Yeah, I like "idle
-%    billing" better. Used "double billing" because of prior work. But if we no
-%    longer need to mention this problem anywhere else in the paper other than
-%    the driver functions section, I think we can just define and explain the
-%    problem and then be done with it.}
-%
-%\squishend
-%
-%\shadi{in the table, should we have double billing? maybe another term would
-%be better?}\dhl{Changed it to pay-for-what-you-use billing}
-%
-%
-%
-%
-%%In this paper, we examine whether we can have the best of both worlds. We
-%%argue that it is possible to preserve the advantages of workflow orchestrators
-%%while building entirely on top of the existing serverless computing
-%%abstraction without adding any supplemental components.
-%%
-%%Specifically, we aim for a system with the following objectives:
-%%
-%%\paragraph{\emph{Purely serverless}} The system should work within the current
-%%serverless environment and not require adding any new services.
-%%
-%%The system should execute workflows solely as event-driven serverless
-%%functions, and use serverless storage, when necessary, to enable stateful
-%%operations (e.g., fan-in).
-%%
-%%\paragraph{Higher-level programming interface} Developers should express
-%%function compositions with higher-level primitives similar to exising workflow
-%%orchestrators (e.g., AWS Step Functions) instead of ad-hoc mechanisms.
-%%
-%%\paragraph{Supports all common interactions} The system should support all
-%%composition patterns commonly used in orchestrators today, including chaining,
-%%branching, fan-out and fan-in.
-%%
-%%\paragraph{Exactly-once semantics} Even if a function executes multiple times,
-%%due to retries or duplicate invocations, concurrently or non-concurrently, the
-%%final state should appear that the execution happened only once.
-%%
-%%\paragraph{Avoids double billing} Users should only pay for the resources
-%%used. Functions should not synchronously wait for other functions to return.
-%%
-%%\paragraph{Comparable performance and costs} The system should at least have
-%%comparable costs and performance as the state-of-the-art workflow
-%%orchestrators.

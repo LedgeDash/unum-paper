@@ -10,25 +10,6 @@ of running applications. Importantly, \name{} does this while retaining the
 expressiveness and execution guarantees (\S\ref{sec:design:execution}) of
 standalone orchestrators.}
 
-\remove{\name{} is an orchestration system that achieves the flexibility of ad-hoc
-orchestration without compromising the scalability, fault-tolerance, and
-execution guarantees of centralized orchestrators. It does so by placing
-decentralized orchestration logic in a library that runs in-situ with FaaS
-fucntions and leverages a scalable consistent storage service for coordination
-and deduplication. Similar to many centralized orchestrators, \name{}
-workflows are modeled as a directed execution graph where nodes represent
-user-defined FaaS functions and each edge represents an invocation of one
-function (incoming edge) with the output of one or more other functions
-(outgoing edges).}
-
-\remove{An \name{} graph may include fan-outs, where output from a node is
-used to invoke several functions or split up and ``mapped'' multiple times on
-the same function. Each such branch may be taken conditionally, based on the
-output value or dynamic states of the graph. Execution graphs may also contain
-fan-ins, where the outputs of multiple nodes are used to invoke a single
-aggregate function. Cycles are also supported and each iteration through a
-cycle is a different invocation of the target function.}
-
 \subsection{Architecture}\label{sec:design:architecture}
 
 \begin{figure*}[t!]
@@ -171,10 +152,6 @@ fan-ins, where the outputs of multiple nodes are used to invoke a single
 aggregate function. Cycles are also supported and each iteration through a
 cycle is a different invocation of the target function.}
 
-\remove{The \name{} intermediate representation (IR) is designed to allow
-encoding of common workflow patterns but is low-level enough to also support
-less uncommon patterns.}
-
 \majoredits{The \name{} intermediate representation (IR) is designed to encode
 directed execution graphs in a way that both allows decentralization of
 orchestration and is low-level enough to support application-specific
@@ -242,32 +219,12 @@ expression that has access to the function output and execution metadata
 
 \subsection{Execution Guarantees Using Checkpoints}\label{sec:design:execution}
 
-\dhl{Rewrite first 3 para to also mention the challenge of function failures.}
-
-\remove{FaaS platforms guarantee at-least once execution of individual functions
-invocations. As a result, an invocation may result in more than one execution of
-the function and, because functions may be non-deterministic, this can result in
-multiple different results for the same invocation.}
-
 \majoredits{FaaS functions only provide weak execution guarantees. Functions can
 fail mid-execution and be retried. Even in the absence of failures, one
 function invocation may result in more than one execution because most FaaS
 engines only ensure at-least-once execution. This is problematic for
 applications whose functions are non-deterministic because a single workflow
 invocation can produce multiple \emph{diverging} outputs.}
-
-\remove{One of the benefits of an orchestrator is to provide strong workflow execution
-semantics. While individual functions within a workflow may execute more than
-once, an orchestrator chooses a single result of these executions to use as
-input for all downstream functions. At the end of the workflow, the result is
-consistent with an execution of the workflow where each function invocation
-executed \emph{exactly-once}.}
-
-\remove{Because centralized orchestrators interpose on all communication between
-workflow stages and are solely responsible for moving a workflow state machine
-forward, providing these execution guarantees is conceptually straightforward
-(though doing scalably and tolerant of orchestrator faults may not be
-straightforward).}
 
 \majoredits{An important benefit of orchestrators is strong execution semantics
 such that applications appear to execute \emph{exactly-once} even if
@@ -283,8 +240,7 @@ A key challenge for \name{} is to provide the same semantics without
 centralizing orchestration. Moreover, because failures and, thus, retries are
 the exception, not the rule, \name{} should provide these semantics without
 expensive coordination---function instances should be able to proceed without
-blocking \remove{to avoid unnecessary resource usage and cost} in the common,
-fault-free case.
+blocking in the common, fault-free case.
 
 \name{} leverages two key insights to achieve these semantics.  First, it is ok
 for different executions of the same function invocation to return different
@@ -294,16 +250,16 @@ with exactly one of those results. Second, a workflow's output is
 invocations uses the same input, since additional, but identical, invocations
 are indistinguishable from additional executions.
 
-The \name{} library employs an atomic \texttt{create\_if\_not\_exists} operation
-in the serverless datastore to \emph{checkpoint} exactly one execution of each
-function invocation. The egress component of the \name{} library attempts to
-write the result of the function to a checkpoint object in the datastore. If
-such a checkpoint already exists, a concurrent or previous execution of the
-invocation must have already completed and the operation will fail. To invoke
-downstream functions, the egress component \emph{always} uses the value stored
-in the checkpoint, rather than the result of the recently completed function.
-Essentially, \name{} ``commits'' to result of the first successful executions of
-\remove{the function}\majoredits{invocations}.
+The \name{} library employs an atomic \texttt{create\_if\_not\_exists}
+operation in the serverless datastore to \emph{checkpoint} exactly one
+execution of each function invocation. The egress component of the \name{}
+library attempts to write the result of the function to a checkpoint object in
+the datastore. If such a checkpoint already exists, a concurrent or previous
+execution of the invocation must have already completed and the operation will
+fail. To invoke downstream functions, the egress component \emph{always} uses
+the value stored in the checkpoint, rather than the result of the recently
+completed function. Essentially, \name{} ``commits'' to result of the first
+successful executions of\majoredits{invocations}.
 
 \minoredits{Datastores need to be strongly consistent to support
 \texttt{create\_if\_not\_exists}. It is important that a later attempt to
@@ -398,9 +354,8 @@ executions of the same invocation, a single value is always used to invoke
 downstream functions.
 
 If there is a fault after the user code completes but before creating the
-checkpoint, \remove{its value}\majoredits{user code result} is ignored (indeed,
-never seen) by other \remove{attempts to execute the
-function}\majoredits{executions} and another execution's value will be used to
+checkpoint, \majoredits{user code result} is ignored (indeed, never seen) by
+other \majoredits{executions} and another execution's value will be used to
 invoke downstream functions.  If the ``winning'' function crashes after
 creating a checkpoint, and before invoking some or all downstream functions,
 other executions will use the checkpoint value to invoke downstream functions.
@@ -497,16 +452,6 @@ expressible in \name{}.
 
 \subsection{Garbage Collection}\label{sec:design:garbage}
 
-\remove{Both checkpointing, to provide correct workflow execution semantics,
-and fan-in require storing intermediate data in the datastore. This poses a
-garbage collection challenge.}
-
-\remove{Both checkpoints and fan-in coordination sets may be numerous in a
-workflow and only temporally useful. Deleting checkpoints or bitmaps too early
-can compromise execution guarantees and deleting too late incurs unnecessary
-storage charges from the datastore. \name{} deletes checkpoints and bitmaps as
-soon as they are no longer needed for execution correctness.}
-
 \majoredits{Both checkpointing and fan-in require storing intermediate data
 (e.g., checkpoints and coordination sets) in the datastore. These intermediate
 data is only temporally useful and grows with each invocation. This poses a
@@ -548,9 +493,9 @@ value until all subsequent nodes have committed to their own outputs. This
 means that, in non-fan-out cases, once a node checkpoints its result, it can
 delete the previous node's checkpoint.
 
-\remove{Note that }\name{} runtime implementations delay garbage collection
-until after invoking next functions, sacrificing some storage overhead in
-favor of minimizing end-to-end latency for a workflow.
+\name{} runtime implementations delay garbage collection until after invoking
+next functions, sacrificing some storage overhead in favor of minimizing
+end-to-end latency for a workflow.
 
 Fan-out cases are more complicated because deleting the checkpoint must wait
 until all branches have committed to an output. \name{} repurposes the same
