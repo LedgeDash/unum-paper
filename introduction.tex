@@ -65,13 +65,18 @@ networks~\cite{active-networks,sdn}, and storage
 systems~\cite{comet,splinter}.}
 
 \majoredits{For example, applications that need orchestration patterns not
-supported by the provider-hosted orchestrator have to either compromise
-performance by using less-efficient patterns or first repeat the
-hard work of building, deploying and managing their own custom
-orchestrator~(\S~\ref{sec:eval:excamera}). Similarly, an application with
-deterministic functions, which requires weaker execution guarantees, may not
-be able to reap performance benefits if the orchestrator service only supports
-strong exactly-once execution.}
+ supported by the \secondedits{provider-hosted} orchestrator have to either
+ compromise performance by using less-efficient patterns or first repeat the
+ hard work of building, deploying and managing their own custom
+ orchestrator. \secondedits{A parallel video processing application that
+ encodes video chunks in parallel and aggregates results of adjacent branches
+ have to compromise performance if the orchestrator only supports aggregating
+ the result of all branches (\S\ref
+ {sec:eval:excamera}).} Similarly, \secondedits{deterministic applications,
+ such as an image resize application or a IoT data processing pipeline for
+ aggregating sensor readings, can tolerate duplicate executions without
+ compromising correctness, but otherwise cannot reap performance benefits if
+ the orchestrator only supports strong exactly-once execution.}}
 
 \majoredits{In this paper, we show that additional standalone orchestrators
  for serverless applications are unnecessary. Furthermore, we argue that
@@ -79,12 +84,11 @@ strong exactly-once execution.}
  providers and serverless users. \secondedits{It is better for applications
  as it affords them more flexibility to implement custom patterns as needed
  and apply application-specific optimizations in orchestration. It is better
- for cloud providers as it reduces hardware and engineering costs by
- obviating the need to host an additional complex service, which can in turn
- lower users' costs of running applications}. Moreover, as cloud providers
- improve the performance of essential serverless components,
- application-level orchestration built on top of those services benefit
- automatically.}
+ for cloud providers as it reduces costs by obviating the need to host and
+ maintain an additional complex service, which can in turn lower users'
+ expenses of running applications}. Moreover, as cloud providers improve the
+ performance of essential serverless components, application-level
+ orchestration built on top of those services benefit automatically.}
 
 To support these arguments, we present \name{}, a system for
 decentralized\majoredits{, application-level} serverless workflow
@@ -128,7 +132,7 @@ existing black-box production orchestrators---both are influenced by
 deployment and pricing decisions that may not reflect the underlying
 efficiency or cost of the system---\name{} performs well in practice(\S\ref
 {sec:eval}). We find that a representative set of applications run faster and
-cost significantly less with \name{} than Step Functions. We also demonstrate
-that \name{}'s IR allows hand-tuned applications to run faster by using
-application-specific optimizations and supporting a richer set of interaction
-patterns.
+cost significantly less with \name{} than Step Functions (Table~\ref
+{table:macro}). We also demonstrate that \name{}'s IR allows hand-tuned
+applications to run faster by using application-specific optimizations and
+supporting a richer set of interaction patterns.
