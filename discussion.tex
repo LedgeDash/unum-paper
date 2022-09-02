@@ -27,6 +27,14 @@ the current \emph{price} of Lambda, DynamoDB, and Step Functions as a proxy for
 the \emph{cost} of providing these services. Of course, prices may be either
 lower or higher for a particular service than the underlying cost.
 
+\secondedits{\paragraph{Code Complexity.}While Unum affords users more
+ flexibility, application-level orchestration increases code complexity for
+ developers. Coordinations and exactly-once execution require careful design
+ and implementation to function correctly in a decentralized manner.
+ Introducing application-specific optimization also needs additional
+ developer efforts than using off-the-shelf patterns from provider-hosted
+ orchestrators.}
+
 \paragraph{Support for more platforms.} While \name{} is designed
 to run on any serverless platform that meets our minimal criteria, our current
 implementation is only complete for AWS Lambda using DynamoDB or S3 for storage.
@@ -46,8 +54,8 @@ additional infrastructure to deploy, imposes no additional limits on
 scalability, and performs as well as or better than centralized solutions while
 providing similar expressiveness and execution guarantees.
 
-Our results show that basic serverless building blocks---function schedulers and
-consistent scalable datastores---are sufficient abstractions for building
+Our results show that basic serverless building blocks---function schedulers
+and consistent scalable datastores---are sufficient abstractions for building
 complex, fault-tolerant, and scalable applications. Leveraging decentralized
-orchestration, rather than centralized services can help performance, resource
-usage, flexibility, and portability across cloud providers.
+orchestration, rather than centralized services can help \secondedits
+{flexibility, resource usage and performance} across cloud providers.
