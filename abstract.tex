@@ -1,11 +1,13 @@
 \majoredits{Standalone serverless orchestrators simplify the developement of
-complex serverless applications but limit application flexibility and are
-expensive to use. We argue that these additional orchestration services are
-unnecessary. Instead, application-level orchestration, deployed as a library,
-can support the same patterns and execution guarantees as existing standalone
-orchestrators, using only basic serverless components that are already used by
-applications and universally supported by cloud providers---a scalable
-``Function'' executor (FaaS) and a consistent datastore.
+ complex serverless applications but limit application flexibility and are
+ expensive to use. We argue that these additional orchestration services are
+ unnecessary. \secondedits{Instead, application-level orchestration, deployed
+ as a library, affords applications more flexibility and reduces costs for
+ both providers and users. Moreover, such an orchestration library can
+ support the same execution guarantees and complex patterns as existing
+ standalone orchestrators, utilizing only basic serverless components that are
+ already used by applications and universally supported by cloud providers
+ without needing additional specialized APIs.}
 
 To demonstrate this, we present \name{}, an application-level serverless
 workflow system. \name{} provides orchestration as a library that runs in-situ
@@ -14,9 +16,9 @@ introduces an intermediate language to partition high-level application logic
 and leverages strongly consistent data stores to coordinate and ensure
 correctness in a decentralized manner.
 
-\name{} provides the same strong execution guarantees, performs better, and
-costs significantly less than existing standalone orchestrators. Compared with
-a state-of-the-art standalone orchestrator, AWS Step Functions, \name{} grants
-applications greater flexibility to employ application-specific patterns and
-optimizations, runs as much as 2x faster and up to 9x cheaper for a
-representative set of applications.}
+\name{} provides the same strong execution guarantees, performs well, and
+costs significantly less compared with existing standalone orchestrators.
+Compared with a state-of-the-art standalone orchestrator, AWS Step Functions,
+\name{} grants applications greater flexibility to employ application-specific
+patterns and optimizations, runs as much as 2x faster and up to 9x cheaper for
+a representative set of applications.}

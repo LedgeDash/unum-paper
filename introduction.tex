@@ -9,20 +9,21 @@ scalable datacenter resources with fine-grained pay-for-what-you-use billing
 and frees them from server administration.}
 
 While serverless platforms originally targeted simple applications with one or
-a few functions, this paradigm has increasingly proven useful for more complex
-applications composed of many functions with rich and often stateful
+a few functions, this paradigm has increasingly proven useful for more
+complex applications composed of many functions with rich and often stateful
 interaction patterns~\cite{excamera, pywren, gg-atc, beldi, boki}.
 Unfortunately, building such applications using basic serverless building
-blocks is challenging. At-least-once execution guarantees mean functions with
-a non-deterministic output may pass inconsistent results to downstream
-functions. Event-driven execution makes depending on the results of multiple
-previous functions challenging. Finally, intermediate states must be managed
+blocks is challenging. \majoredits{Due to at-least-once execution guarantees
+typically provided by FaaS engines, non-deterministic functions may pass
+inconsistent results downstream.} Event-driven execution makes depending on
+the results of multiple previous functions \majoredits{and therefore fan-in
+patterns} challenging. Finally, intermediate states must be managed
 efficiently and deleted promptly to avoid incurring unbounded storage costs
 over repeated executions of a workflow.
 
 \majoredits{Cloud providers and application developers have introduced
-standalone workflow orchestrators to support such applications
-(\S\ref{sec:bg:orchestrator}). Typically, cloud providers offer serverless
+standalone orchestrators to support such applications
+(\S\ref{sec:bg:orchestrator}). Cloud providers commonly offer serverless
 orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
 google-workflows, durable-functions}, though users may build custom
 orchestrators~\cite{temporal, gg-atc, excamera} and deploy them in separate
@@ -37,22 +38,23 @@ graph by invoking functions, receiving function results and storing
 intermediate states (e.g., outstanding invocations and intermediate results)
 centrally.}
 
-Centralization makes supporting complex interactions simple---e.g.\ an
-orchestrator can support fan-in patterns by simply waiting for all branches to
-complete before invoking an aggregation function. Similarly, a centralized
-orchestrator can ensure that workflow results appear to be the result of
-executing each constituent function exactly-once by choosing one result for
-each function invocation.
+Centralization makes supporting \majoredits{stateful} interactions
+simple---e.g.\ an orchestrator can support fan-in patterns by simply waiting
+for all branches to complete before invoking an aggregation function.
+Similarly, a centralized orchestrator can ensure that workflow results appear
+to be the result of executing each constituent function exactly-once by
+choosing one result for each function invocation.
 
-\majoredits{However, standalone orchestrators have important drawbacks for both
-serverless providers and serverless users. As an additional service that is
-critical to application performance and correctness, a standalone orchestrator
-is expensive to build, host and scale. User-deployed orchestrators risk
-under-utilization and do not benefit from serverless' fine-grained billing and
-freedom from server management. Provider-hosted orchestrators are multi-tenant
-and can thus multiplex over many users to improve resource utilization and
-amortize the cost. However, they still incur the expenses of dedicated
-hardware resources and on-call engineering teams.
+\majoredits{However, standalone orchestrators have important drawbacks for
+ both serverless providers and serverless users. As an additional service
+ that is critical to application performance and correctness, a standalone
+ orchestrator is expensive to \secondedits{host and use}. User-deployed
+ orchestrators risk under-utilization and do not benefit from
+ serverless' \secondedits{pay-for-what-you-use} billing and freedom from
+ server management. Provider-hosted orchestrators are multi-tenant and can
+ thus multiplex over many users to improve resource utilization and amortize
+ the cost. However, they still incur the expenses of dedicated hardware
+ resources and on-call engineering teams.
 
 Furthermore, standalone orchestrators preclude users from making
 application-specific trade-offs and optimizations. While the interface and
@@ -71,17 +73,18 @@ deterministic functions, which requires weaker execution guarantees, may not
 be able to reap performance benefits if the orchestrator service only supports
 strong exactly-once execution.}
 
-\majoredits{In this paper, we show that additional standalone orchestrators for
-serverless applications are unnecessary. Furthermore, we argue that
-decentralized, application-level orchestration is better for both serverless
-providers and serverless users. It is better for cloud providers as they need
-not host and maintain yet another complex service, saving engineering and
-hardware resources. It is better for applications as it gives them more
-flexibility to implement custom patterns as needed and apply
-application-specific optimizations in orchestration. Moreover, as cloud
-providers improve the performance of essential serverless components,
-application-level orchestration built on top of those services benefit
-automatically.}
+\majoredits{In this paper, we show that additional standalone orchestrators
+ for serverless applications are unnecessary. Furthermore, we argue that
+ decentralized, application-level orchestration is better for both serverless
+ providers and serverless users. \secondedits{It is better for applications
+ as it affords them more flexibility to implement custom patterns as needed
+ and apply application-specific optimizations in orchestration. It is better
+ for cloud providers as it reduces hardware and engineering costs by
+ obviating the need to host an additional complex service, which can in turn
+ lower users' costs of running applications}. Moreover, as cloud providers
+ improve the performance of essential serverless components,
+ application-level orchestration built on top of those services benefit
+ automatically.}
 
 To support these arguments, we present \name{}, a system for
 decentralized\majoredits{, application-level} serverless workflow
@@ -123,9 +126,9 @@ Functions orchestrator.
 Moreover, while performance and cost are difficult to compare objectively with
 existing black-box production orchestrators---both are influenced by
 deployment and pricing decisions that may not reflect the underlying
-efficiency or cost of the system---\name{} performs well in practice
-(\S\ref{sec:eval}). We find that a representative set of applications scale
-better, run faster, and cost significantly less with \name{} than Step
-Functions. We also demonstrate that \name{}'s IR allows hand-tuned
-applications to run faster by using application-specific optimizations and
-supporting a richer set of interaction patterns.
+efficiency or cost of the system---\name{} performs well in practice(\S\ref
+{sec:eval}). We find that a representative set of applications run faster and
+cost significantly less with \name{} than Step Functions. We also demonstrate
+that \name{}'s IR allows hand-tuned applications to run faster by using
+application-specific optimizations and supporting a richer set of interaction
+patterns.
