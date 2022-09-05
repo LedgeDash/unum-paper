@@ -608,10 +608,21 @@ series = {ACSAC '20}
 }
 
 @article{netherite,
-  title={Serverless Workflows with Durable Functions and Netherite},
-  author={Burckhardt, Sebastian and Gillum, Chris and Justo, David and Kallas, Konstantinos and McMahon, Connor and Meiklejohn, Christopher S},
-  journal={arXiv preprint arXiv:2103.00033},
-  year={2021}
+author = {Burckhardt, Sebastian and Chandramouli, Badrish and Gillum, Chris and Justo, David and Kallas, Konstantinos and McMahon, Connor and Meiklejohn, Christopher S. and Zhu, Xiangfeng},
+title = {Netherite: Efficient Execution of Serverless Workflows},
+year = {2022},
+issue_date = {April 2022},
+publisher = {VLDB Endowment},
+volume = {15},
+number = {8},
+issn = {2150-8097},
+url = {https://doi.org/10.14778/3529337.3529344},
+doi = {10.14778/3529337.3529344},
+abstract = {Serverless is a popular choice for cloud service architects because it can provide scalability and load-based billing with minimal developer effort. Functions-as-a-service (FaaS) are originally stateless, but emerging frameworks add stateful abstractions. For instance, the widely used Durable Functions (DF) allow developers to write advanced serverless applications, including reliable workflows and actors, in a programming language of choice. DF implicitly and continuosly persists the state and progress of applications, which greatly simplifies development, but can create an IOps bottleneck.To improve efficiency, we introduce Netherite, a novel architecture for executing serverless workflows on an elastic cluster. Netherite groups the numerous application objects into a smaller number of partitions, and pipelines the state persistence of each partition. This improves latency and throughput, as it enables workflow steps to group commit, even if causally dependent. Moreover, Netherite leverages FASTER's hybrid log approach to support larger-than-memory application state, and to enable efficient partition movement between compute hosts.Our evaluation shows that (a) Netherite achieves lower latency and higher throughput than the original DF engine, by more than an order of magnitude in some cases, and (b) that Netherite has lower latency than some commonly used alternatives, like AWS Step Functions or cloud storage triggers.},
+journal = {Proc. VLDB Endow.},
+month = {apr},
+pages = {1591–1604},
+numpages = {14}
 }
 
 
