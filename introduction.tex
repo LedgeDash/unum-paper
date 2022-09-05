@@ -129,16 +129,16 @@ Function workflows. We show that Step Function workflows compiled to \name{}
 execute with the same execution guarantees as running natively using the Step
 Functions orchestrator.
 
-\secondedits{To the best of our knowledge, \name{} is the first system that
- supports complex serverless applications with exactly-once execution
+\secondedits{To the best of our knowledge, \name{} is the first system to
+ support complex serverless applications with exactly-once execution
  guarantees without requiring additional services or changes to the FaaS
  abstraction (e.g., making functions stateful and addressable).}Moreover,
  while performance and cost are difficult to compare objectively with
  existing black-box production orchestrators---both are influenced by
  deployment and pricing decisions that may not reflect the underlying
- efficiency or cost of the system---\name{} performs well in practice(\S\ref
+ efficiency or cost of the system---\name{} performs well in practice (\S\ref
  {sec:eval}). We find that a representative set of applications run faster
  and cost significantly less with \name{} than Step Functions (Table~\ref
- {table:macro}). We also demonstrate that \name{}'s IR allows hand-tuned
- applications to run faster by using application-specific optimizations and
- supporting a richer set of interaction patterns.
+ {table:macro}). We also demonstrate that \name{}'s IR allows applications to
+ run faster by using application-specific optimizations and supporting a
+ richer set of interaction patterns.
