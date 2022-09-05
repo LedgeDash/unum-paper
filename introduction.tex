@@ -5,45 +5,47 @@ two essential components: a stateless compute engine (Functions as a Service,
 or FaaS) and a scalable, multi-tenant data store~\cite{berkeley}. Developers
 build applications using stateless, event-driven ``functions'' which persist
 states in shared data stores. This abstraction allows users to leverage
-scalable datacenter resources with fine-grained pay-for-what-you-use billing
+scalable datacenter resources with fine-grained per-invocation billing
 and frees them from server administration.}
 
 While serverless platforms originally targeted simple applications with one or
 a few functions, this paradigm has increasingly proven useful for more
 complex applications composed of many functions with rich and often stateful
 interaction patterns~\cite{excamera, pywren, gg-atc, beldi, boki}.
-Unfortunately, building such applications using basic serverless building
-blocks is challenging. \majoredits{Due to at-least-once execution guarantees
-typically provided by FaaS engines, non-deterministic functions may pass
-inconsistent results downstream.} Event-driven execution makes depending on
-the results of multiple previous functions \majoredits{and therefore fan-in
-patterns} challenging. Finally, intermediate states must be managed
-efficiently and deleted promptly to avoid incurring unbounded storage costs
-over repeated executions of a workflow.
+Unfortunately, building such applications using the basic FaaS is
+challenging. \majoredits{Event-driven execution makes depending on the
+results of multiple previous functions \majoredits{and therefore fan-in
+patterns} difficult. At-least-once execution guarantee that is typical for
+FaaS functions complicates end-to-end application correctness as
+non-deterministic functions may pass inconsistent results downstream.}
+Finally, the lack of higher-level programming interfaces for expressing inter-function
+patterns hinders application development.
 
-\majoredits{Cloud providers and application developers have introduced
-standalone orchestrators to support such applications
-(\S\ref{sec:bg:orchestrator}). Cloud providers commonly offer serverless
-orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
-google-workflows, durable-functions}, though users may build custom
-orchestrators~\cite{temporal, gg-atc, excamera} and deploy them in separate
-VMs or containers alongside their functions.}
+\majoredits{\secondedits{Standalone orchestrators are recently introduced into
+ serverless infrastructure to support such complex applications (\S\ref
+ {sec:bg:orchestrator}).} Cloud providers commonly offer serverless
+ orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
+ google-workflows, durable-functions}, though users may build custom
+ orchestrators~\cite{temporal, gg-atc, excamera} and deploy them in separate
+ VMs or containers alongside their functions.\secondedits
+ {Orchestrators provide higher-level programming interfaces, support complex
+ interactions and ensure exactly-once execution.}}
 
-\majoredits{Although they are often internally distributed, standalone
-orchestrators work as \emph{logically centralized} controllers. Developers
-provide a description of an execution graph---nodes in the graph represent
-FaaS functions and edges represent invocations of a function with the output
-of one or more functions---while the orchestrator drives the execution of this
-graph by invoking functions, receiving function results and storing
-intermediate states (e.g., outstanding invocations and intermediate results)
-centrally.}
+\majoredits{Though often internally distributed, standalone orchestrators
+ operate as \emph{logically centralized} controllers. Developers provide a
+ description of an execution graph---nodes in the graph represent FaaS
+ functions and edges represent invocations of a function with the output of
+ one or more functions---and the orchestrator drives the execution of this
+ graph by invoking functions, receiving function results and storing
+ application states (e.g., outstanding invocations and function results)
+ centrally.}
 
-Centralization makes supporting \majoredits{stateful} interactions
-simple---e.g.\ an orchestrator can support fan-in patterns by simply waiting
-for all branches to complete before invoking an aggregation function.
-Similarly, a centralized orchestrator can ensure that workflow results appear
-to be the result of executing each constituent function exactly-once by
-choosing one result for each function invocation.
+Centralization simplifies supporting \majoredits
+{stateful} interactions---e.g., an orchestrator can support fan-in patterns
+by simply waiting for all branches to complete before invoking an aggregation
+function. Similarly, a centralized orchestrator can ensure that applications
+appear to execute exactly-once by choosing a single result from multiple
+executions for each function invocation.
 
 \majoredits{However, standalone orchestrators have important drawbacks for
  both serverless providers and serverless users. As an additional service
@@ -68,27 +70,27 @@ systems~\cite{comet,splinter}.}
  supported by the \secondedits{provider-hosted} orchestrator have to either
  compromise performance by using less-efficient patterns or first repeat the
  hard work of building, deploying and managing their own custom
- orchestrator. \secondedits{A parallel video processing application that
- encodes video chunks in parallel and aggregates results of adjacent branches
- have to compromise performance if the orchestrator only supports aggregating
- the result of all branches (\S\ref
- {sec:eval:excamera}).} Similarly, \secondedits{deterministic applications,
- such as an image resize application or a IoT data processing pipeline for
- aggregating sensor readings, can tolerate duplicate executions without
- compromising correctness, but otherwise cannot reap performance benefits if
- the orchestrator only supports strong exactly-once execution.}}
+ orchestrator. \secondedits{A video processing application that encodes video
+ chunks and aggregates results of adjacent branches in parallel have to
+ compromise performance if the orchestrator only supports aggregating results
+ of all branches (\S\ref{sec:eval:excamera}).} Similarly, \secondedits
+ {deterministic applications, such as an image resize application or a IoT
+ data processing pipeline for aggregating sensor readings, can tolerate
+ duplicate executions without weakening correctness, but otherwise cannot
+ reap performance benefits if the orchestrator only supports strong
+ exactly-once execution.}}
 
 \majoredits{In this paper, we show that additional standalone orchestrators
  for serverless applications are unnecessary. Furthermore, we argue that
  decentralized, application-level orchestration is better for both serverless
  providers and serverless users. \secondedits{It is better for applications
  as it affords them more flexibility to implement custom patterns as needed
- and apply application-specific optimizations in orchestration. It is better
- for cloud providers as it reduces costs by obviating the need to host and
- maintain an additional complex service, which can in turn lower users'
- expenses of running applications}. Moreover, as cloud providers improve the
- performance of essential serverless components, application-level
- orchestration built on top of those services benefit automatically.}
+ and apply application-specific optimizations. It is better for cloud
+ providers as it reduces costs by obviating the need to host and maintain an
+ additional complex service, which can in turn lower users' costs of
+ running applications}. Moreover, as cloud providers improve the performance
+ of essential serverless components, application-level orchestration built on
+ top of those services benefit automatically.}
 
 To support these arguments, we present \name{}, a system for
 decentralized\majoredits{, application-level} serverless workflow
@@ -104,22 +106,22 @@ transform high-level workflow descriptions into the IR.
 \majoredits{A key challenge in \name{} is to support complex stateful
 orchestration patterns and strong execution guarantees, in a
 \emph{decentralized} manner. Our insight is that, scalable and strongly
-consistent datastores, already an essential building block of serverless
+consistent data stores, already an essential building block of serverless
 applications, address the hardest challenge of orchestration: coordination.
-Using such datastores, we show that an application-level library running
+Using such data stores, we show that an application-level library running
 in-situ with user functions can orchestrate complex execution graphs
 efficiently with strong execution guarantees.}
 
 \majoredits{At a high level, \name{} relies on the FaaS scheduler to run each
-function invocation \emph{at least} once and consistent datastore operations
-to coordinate interactions and deduplicate extra executions of the same
+function invocation \emph{at least} once and consistent data store operations
+to coordinate interactions and de-duplicate extra executions of the same
 invocation. \name{} uses checkpoints to commit to exactly one result for a
 function invocation and ensures workflow correctness despite duplicate
 executions of non-deterministic functions. \name{} fan-ins use objects in a
 consistent datastore as a coordination point for aggregating branches. Both
 require generating globally unique names for nodes and edges in the execution
 graph \emph{locally} (using only information available at each node) as well
-as cleaning up intermediate datastore objects in a timely manner.}
+as cleaning up intermediate data store objects in a timely manner.}
 
 Our implementation of \name{} (\S\ref{sec:impl}) includes a compiler for AWS
 Step Functions' description language, enabling \name{} to run arbitrary Step
@@ -127,12 +129,16 @@ Function workflows. We show that Step Function workflows compiled to \name{}
 execute with the same execution guarantees as running natively using the Step
 Functions orchestrator.
 
-Moreover, while performance and cost are difficult to compare objectively with
-existing black-box production orchestrators---both are influenced by
-deployment and pricing decisions that may not reflect the underlying
-efficiency or cost of the system---\name{} performs well in practice(\S\ref
-{sec:eval}). We find that a representative set of applications run faster and
-cost significantly less with \name{} than Step Functions (Table~\ref
-{table:macro}). We also demonstrate that \name{}'s IR allows hand-tuned
-applications to run faster by using application-specific optimizations and
-supporting a richer set of interaction patterns.
+\secondedits{To the best of our knowledge, \name{} is the first system that
+ supports complex serverless applications with exactly-once execution
+ guarantees without requiring additional services or changes to the FaaS
+ abstraction (e.g., making functions stateful and addressable).}Moreover,
+ while performance and cost are difficult to compare objectively with
+ existing black-box production orchestrators---both are influenced by
+ deployment and pricing decisions that may not reflect the underlying
+ efficiency or cost of the system---\name{} performs well in practice(\S\ref
+ {sec:eval}). We find that a representative set of applications run faster
+ and cost significantly less with \name{} than Step Functions (Table~\ref
+ {table:macro}). We also demonstrate that \name{}'s IR allows hand-tuned
+ applications to run faster by using application-specific optimizations and
+ supporting a richer set of interaction patterns.
