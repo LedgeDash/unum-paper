@@ -233,6 +233,22 @@ AWS).
 
 \majoredits{\subsection{Case Study: ExCamera}\label{sec:eval:excamera}}
 
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/ExCameraPattern.pdf}
+    \caption{Unum ExCamera replicates the application logic from gg and mu
+     where the re-encode stage (xcenc) of a branch can start immediately when
+     the previous branch completes decoding (xcdec) and my own branch
+     completes the initial encoding (vpxenc). Step Functions provides a Map
+     pattern~\cite{aws-step-functions-map-state} for parallel workloads.
+     However, branches in Map must be identical and Map does not support data
+     dependencies between branches. As a result, to ensure previous branches'
+     xcdec have completed, all branches must first finish and fan-in to Step
+     Function orchestrator before starting the xcenc step, essentially
+     serializing the stage.}
+    \label{fig:excamera-pattern}
+\end{figure}
+
 \begin{table}
   \centering
   \begin{tabular}{|r|r|}
@@ -256,15 +272,16 @@ implementation using a generalized orchestrator (gg) by the same
 authors, and (3) an optimized Step Functions implementation we wrote.}
 
 \majoredits{Both gg and mu employ standalone orchestrators to proxy
-inter-function communications, store application states and invoke lambdas.
-However, mu uses a fleet of long-running identical lambdas where all application
-code is co-located and raw video chunks are pre-loaded, whereas gg lambdas are
-event-driven, task-specific and cannot leverage pre-loading. The application
-logic, though, is identical for gg ExCamera and mu ExCamera. \name{}'s ExCamera
-replicates the application logic from gg and mu. On the other hand, the Step
-Functions ExCamera implemetation must serialize the encode and re-encode stages
-because Step Function's Map pattern requires all concurrent branches to complete
-before any fan-in starts.}
+ inter-function communications, store application states and invoke lambdas.
+ However, mu uses a fleet of long-running identical lambdas where all
+ application code is co-located and raw video chunks are pre-loaded, whereas
+ gg lambdas are event-driven, task-specific and cannot leverage pre-loading.
+ The application logic, though, is identical for gg ExCamera and mu
+ ExCamera. \name{}'s ExCamera replicates the application logic from gg and
+ mu. However, the Step Functions ExCamera implemetation must serialize the
+ encode and re-encode stages because Step Function's Map pattern requires all
+ concurrent branches to complete before any fan-in starts (Figure~\ref
+ {fig:excamera-pattern}).}
 
 \majoredits{\subsubsection{Performance}}
 
