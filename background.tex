@@ -3,7 +3,7 @@
 The basic serverless abstraction is simple and quite powerful. Developers
 build ``functions'', typically written in a high-level language and packaged
 as OS containers or virtual machines, which run short computations in response
-to a platform event. Events include storage events (e.g.\ the creation of an
+to a platform event. Events include storage events (e.g., the creation of an
 object) or HTTP requests. The platform can scale resources for each function
 to respond to instantaneous bursts in events and developers are absolved from
 capacity planning and resource management tasks.
@@ -19,15 +19,14 @@ capacity planning and resource management tasks.
 This simple abstraction can be used to compose many simple applications with
 one or a few functions. For example, developers can chain functions for data
 pipelines using triggers. In trigger-based composition~\cite{netherite} each
-function in a chain invokes the next asynchronously or each function writes to
-a data-store configured to invoked the next function in response to the
-storage event. Alternatively, developers might use a
-``driver-function''~\cite{beldi} to drive more intricate control-flow logic. A
-driver function acts as a centralized controller that invokes other functions,
-waits for their responses, and invokes subsequent functions with their
-responses.
+function in a chain invokes the next asynchronously or writes to a data store
+configured to invoke the next function in response to storage events.
+Alternatively, developers might use a ``driver-function''~\cite{beldi} to
+drive more intricate control-flow logic. A driver function acts as a
+centralized controller that invokes other functions, waits for their outputs,
+and invokes subsequent functions with their outputs.
 
-Such ad-hoc approaches work ``out-of-the-box'', i.e.\ they require no
+Such ad-hoc approaches work ``out-of-the-box'', that is, they require no
 additional platform provided infrastructure. However neither is well suited to
 complex applications with 10s or 100s of functions~\cite{excamera,
 hello-retail}. Trigger-based composition can only support chaining of
