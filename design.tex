@@ -137,13 +137,13 @@ modify it for subsequent functions.}
     \label{fig:design:unum-request}
 \end{figure}
 
-\majoredits{Similar to many centralized orchestrators, \name{} workflows are
-modeled as a directed execution graph where nodes represent user-defined FaaS
-functions and each edge represents an invocation of one function (incoming
-edge) with the output of one or more other functions (outgoing edges).
+\majoredits{Similar to many standalone orchestrators, \name{} applications are
+ modeled as directed execution graphs where nodes represent user-defined FaaS
+ functions and edges represent function invocations (incoming edges) with the
+ output of one or more other functions (outgoing edges).
 
-An \name{} graph may include fan-outs, where output from a node is used to
-invoke several functions or split up and ``mapped'' multiple times on the same
+An \name{} graph may include fan-outs, where a node's output is used to invoke
+several functions or split up and ``mapped'' multiple times on the same
 function. Each such branch may be taken conditionally, based on the output
 value or dynamic states of the graph. Execution graphs may also contain
 fan-ins, where the outputs of multiple nodes are used to invoke a single
@@ -392,9 +392,9 @@ identical inputs.
 In fan-in patterns, the results of multiple nodes are used to invoke a single
 target node. Such patterns are a particular challenge for decentralized
 orchestration because invoking the target function cannot happen until all
-branches complete, but there is no centralized orchestrator to wait for this
-condition. Designating one of the dependent functions as a coordinator for the
-fan-in would address this directly. However, there is no guarantee that
+branches complete, but there is no standalone orchestrator to wait for this
+condition. Designating one of the dependent functions as a coordinator for
+the fan-in would address this directly. However, there is no guarantee that
 branches for a fan-in complete soon after each other, incurring a potentially
 large resource cost to do virtually no work, and risk exceeding
 platform-enforced function timeouts. Moreover, functions typically cannot

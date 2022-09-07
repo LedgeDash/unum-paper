@@ -12,15 +12,15 @@ uses a ``workflow-as-code'' approach, similar to driver functions, where the
 workflow logic is written in a programming language (e.g., C\#, Python).
 
 
-In all of these systems, orchestration is performed by a \textbf{centralized
-orchestrator}. The nature and location of this component varies: in AWS Step
-Functions~\cite{aws-step-functions} and Google
-Workflows~\cite{google-workflows}, it is provided by a cloud service that is
-separately hosted and billed. In Azure Durable
-Functions~\cite{durable-functions}, it is an extension of the serverless
-runtime, and uses the same billing. In contrast to all of these,
+In all of these systems, orchestration is performed by a \textbf
+{standalone orchestrator}. The nature and location of this component varies:
+in AWS Step Functions~\cite{aws-step-functions} and Google Workflows~\cite
+{google-workflows}, it is provided by a cloud service that is separately
+hosted and billed. In Azure Durable Functions~\cite{durable-functions}, it is
+an extension of the serverless runtime, and uses the same billing. In
+contrast to all of these,
  \name{} proposes a novel \textbf{decentralized orchestration strategy} and
-runs entirely on the basic serverless compute and storage abstractions without
+runs entirely on \secondedits{unmodified serverless infrastructure} without
 adding any new services or new components.
 
 
@@ -39,7 +39,7 @@ nondeterministic or nonidempotent behavior, and a way to program data
 dependencies between thunks. gg uses a standalone coordinator to receive thunk
 updates and lazily launch thunks when their inputs become available.
 
-Similarly, the above systems rely on a centralized orchestrator program. As
+Similarly, the above systems rely on a standalone orchestrator program. As
 the orchestrator program is not itself executing in a hosted environment,
 progress is not guaranteed when its host crashes, but requires manual restart.
 Also, progress is not checkpointed (except in Kappa), so workflows must
