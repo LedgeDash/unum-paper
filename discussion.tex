@@ -27,9 +27,9 @@ the current \emph{price} of Lambda, DynamoDB, and Step Functions as a proxy for
 the \emph{cost} of providing these services. Of course, prices may be either
 lower or higher for a particular service than the underlying cost.
 
-\secondedits{\paragraph{Code Complexity.}While Unum affords users more
+\secondedits{\paragraph{Code Complexity.}While \name{} affords users more
  flexibility, application-level orchestration increases code complexity for
- developers. Coordinations and exactly-once execution require careful design
+ developers. Coordination and exactly-once execution require careful design
  and implementation to function correctly in a decentralized manner.
  Introducing application-specific optimization also needs additional
  developer efforts than using off-the-shelf patterns from provider-hosted
@@ -45,17 +45,16 @@ Functions.
 
 Serverless platforms allow developers to construct applications from modular
 programming units that can scale quickly and independently, promising
-burst-scalability and fine-grained billing. Workflow orchestrators make building
-complex applications out of these event-driven, asynchronous functions
-reasonable, but are inflexible and may introduce performance, cost, scalability,
-and deployment overhead to developers and platform providers. We designed and
-implemented \name{}, a \emph{decentralized} workflow system that requires no
-additional infrastructure to deploy, imposes no additional limits on
-scalability, and performs as well as or better than centralized solutions while
-providing similar expressiveness and execution guarantees.
+burst-scalability and fine-grained billing. \secondedits
+{Standalone orchestrators simplify building complex serverless applications
+but are inflexible and expensive to use. We designed and implemented \name
+{}, an application-level, decentralized orchestration system that runs as a
+library on unmodified serverless infrastructure without requiring additional
+services.
 
-Our results show that basic serverless building blocks---function schedulers
-and consistent scalable datastores---are sufficient abstractions for building
-complex, fault-tolerant, and scalable applications. Leveraging decentralized
-orchestration, rather than centralized services can help \secondedits
-{flexibility, resource usage and performance} across cloud providers.
+Our results show that basic serverless components---function schedulers and
+consistent data stores---are sufficient abstractions for building complex,
+fault-tolerant, and scalable applications. Moreover, \name{} affords
+applications more flexibility, reduces costs and performs well compared with
+standalone orchestrators with similar execution guarantees.}
+
