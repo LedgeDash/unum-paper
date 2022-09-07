@@ -1,63 +1,62 @@
 \section{Evaluation}\label{sec:eval}
 
-\name{} argues for eschewing centralized orchestration and, instead, relying
-only on existing building blocks of serverless platforms---a function scheduler
-and consistent scalable datastore. The loss of flexibility and application
-control from centralization often enables better performance, more efficient
-resource usage, or better scalability.
+\name{} argues for eschewing \secondedits{standalone orchestrators} and,
+ instead, \secondedits{building application-level orchestration on unmodified
+ serverless infrastructure using FaaS schedulers and consistent data stores.
+ In this section, we evaluate how well application-level orchestration
+ performs, reduces costs, and improves application flexibility. In
+ particular, we focus our performance evaluation on whether decentralization
+ comes at a reasonable overhead compared with logically-centralized
+ standalone orchestrators.}
 
-We, therefore, focus our quantitative evaluation on whether orchestrator
-decentralization comes at a reasonable performance and resource overhead. In
-particular, we run applications implemented for a state-of-the-art
-production workflow orchestrator---AWS Step Functions---both on their intended
-target as well as using \name{}. Given the opacity of public cloud
-infrastructure, we cannot measure resource usage directly and instead use billed
-costs as a proxy.
+% Given the opacity of public cloud infrastructure, we cannot
+% measure resource usage directly and instead use billed costs as a proxy.
 
 Specifically, we answer the following questions:
 
-
 \begin{enumerate}
 
-  \item What overhead does \name{} incur in end-to-end latency and resources?
+  \item What overhead does \name{} incur in end-to-end latency and what are
+   the sources of \name{'s} overheads?
 
-  \item How well does \name{} support an application that Step Functions cannot support well?
+  \item How much does it cost to run applications with \name{} and what are
+   the sources of costs compared with Step Functions?
 
-  \item What are the sources of \name{'s} overheads?
+  \item How well does \name{} support applications that Step Functions
+   cannot support well?
 
 \end{enumerate}
 
 Though we evaluate the applications running on both AWS and Google Cloud, we
-focus our discussion on our \name{} implementation on Lambda and DynamoDB,
+focus our discussion on our AWS implementation with Lambda and DynamoDB,
 because it runs on the same serverless infrastructure as Step Functions.
 
 \subsection{Experimental setup}
 
 We run all experiments on AWS with Lambda and DynamoDB, and on Google Cloud
-with Cloud Functions and Cloud Storage. All services are in the same region
+with Cloud Functions and Firestore. All services are in the same region
 (\texttt{us-west-1} on AWS and \texttt{us-central-1} on Google Cloud). All
-functions are configured with 128MB of memory except for ExCamera where we use
-3GB of memory to replicate the setup in the original paper~\cite{excamera,
-gg-atc}. Both DynamoDB and Firestore use the serverless option with on-demand
-provisioning. Experiments that use Step Functions as baseline run Step
-Functions in the same region as well. To avoid performance artifacts related
-to cold-starts in comparisons, we ensure all functions are warm by running
-each workflow several times before taking measurements.
+functions are configured with 128MB of memory except for ExCamera where we
+use 3GB of memory to replicate the setup in the original paper~\cite
+{excamera, gg-atc}. \secondedits{DynamoDB uses the on-demand provisioning
+option that charges per-read and per-write~\cite
+{dynamodb-pricing}}. Experiments that use Step Functions as the baseline run
+Step Functions in the same region as well. To avoid performance artifacts
+related to cold-starts, we ensure all functions are warm by running each
+experiment several times before taking measurements.
 
-All but one application were originally written as AWS Lambda functions with
-Step Function state machines. For Step Function experiments, we ran them
-directly. For \name{} experiments, we first compiled the Step Functions
-definitions to \name{} IR, linked the functions with platform-specific runtime
-and finally executed them as lambdas or Google Cloud functions. The notable
-exception is our \name{} and Step Functions implementations of ExCamera, which
-differ due to a limitation in the Amazon State Language. As a result, the more
-efficient \name{} implementation is written directly in \name{} IR instead of
-compiled from the Step Functions definition (\S~\ref{sec:eval:excamera}).
-
-For the Step Functions experiments, we run the workflows in ``Standard''
+\secondedits{All but one application were originally written as Step Function state
+machines. For Step Function experiments, we ran them directly in the ``Standard''
 configuration~\cite{aws-step-functions-standard-vs-express}, which provides
 similarly strong execution guarantees as
-\name{}~\cite{aws-step-functions-exec-gntee}.
+\name{}~\cite{aws-step-functions-exec-gntee}.} For \name{} experiments, we
+ first compiled the Step Functions definitions to \name{} IR, linked the
+ functions with the \name{} runtime library and finally executed them as
+ lambdas or Google Cloud functions. The notable exception is our \name{} and
+ Step Functions implementations of ExCamera, which differ due to a limitation
+ in the Amazon State Language. As a result, the more efficient \name
+ {} implementation is written directly in \name{} IR instead of compiled from
+ the Step Functions definition (\S~\ref{sec:eval:excamera}).
 
 \subsection{Performance}\label{sec:eval:micro}
 
