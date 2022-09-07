@@ -13,16 +13,16 @@ a few functions, this paradigm has increasingly proven useful for more
 complex applications composed of many functions with rich and often stateful
 interaction patterns~\cite{excamera, pywren, gg-atc, beldi, boki}.
 Unfortunately, building such applications using the basic FaaS is
-challenging. \majoredits{Event-driven execution makes depending on the
-results of multiple previous functions \majoredits{and therefore fan-in
-patterns} difficult. At-least-once execution guarantee that is typical for
-FaaS functions complicates end-to-end application correctness as
-non-deterministic functions may pass inconsistent results downstream.}
-Finally, the lack of higher-level programming interfaces for expressing inter-function
-patterns hinders application development.
+challenging. \secondedits{Event-driven execution makes depending on the
+results of multiple previous functions and therefore fan-in patterns
+difficult. At-least-once execution guarantee that is typical for FaaS
+functions complicates end-to-end application correctness as non-deterministic
+functions may pass inconsistent results downstream. Finally, the lack of
+higher-level programming interfaces for expressing inter-function patterns
+hinders application development.}
 
 \majoredits{\secondedits{Standalone orchestrators are recently introduced into
- serverless infrastructure to support such complex applications (\S\ref
+ the serverless infrastructure to support such complex applications (\S\ref
  {sec:bg:orchestrator}).} Cloud providers commonly offer serverless
  orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
  google-workflows, durable-functions}, though users may build custom
@@ -43,20 +43,19 @@ patterns hinders application development.
 Centralization simplifies supporting \majoredits
 {stateful} interactions---e.g., an orchestrator can support fan-in patterns
 by simply waiting for all branches to complete before invoking an aggregation
-function. Similarly, a centralized orchestrator can ensure that applications
-appear to execute exactly-once by choosing a single result from multiple
-executions for each function invocation.
+function. Similarly, an orchestrator can ensure that applications appear to
+execute exactly-once by choosing a single result from multiple executions for
+each function invocation.
 
 \majoredits{However, standalone orchestrators have important drawbacks for
  both serverless providers and serverless users. As an additional service
  that is critical to application performance and correctness, a standalone
  orchestrator is expensive to \secondedits{host and use}. User-deployed
  orchestrators risk under-utilization and do not benefit from
- serverless' \secondedits{pay-for-what-you-use} billing and freedom from
- server management. Provider-hosted orchestrators are multi-tenant and can
- thus multiplex over many users to improve resource utilization and amortize
- the cost. However, they still incur the expenses of dedicated hardware
- resources and on-call engineering teams.
+ serverless' \secondedits{per-use} billing. Provider-hosted orchestrators are
+ multi-tenant and can thus multiplex over many users to improve resource
+ utilization and amortize the cost. However, they still incur the expenses of
+ dedicated hardware resources and on-call engineering teams.
 
 Furthermore, standalone orchestrators preclude users from making
 application-specific trade-offs and optimizations. While the interface and
@@ -82,29 +81,29 @@ systems~\cite{comet,splinter}.}
 
 \majoredits{In this paper, we show that additional standalone orchestrators
  for serverless applications are unnecessary. Furthermore, we argue that
- decentralized, application-level orchestration is better for both serverless
- providers and serverless users. \secondedits{It is better for applications
- as it affords them more flexibility to implement custom patterns as needed
- and apply application-specific optimizations. It is better for cloud
- providers as it reduces costs by obviating the need to host and maintain an
- additional complex service, which can in turn lower users' costs of
- running applications}. Moreover, as cloud providers improve the performance
- of essential serverless components, application-level orchestration built on
- top of those services benefit automatically.}
+ application-level orchestration is better for both serverless providers and
+ developers.} \secondedits{It is better for developers as it affords
+ applications more flexibility to implement custom patterns as needed and
+ apply application-specific optimizations. It is better for providers as it
+ reduces costs by obviating the need to host and maintain an additional
+ complex service, which in turn lowers users' costs of running applications.
+ Moreover, as cloud providers improve the performance of their serverless
+ infrastructure, application-level orchestration built on top of it benefits
+ automatically.}
 
-To support these arguments, we present \name{}, a system for
-decentralized\majoredits{, application-level} serverless workflow
-orchestration (\S\ref{sec:design}). \name{} provides orchestration as a
-library that runs \emph{in-situ} with user-defined FaaS functions, rather than
-as a \majoredits{standalone} service. The library relies on a minimal set of
-existing serverless APIs---function invocation and a few basic datastore
+To support these arguments, we present \name{}, \secondedits
+{an application-level serverless orchestration system} (\S\ref
+{sec:design}). \name{} provides orchestration as a library that runs \emph
+{in-situ} with user-defined FaaS functions, rather than as a \majoredits
+{standalone} service. The library relies on a minimal set of existing
+serverless APIs---function invocation and a few basic data store
 operations---that are common across cloud platforms. \name{} introduces an
 intermediate representation (IR) language to express execution graphs using
-only node-local information while supporting front-end compilers that can
-transform high-level workflow descriptions into the IR.
+only node-local information and supports front-end compilers that transform
+higher-level application definitions into the IR.
 
 \majoredits{A key challenge in \name{} is to support complex stateful
-orchestration patterns and strong execution guarantees, in a
+ orchestration patterns and strong execution guarantees in a
 \emph{decentralized} manner. Our insight is that, scalable and strongly
 consistent data stores, already an essential building block of serverless
 applications, address the hardest challenge of orchestration: coordination.
@@ -118,7 +117,7 @@ to coordinate interactions and de-duplicate extra executions of the same
 invocation. \name{} uses checkpoints to commit to exactly one result for a
 function invocation and ensures workflow correctness despite duplicate
 executions of non-deterministic functions. \name{} fan-ins use objects in a
-consistent datastore as a coordination point for aggregating branches. Both
+consistent data store as coordination points for aggregating branches. Both
 require generating globally unique names for nodes and edges in the execution
 graph \emph{locally} (using only information available at each node) as well
 as cleaning up intermediate data store objects in a timely manner.}
