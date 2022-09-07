@@ -1,15 +1,14 @@
-\majoredits{Standalone orchestrators simplify the development of complex
+\majoredits{\secondedits{Standalone orchestrators simplify the development of
  serverless applications by providing higher-level programming interfaces,
  coordinating function interactions and ensuring exactly-once execution.
  However, they limit application flexibility and are expensive to use. We
- show that these specialized orchestration services are
- unnecessary. \secondedits{Instead, application-level orchestration, deployed
- as a library, can support the same programming interfaces, complex
- interactions and execution guarantees as existing standalone orchestrators,
+ show that these specialized orchestration services are unnecessary. Instead,
+ application-level orchestration, deployed as a library, can support the same
+ programming interfaces, complex interactions and execution guarantees,
  utilizing only basic serverless components that are already universally
- supported and billed at a fine-grained per-use basis. Such application-level
- orchestration affords applications more flexibility and reduces costs for
- both providers and users. }
+ supported and billed at a fine-grained per-use basis. Furthermore,
+ application-level orchestration affords applications more flexibility and
+ reduces costs for both providers and users. }
 
 To demonstrate this, we present \name{}, an application-level serverless
 orchestration system. \secondedits{\name{} introduces an intermediate
@@ -23,4 +22,4 @@ decentralized manner by leveraging strongly consistent data stores.}
  orchestrator, our evaluation shows that \name{} performs well, costs
  significantly less and grants applications greater flexibility to employ
  application-specific patterns and optimizations. For a representative set of
- applications,  \name{} runs as much as 2x faster and 9x cheaper.}}
+ applications,  \name{} runs as much as 2x faster and costs 9x cheaper.}}
