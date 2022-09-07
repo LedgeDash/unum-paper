@@ -1,25 +1,24 @@
 \section{Implementation}\label{sec:impl}
 
-We implement a prototype \name{} runtime that supports AWS Lambda and Google
-Cloud Functions, leveraging DynamoDB and Firestore, respectively, as
-intermediate datastores. We also implemented a front-end compiler that takes
-arbitrary AWS Step Function state-machine definitions and compiles them to
-\name{} IR, which can be run on either. Currently our runtime only supports
-Python functions and is itself written in 1,119 lines-of-code. The Step
+We implement a prototype \name{} runtime that supports \secondedits{AWS and
+Google Cloud. We also implement a front-end compiler that transforms AWS Step
+Function definitions to \name{} IR.} Currently our runtime only supports
+Python functions and is itself written in 1,119 lines of code. The Step
 Functions compiler is 549 lines-of-code.
 
 Implementing the runtime primarily requires specializing high-level
 functionality the IR depends on for a particular FaaS platform and datastore.
-The FaaS platform must support asynchronous function invocation and the
-datastore must be linearizable with support for atomic creation and set
-operations.
+The FaaS platform must support asynchronous invocation and the data store
+must be \secondedits{strongly consistent} with support for atomic creation
+and set operations.
 
-Importantly, we choose datastores and primitives that only incur per-use costs,
-rather than including baseline provisioning cost, and scale on-demand. For
-example, we use DynamoDB in on-demand capacity mode, rather than provisioned
-capacity mode, and avoid long-running services such as a hosted Redis or cache.
-As a result, \name{} workflows, like their centralized counterparts, incur
-resource costs \emph{only} to actually execute a workflow.
+Importantly, we choose data stores and primitives that only incur per-use
+costs and scale on-demand. For example, we use DynamoDB in on-demand capacity
+mode, rather than provisioned capacity mode, and avoid long-running services
+such as a hosted Redis or cache. As a result, \name{} incurs \secondedits
+{fine-grained costs only when performing orchestration (e.g., per-millisecond
+Lambda runtime costs to execute the \name{} library, per-write DynamoDB costs
+to create checkpoints)}.
 
 \subsection{AWS Lambda \& DynamoDB}
 
