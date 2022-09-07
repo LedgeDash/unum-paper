@@ -1,14 +1,14 @@
 \section{Design}\label{sec:design}
 
 \majoredits{\name{} is an application-level orchestration system that supports
-complex serverless workflows without a standalone orchestration service. It
-does so by decentralizing orchestration logic in a library that runs in-situ
-with user-defined FaaS fucntions and leverages a scalable consistent storage
-service for coordination and deduplication. By removing standalone
-orchestrators, \name{} improves application flexibility and reduces the cost
-of running applications. Importantly, \name{} does this while retaining the
-expressiveness and execution guarantees (\S\ref{sec:design:execution}) of
-standalone orchestrators.}
+ complex serverless applications without a standalone orchestrator. It does
+ so by decentralizing orchestration logic in a library that runs in-situ with
+ user-defined FaaS functions and leverages a scalable consistent data store
+ for coordination and execution correctness. By removing standalone
+ orchestrators, \name{} improves application flexibility and reduces costs.
+ Importantly, \name{} does this while retaining the expressiveness and
+ execution guarantees (\S\ref{sec:design:execution}) of standalone
+ orchestrators.}
 
 \subsection{Architecture}\label{sec:design:architecture}
 
@@ -22,7 +22,7 @@ standalone orchestrators.}
 		function is embedded with an \name{} configuration that encodes how to
 		transition to its immediate downstream nodes. Developers package user
 		function, \name{} config and \name{}'s runtime library (a pair of
-		ingress and egress components) together to create unumized functions.}
+		ingress and egress components) together to create ``unumized'' functions.}
 		\label{fig:arch:unum-compile-time}
 
 	\end{subfigure}
@@ -38,8 +38,8 @@ standalone orchestrators.}
 		\includegraphics[width=.7\columnwidth]{figures/unum-arch-runtime.pdf}
 		\caption{At runtime, \name{} orchestration logic is decentralized and
 			runs in-situ with the user functions on an unmodified serverless
-			platform. For synchronization and checkpointing,
-			\name{} relies exclusively on a standard datastore of choice, such
+			platform. For coordination and checkpointing,
+			\name{} relies exclusively on a standard data store of choice, such
 			as DynamoDB or Cosmos DB.}
 		\label{fig:arch:unum-runtime}
 	\end{subfigure}
@@ -100,7 +100,7 @@ centralized orchestrator (Figure~\ref{fig:arch:unum-runtime}).
     \hline
   \texttt{Next} & Increments the current execution state frame's iteration counter.\\
     \hline
-  \texttt{CreateSet(Name)} & Creates a coordination set object in the datastore with the provided name.\\
+  \texttt{CreateSet(Name)} & Creates a coordination set object in the data store with the provided name.\\
     \hline
   \end{tabular}
   \caption{\name{} intermediate representation instructions.}
@@ -240,26 +240,26 @@ the exception, not the rule, \name{} should provide these semantics without
 expensive coordination---function instances should be able to proceed without
 blocking in the common, fault-free case.
 
-\name{} leverages two key insights to achieve these semantics.  First, it is ok
-for different executions of the same function invocation to return different
-results as long as \name{} ensures downstream functions are always invoked
-with exactly one of those results. Second, a workflow's output is
+\name{} leverages two key insights to achieve these semantics.  First, it is
+ correct for different executions of the same function invocation to return
+ different results as long as \name{} ensures downstream functions are always
+ invoked with exactly one of those results. Second, a workflow's output is
 \emph{correct} even if a function is invoked more than once, as long as the
 invocations uses the same input, since additional, but identical, invocations
 are indistinguishable from additional executions.
 
 The \name{} library employs an atomic \texttt{create\_if\_not\_exists}
-operation in the serverless datastore to \emph{checkpoint} exactly one
+operation in the serverless data store to \emph{checkpoint} exactly one
 execution of each function invocation. The egress component of the \name{}
 library attempts to write the result of the function to a checkpoint object in
-the datastore. If such a checkpoint already exists, a concurrent or previous
+the data store. If such a checkpoint already exists, a concurrent or previous
 execution of the invocation must have already completed and the operation will
 fail. To invoke downstream functions, the egress component \emph{always} uses
 the value stored in the checkpoint, rather than the result of the recently
 completed function. Essentially, \name{} ``commits'' to result of the first
 successful executions of\majoredits{invocations}.
 
-\minoredits{Datastores need to be strongly consistent to support
+\minoredits{Data stores need to be strongly consistent to support
 \texttt{create\_if\_not\_exists}. It is important that a later attempt to
 create an existing checkpoint fails and the slower execution can read the
 existing checkpoint.}
@@ -279,7 +279,7 @@ the effects are not idempotent. This issue is well known, and independent of
 the orchestrator architecture (centralized vs. decentralized). Thus, we
 consider the question of how to control such side effects to be orthogonal and
 beyond the scope of this paper. However, \name{} does not preclude
-applications from using libaries, such as Beldi~\cite{beldi}, that can solve
+applications from using libraries, such as Beldi~\cite{beldi}, that can solve
 this problem.}
 
 % \begin{table}
@@ -327,7 +327,7 @@ def _egress(self, result)
 \caption{Pseudo-code showing \name{}'s checkpointing mechanism. As different
 executions of a function may return different results, \name{}'s egress
 component checkpoints the first successful execution using an atomic add
-datastore operation. All subsequent executions will uses this committed value
+data store operation. All subsequent executions will uses this committed value
 rather than the result their own execution returned.}
 \label{fig:design:checkpoint}
 \end{figure}
@@ -401,12 +401,12 @@ platform-enforced function timeouts. Moreover, functions typically cannot
 communicate with each other directly, so it is not obvious how other branches
 would notify this coordinator of their completion.
 
-\name{}, instead, leverages the same insight as checkpoints---the datastore
+\name{}, instead, leverages the same insight as checkpoints---the data store
 provides strong consistency that can serve as a coordination point. Rather
 than designating a single branch function as the coordinator, all branches are
 empowered to invoke the fan-in function once all other branches have
 completed. To determine this condition, branches in a fan-in add the name of
-their checkpoint object to a shared ``Set'' in the datastore. Any branch that
+their checkpoint object to a shared ``Set'' in the data store. Any branch that
 reads the set with size equal to the total number of branches invokes the
 target function using all the branches' checkpoints as input.
 
@@ -433,7 +433,7 @@ Fan-in supports enable more patterns that commonly arise in applications:
 \paragraph{Aggregation}
 After processing data with many parallel branches, applications commonly want to
 aggregate results. For example, to build an index of a large corpus, the
-application might process chunks in parallel and the aggregate the results.
+application might process chunks in parallel and then aggregate the results.
 Aggregation is a common pattern to join back multiple parallel functions, by
 invoking a single ``sink'' function with the outputs from a vector of functions.
 
@@ -451,7 +451,7 @@ expressible in \name{}.
 \subsection{Garbage Collection}\label{sec:design:garbage}
 
 \majoredits{Both checkpointing and fan-in require storing intermediate data
-(e.g., checkpoints and coordination sets) in the datastore. These intermediate
+(e.g., checkpoints and coordination sets) in the data store. These intermediate
 data is only temporally useful and grows with each invocation. This poses a
 garbage collection challenge. Deleting them too early can compromise execution
 guarantees while deleting too late incurs storage costs.}

@@ -7,10 +7,10 @@ Python functions and is itself written in 1,119 lines of code. The Step
 Functions compiler is 549 lines-of-code.
 
 Implementing the runtime primarily requires specializing high-level
-functionality the IR depends on for a particular FaaS platform and datastore.
-The FaaS platform must support asynchronous invocation and the data store
-must be \secondedits{strongly consistent} with support for atomic creation
-and set operations.
+functionality the IR depends on for a particular FaaS platform and data
+store. The FaaS platform must support asynchronous invocation and the data
+store must be \secondedits{strongly consistent} with support for atomic
+creation and set operations.
 
 Importantly, we choose data stores and primitives that only incur per-use
 costs and scale on-demand. For example, we use DynamoDB in on-demand capacity
@@ -27,7 +27,7 @@ Lambda \texttt{Invoke} API is asynchronous when passed
 \texttt{InvocationType=Event}. \majoredits{In the event of a crash, we use
 Lambda's Failure Destination~\cite{aws-lambda-failure-destination} to redirect
 the fault to an error handler function which runs just the \name{} runtime.
-The error handler checkes if the failed function should be retried (e.g.,
+The error handler checks if the failed function should be retried (e.g.,
 based on the Step Function definition~\cite{aws-step-functions-retry}) and if so,
 retries the function by explicitly invoking it again.}
 

@@ -35,7 +35,7 @@ encoder running on Lambda. It is built with the mu framework which uses a
 long-running coordinator to command a fleet of lambdas, each of which executes
 a state machines where user functions are the states. gg~\cite{gg-atc}
 proposes a thunk abstraction where each thunk executes as a lambda that has no
-nondeterministic or nonidempotent behavior, and a way to program data
+nondeterministic or non-idempotent behavior, and a way to program data
 dependencies between thunks. gg uses a standalone coordinator to receive thunk
 updates and lazily launch thunks when their inputs become available.
 

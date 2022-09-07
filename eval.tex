@@ -223,11 +223,11 @@ Functions---AWS's native workflow orchestrator. This suggests that at least
 applications that currently run on Step Functions could afford to run using
 \name{} instead.
 
-Moreover, \name{} costs benefits from improvements to underlying infrastructure
-or different pricing schemes. For example, Azure's Cosmos DB provides similar
+Moreover, \name{} benefits from improvements to the underlying infrastructure
+and pricing schemes. For example, Azure's Cosmos DB provides similar
 performance and consistency guarantees to DynamoDB but charges 5x less to
-perform a write operation (the dominant constituent of \name{} storage cost on
-AWS).
+perform a write operation (the dominant cost of \name{}'s data store
+operations).
 
 
 \majoredits{\subsection{Case Study: ExCamera}\label{sec:eval:excamera}}
@@ -235,7 +235,7 @@ AWS).
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/ExCameraPattern.pdf}
-    \caption{Unum ExCamera replicates the application logic from gg and mu
+    \caption{\name{} ExCamera replicates the application logic from gg and mu
      where the re-encode stage (xcenc) of a branch can start immediately when
      the previous branch completes decoding (xcdec) and my own branch
      completes the initial encoding (vpxenc). Step Functions provides a Map
@@ -243,8 +243,8 @@ AWS).
      However, branches in Map must be identical and Map does not support data
      dependencies between branches. As a result, to ensure previous branches'
      xcdec have completed, all branches must first finish and fan-in to Step
-     Function orchestrator before starting the xcenc step, essentially
-     serializing the stage.}
+     Functions before starting the xcenc step, essentially serializing the
+     stage.}
     \label{fig:excamera-pattern}
 \end{figure}
 
@@ -277,7 +277,7 @@ authors, and (3) an optimized Step Functions implementation we wrote.}
  gg lambdas are event-driven, task-specific and cannot leverage pre-loading.
  The application logic, though, is identical for gg ExCamera and mu
  ExCamera. \name{}'s ExCamera replicates the application logic from gg and
- mu. However, the Step Functions ExCamera implemetation must serialize the
+ mu. However, the Step Functions ExCamera implementation must serialize the
  encode and re-encode stages because Step Function's Map pattern requires all
  concurrent branches to complete before any fan-in starts (Figure~\ref
  {fig:excamera-pattern}).}
@@ -301,7 +301,7 @@ slightly faster.}
 flexibility to implement ExCamera's original application pattern where tasks
 start as soon as their input data becomes available, whereas the Step
 Functions implementation had to use the less-efficient Map pattern without the
-flexbility to add new orchestration patterns easily. As a result, the \name{}
+flexibility to add new orchestration patterns easily. As a result, the \name{}
 ExCamera enables more parallelism between branches and is 16.7\% faster than
 Step Functions.}
 
@@ -315,7 +315,7 @@ Nevertheless, there are several important factors in comparing
 \majoredits{First, similar to Step Functions, gg and mu both rely on
 standalone orchestrators. Thus, the fundamental costs difference is also
 similar, namely \name{}'s use of storage vs gg's and mu's use of VMs. mu's
-orchestrator consists of a cooridnator server as well as a rendezvous
+orchestrator consists of a coordinator server as well as a rendezvous
 server~\cite{excamera}, while gg's only has a coordinator
 server~\cite{gg-atc}. In the mu authors' experiments, they used a 64-core VM
 (\texttt{m4.16xlarge}) as the rendezvous server. Neither mu nor gg specified
@@ -325,7 +325,7 @@ approximately \$2352 per month.}
 
 \majoredits{Furthermore, standalone orchestrators must separately consider
 fault-tolerance in case of orchestrator failures. Most commonly,
-fault-tolerance is achieved by running mutliple coordinating instances
+fault-tolerance is achieved by running multiple coordinating instances
 (replicas) of the service. As a result, production deployments of mu and gg
 would likely cost more.}
 
