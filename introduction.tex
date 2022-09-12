@@ -5,7 +5,7 @@ two essential components: a stateless compute engine (Functions as a Service,
 or FaaS) and a scalable, multi-tenant data store~\cite{berkeley}. Developers
 build applications using stateless, event-driven ``functions'' which persist
 states in shared data stores. This abstraction allows users to leverage
-scalable datacenter resources with fine-grained per-invocation billing
+scalable data center resources with fine-grained per-invocation billing
 and frees them from server administration.}
 
 While serverless platforms originally targeted simple applications with one or
@@ -26,9 +26,9 @@ hinders application development.}
  {sec:bg:orchestrator}).} Cloud providers commonly offer serverless
  orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
  google-workflows, durable-functions}, though users may build custom
- orchestrators~\cite{temporal, gg-atc, excamera} and deploy them in separate
- VMs or containers alongside their functions.\secondedits
- {Orchestrators provide higher-level programming interfaces, support complex
+ orchestrators and deploy them in separate VMs or containers alongside their
+ functions~\cite{temporal, gg-atc, excamera}.\secondedits{These orchestration
+ services provide higher-level programming interfaces, support complex
  interactions and ensure exactly-once execution.}}
 
 \majoredits{Though often internally distributed, standalone orchestrators
@@ -41,21 +41,22 @@ hinders application development.}
  centrally.}
 
 Centralization simplifies supporting \majoredits
-{stateful} interactions---e.g., an orchestrator can support fan-in patterns
-by simply waiting for all branches to complete before invoking an aggregation
-function. Similarly, an orchestrator can ensure that applications appear to
-execute exactly-once by choosing a single result from multiple executions for
-each function invocation.
+{stateful} interactions---e.g., an orchestrator can run fan-in patterns by
+simply waiting for all branches to complete before invoking an aggregation
+function. \secondedits{Similarly, an orchestrator can ensure that
+applications appear to execute exactly-once by choosing a single result from
+multiple executions for each function invocation.}
 
 \majoredits{However, standalone orchestrators have important drawbacks for
- both serverless providers and serverless users. As an additional service
- that is critical to application performance and correctness, a standalone
+ both serverless providers and serverless users. As an additional service that
+ is critical to application performance and correctness, a standalone
  orchestrator is expensive to \secondedits{host and use}. User-deployed
- orchestrators risk under-utilization and do not benefit from
- serverless' \secondedits{per-use} billing. Provider-hosted orchestrators are
- multi-tenant and can thus multiplex over many users to improve resource
- utilization and amortize the cost. However, they still incur the expenses of
- dedicated hardware resources and on-call engineering teams.
+ orchestrators risk under-utilization and do not benefit from serverless'
+ \secondedits{per-use} billing. Provider-hosted orchestrators are multi-tenant
+ and can thus multiplex over many users to improve resource utilization and
+ amortize the cost. However, they still incur the costs of hardware resources
+ and on-call engineering teams. \secondedits{These costs may be affordable for
+ large platforms but are a significant burden for smaller providers.}
 
 Furthermore, standalone orchestrators preclude users from making
 application-specific trade-offs and optimizations. While the interface and
@@ -68,16 +69,16 @@ systems~\cite{comet,splinter}.}
 \majoredits{For example, applications that need orchestration patterns not
  supported by the \secondedits{provider-hosted} orchestrator have to either
  compromise performance by using less-efficient patterns or first repeat the
- hard work of building, deploying and managing their own custom
- orchestrator. \secondedits{A video processing application that encodes video
- chunks and aggregates results of adjacent branches in parallel have to
- compromise performance if the orchestrator only supports aggregating results
- of all branches (\S\ref{sec:eval:excamera}).} Similarly, \secondedits
- {deterministic applications, such as an image resize application or a IoT
- data processing pipeline for aggregating sensor readings, can tolerate
- duplicate executions without weakening correctness, but otherwise cannot
- reap performance benefits if the orchestrator only supports strong
- exactly-once execution.}}
+ hard work of building, deploying and managing their own custom orchestrator.
+ \secondedits{A video processing application that encodes video chunks and
+ aggregates results of adjacent branches in parallel have to compromise
+ performance if the orchestrator only supports aggregating results of all
+ branches (\S\ref{sec:eval:excamera}).} Similarly, \secondedits {deterministic
+ applications, such as an image resize application or a IoT data processing
+ pipeline for aggregating sensor readings, can tolerate duplicate executions
+ without weakening correctness, but otherwise cannot reap performance benefits
+ if the orchestrator always persists states to ensure exactly-once
+ execution.}}
 
 \majoredits{In this paper, we show that additional standalone orchestrators
  for serverless applications are unnecessary. Furthermore, we argue that

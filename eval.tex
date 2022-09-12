@@ -1,13 +1,12 @@
 \section{Evaluation}\label{sec:eval}
 
 \name{} argues for eschewing \secondedits{standalone orchestrators} and,
- instead, \secondedits{building application-level orchestration on unmodified
- serverless infrastructure using FaaS schedulers and consistent data stores.
- In this section, we evaluate how well application-level orchestration
- performs, reduces costs, and improves application flexibility. In
- particular, we focus our performance evaluation on whether decentralization
- comes at a reasonable overhead compared with logically-centralized
- standalone orchestrators.}
+instead, \secondedits{building application-level orchestration on unmodified
+serverless infrastructure using FaaS schedulers and consistent data stores. In
+this section, we evaluate how well application-level orchestration performs,
+reduces costs, and improves application flexibility. In particular, we focus
+our performance evaluation on whether decentralization comes at a reasonable
+overhead compared with logically-centralized standalone orchestrators.}
 
 % Given the opacity of public cloud infrastructure, we cannot
 % measure resource usage directly and instead use billed costs as a proxy.
@@ -22,8 +21,8 @@ Specifically, we answer the following questions:
   \item How much does it cost to run applications with \name{} and what are
    the sources of costs compared with Step Functions?
 
-  \item How well does \name{} support applications that Step Functions
-   cannot support well?
+  \item How well does \name{} support applications that Step Functions cannot
+   support well?
 
 \end{enumerate}
 
@@ -36,27 +35,25 @@ because it runs on the same serverless infrastructure as Step Functions.
 We run all experiments on AWS with Lambda and DynamoDB, and on Google Cloud
 with Cloud Functions and Firestore. All services are in the same region
 (\texttt{us-west-1} on AWS and \texttt{us-central-1} on Google Cloud). All
-functions are configured with 128MB of memory except for ExCamera where we
-use 3GB of memory to replicate the setup in the original paper~\cite
-{excamera, gg-atc}. \secondedits{DynamoDB uses the on-demand provisioning
-option that charges per-read and per-write~\cite
-{dynamodb-pricing}}. Experiments that use Step Functions as the baseline run
-Step Functions in the same region as well. To avoid performance artifacts
-related to cold-starts, we ensure all functions are warm by running each
+functions are configured with 128MB of memory except for ExCamera where we use
+3GB of memory to replicate the setup in the original paper~\cite {excamera,
+gg-atc}. \secondedits{DynamoDB uses the on-demand provisioning option that
+charges per-read and per-write~\cite {dynamodb-pricing}}. To avoid performance
+artifacts related to cold-starts, we ensure functions are warm by running each
 experiment several times before taking measurements.
 
-\secondedits{All but one application were originally written as Step Function state
-machines. For Step Function experiments, we ran them directly in the ``Standard''
-configuration~\cite{aws-step-functions-standard-vs-express}, which provides
-similarly strong execution guarantees as
+\secondedits{All but one application were originally written as Step Function
+state machines. For Step Function experiments, we ran them directly with the
+``Standard'' configuration~\cite{aws-step-functions-standard-vs-express},
+which provides similarly strong execution guarantees as
 \name{}~\cite{aws-step-functions-exec-gntee}.} For \name{} experiments, we
- first compiled the Step Functions definitions to \name{} IR, linked the
- functions with the \name{} runtime library and finally executed them as
- lambdas or Google Cloud functions. The notable exception is our \name{} and
- Step Functions implementations of ExCamera, which differ due to a limitation
- in the Amazon State Language. As a result, the more efficient \name
- {} implementation is written directly in \name{} IR instead of compiled from
- the Step Functions definition (\S~\ref{sec:eval:excamera}).
+first compiled the Step Functions definitions to \name{} IR, linked the
+functions with the \name{} runtime library and finally executed them as
+lambdas or Google Cloud functions. The notable exception is our \name{} and
+Step Functions implementations of ExCamera, which differ due to a limitation
+in the Amazon State Language. As a result, the more efficient \name {}
+implementation is written directly in \name{} IR instead of compiled from the
+Step Functions definition (\S~\ref{sec:eval:excamera}).
 
 \subsection{Performance}\label{sec:eval:micro}
 
@@ -179,23 +176,21 @@ faster on \name{} than on Step Functions (Table~\ref{table:macro}).
 \end{figure}
 
 One of the main attractions of building applications on serverless platforms
-is lower cost. In particular, because resources are easy to reclaim,
-applications are charged only for resources used to respond to actual events
-or requests. Thus, applications with potential for high burst-parallelism, or
-with intermittent bursts of concurrent requests, can achieve high performance
-without incurring the cost of long-term provisioning for max capacity. As a
-result, the \emph{cost} of orchestration overhead matters as well as
-performance.
+is \secondedits{fine-grained and often} lower cost. In particular, because
+resources are easy to reclaim, applications are charged only for resources
+used to respond to actual events. Thus, the \emph{cost} of orchestration
+matters as well as performance.
 
 The source of costs for \name{} and Step Functions is quite different. Step
-Functions imposes a cost to developers, in addition to running Lambda
-functions, for each workflow
+Functions imposes a cost to developers for each workflow
 transition~\cite{aws-step-functions-pricing}\minoredits{, such as each branch
 in a fan-out}. This abstracts the underlying, likely shared, costs to run the
-Step Functions servers, persist state and checkpoint data. Conversely, \name{}
-incurs costs directly from those services: additional Lambda
-runtime~\cite{aws-lambda-pricing} and DynamoDB storage on
-AWS~\cite{dynamodb-pricing}.
+Step Functions servers, persist states and checkpoint data. Conversely,
+\name{} incurs costs directly from those services \secondedits{such as
+additional Lambda runtime~\cite{aws-lambda-pricing} and DynamoDB reads and
+writes~\cite{dynamodb-pricing}. Furthermore, costs are more fine-grained in
+\name{} where compute resources for executing orchestration logic is charged
+per-millisecond and storage for persisting states per read and write.}
 
 Figure~\ref{fig:cost-breakdown} shows the cost to run each application using
 \name{} broken down to each component: data store costs for writing and
@@ -214,14 +209,12 @@ applications we tested. Table~\ref{table:macro} shows the price to run each of
 the applications we implemented based on public pricing information for AWS in
 the \texttt{us-west-1} region using \name{} and Step Functions.
 
-
 Of course, developer-facing pricing does not necessarily reflect \emph{actual}
-costs and is only a weak proxy for resource utilization. However, it is clear
-that, in practice, \name{}'s overheads do not result in unreasonable costs and,
-in fact, often results in lower costs to the developer than Step
-Functions---AWS's native workflow orchestrator. This suggests that at least
-applications that currently run on Step Functions could afford to run using
-\name{} instead.
+costs and is only a proxy for resource utilization. However, it is clear that,
+in practice, \secondedits{\name{}'s costs are reasonable and, in fact, often
+lower than Step Functions}---AWS's native workflow orchestrator. This suggests
+that at least applications that currently run on Step Functions could afford
+to run using \name{} instead.
 
 Moreover, \name{} benefits from improvements to the underlying infrastructure
 and pricing schemes. For example, Azure's Cosmos DB provides similar
@@ -235,16 +228,16 @@ operations).
 \begin{figure}[t!]
     \centering
     \includegraphics[width=\columnwidth]{figures/ExCameraPattern.pdf}
-    \caption{\name{} ExCamera replicates the application logic from gg and mu
-     where the re-encode stage (xcenc) of a branch can start immediately when
-     the previous branch completes decoding (xcdec) and my own branch
-     completes the initial encoding (vpxenc). Step Functions provides a Map
-     pattern~\cite{aws-step-functions-map-state} for parallel workloads.
-     However, branches in Map must be identical and Map does not support data
-     dependencies between branches. As a result, to ensure previous branches'
-     xcdec have completed, all branches must first finish and fan-in to Step
-     Functions before starting the xcenc step, essentially serializing the
-     stage.}
+    \caption{\secondedits{\name{} ExCamera replicates the application logic
+     from gg and mu where the re-encode stage (xcenc) of a branch can start
+     immediately when the previous branch completes decoding (xcdec) and my
+     own branch completes the initial encoding (vpxenc). Step Functions
+     provides a Map pattern~\cite{aws-step-functions-map-state} for parallel
+     workloads. However, branches in Map must be identical and Map does not
+     support data dependencies between branches. As a result, to ensure
+     previous branches' xcdec have completed, all branches must first finish
+     and fan-in to Step Functions before starting the xcenc step, essentially
+     serializing the stage.}}
     \label{fig:excamera-pattern}
 \end{figure}
 
