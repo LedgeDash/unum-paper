@@ -345,6 +345,12 @@ triggers a pre-configured error-handler
 function~\cite{aws-lambda-failure-destination,
 openwhisk-action-error-handling}. \name{} can work with either mechanism.}
 
+\secondedits{The \name{} error handler is part of \name{}'s standard library
+and is triggered in a separate FaaS function after an application function
+crashes. The error handler simply retries the crashed function by invoking it
+again. As part of the orchestration library, the error handler is assumed to
+be bug-free and relies on the FaaS scheduler to execute at least once.}
+
 \name{}'s checkpointing mechanism ensures that while faults may occur at any
 point during the execution of a function's user code or the \name{} library,
 and while downstream functions may be invoked multiple times by different
