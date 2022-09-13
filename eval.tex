@@ -128,14 +128,24 @@ fan-in at varying branching degrees for both \name{} and Step Functions. At
 low branching degree, \name{} incurs a modest overhead (up to 200ms) relative
 to Step Functions. We believe this is mostly due to our implementation
 initiating each branch invocation sequentially. However, at higher branching
-degrees (as low as 20 branches), Step Functions limits parallel invocation of
-concurrent fan-out branches~\cite{aws-step-functions-map-state} while \name{}
-is limited only by Lambda's scalability, resulting in over 4x lower latency
-with 512 branches.
+degrees (as low as 20 branches), Step Functions limits \secondedits{the number
+of outstanding fan-out branches}~\cite{aws-step-functions-map-state} while
+\name{} is limited only by Lambda's scalability, resulting in over 4x lower
+latency with 512 branches.
 
 These differences manifest in real workloads as well. Wordcount is highly
 parallel (with 262 parallel mappers and 250 reducers) and performs over 2x
 faster on \name{} than on Step Functions (Table~\ref{table:macro}).
+
+\secondedits{Although it may not be the case that standalone orchestrators
+fundamentally have to impose limits on the number of outstanding function
+invocations, this example shows that it is at least not trivial to ameliorate
+the constraint. On the other hand, as a library, \name{} is free from the need
+to design and implement yet-another service that supports parallel
+applications well, but can instead provide as much parallelism as FaaS
+schedulers and data stores permit. FaaS schedulers and data stores already
+support highly-parallel applications well, and \name{}’s performance will
+improve automatically when these underlying services further improve.}
 
 \subsection{Cost}
 
@@ -188,9 +198,26 @@ in a fan-out}. This abstracts the underlying, likely shared, costs to run the
 Step Functions servers, persist states and checkpoint data. Conversely,
 \name{} incurs costs directly from those services \secondedits{such as
 additional Lambda runtime~\cite{aws-lambda-pricing} and DynamoDB reads and
-writes~\cite{dynamodb-pricing}. Furthermore, costs are more fine-grained in
-\name{} where compute resources for executing orchestration logic is charged
-per-millisecond and storage for persisting states per read and write.}
+writes~\cite{dynamodb-pricing}.} 
+
+\secondedits{Furthermore, costs are more fine-grained in \name{} where compute
+resources for executing orchestration logic is charged per-millisecond and
+storage for persisting states is charged per read and write. On AWS, \name{}'s
+fine-grained costs from Lambda and DynamoDB are much cheaper than Step
+Functions. For a basic transition in a chaining pattern, Step Functions
+charges \$27.9 per 1 million such transitions. On the other hand, \name{}
+costs, for 1 million transitions, (1) \$0.42 for $\sim$200ms extra Lambda
+runtime to execute orchestration library code, (2) \$1.3942 for 1 DynamoDB
+write to checkpoint, (3) \$0.279 for 1 DynamoDB read to check checkpoint
+existence, and (4) \$1.3942 for 1 DynamoDB write to garbage collect the
+checkpoint. In total, a basic transition in \name{} is about 8x cheaper than
+the provider-hosted orchestrator on the same platform (\$27.9 vs
+\$3.4874).}
+
+\secondedits{Table~\ref{table:macro} shows the price to run each of
+the applications we implemented based on public pricing information for AWS in
+the \texttt{us-west-1} region using \name{} and Step Functions. \name{} is
+consistently cheaper than Step Functions for all applications we tested. }
 
 Figure~\ref{fig:cost-breakdown} shows the cost to run each application using
 \name{} broken down to each component: data store costs for writing and
@@ -199,22 +226,16 @@ store costs for deleting checkpoints and writing coordination sets for garbage
 collection, Lambda invocation, and Lambda CPU-time for both the \name{}
 runtime and user function. Storage costs, using DynamoDB, are the largest
 portion of overall cost and costs for writing to DynamoDB is the
-majority\footnote{Writes in DynamoDB cost one order-of-magnitude more than
-reads}. This includes writing checkpoints, writing to coordination set (either
-for fan-in for garbage collection) and deleting checkpoints for garbage
-collection.
+majority\footnote{Writes in DynamoDB cost $\sim$5x more than reads}. This
+includes writing checkpoints, writing to coordination set (either for fan-in
+for garbage collection) and deleting checkpoints for garbage collection.
 
-Nonetheless, \name{} is consistently cheaper than Step Functions for all
-applications we tested. Table~\ref{table:macro} shows the price to run each of
-the applications we implemented based on public pricing information for AWS in
-the \texttt{us-west-1} region using \name{} and Step Functions.
-
-Of course, developer-facing pricing does not necessarily reflect \emph{actual}
-costs and is only a proxy for resource utilization. However, it is clear that,
-in practice, \secondedits{\name{}'s costs are reasonable and, in fact, often
-lower than Step Functions}---AWS's native workflow orchestrator. This suggests
-that at least applications that currently run on Step Functions could afford
-to run using \name{} instead.
+Of course, \secondedits{developer-facing pricing is only a proxy for
+\emph{actual} costs of hardware and human resources.} However, it is clear
+that, in practice, \secondedits{\name{}'s costs are reasonable and, in fact,
+often lower than Step Functions}---AWS's native workflow orchestrator. This
+suggests that at least applications that currently run on Step Functions could
+afford to run using \name{} instead.
 
 Moreover, \name{} benefits from improvements to the underlying infrastructure
 and pricing schemes. For example, Azure's Cosmos DB provides similar
