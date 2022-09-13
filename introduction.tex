@@ -73,12 +73,11 @@ systems~\cite{comet,splinter}.}
  \secondedits{A video processing application that encodes video chunks and
  aggregates results of adjacent branches in parallel have to compromise
  performance if the orchestrator only supports aggregating results of all
- branches (\S\ref{sec:eval:excamera}).} Similarly, \secondedits {deterministic
- applications, such as an image resize application or a IoT data processing
- pipeline for aggregating sensor readings, can tolerate duplicate executions
- without weakening correctness, but otherwise cannot reap performance benefits
- if the orchestrator always persists states to ensure exactly-once
- execution.}}
+ branches.} Similarly, \secondedits {deterministic applications, such as an
+ image resize application or a IoT data processing pipeline for aggregating
+ sensor readings, can tolerate duplicate executions without weakening
+ correctness, but otherwise cannot reap performance benefits if the
+ orchestrator always persists states to ensure exactly-once execution.}}
 
 \majoredits{In this paper, we show that additional standalone orchestrators
  for serverless applications are unnecessary. Furthermore, we argue that
@@ -131,14 +130,13 @@ Functions orchestrator.
 
 \secondedits{To the best of our knowledge, \name{} is the first system to
  support complex serverless applications with exactly-once execution
- guarantees without requiring additional services or changes to the FaaS
- abstraction (e.g., making functions stateful and addressable).}Moreover,
- while performance and cost are difficult to compare objectively with
- existing black-box production orchestrators---both are influenced by
- deployment and pricing decisions that may not reflect the underlying
- efficiency or cost of the system---\name{} performs well in practice (\S\ref
- {sec:eval}). We find that a representative set of applications run faster
- and cost significantly less with \name{} than Step Functions (Table~\ref
- {table:macro}). We also demonstrate that \name{}'s IR allows applications to
- run faster by using application-specific optimizations and supporting a
- richer set of interaction patterns.
+ guarantees on unmodified FaaS infrastructure without requiring additional
+ services.}Moreover, while performance and cost are difficult to compare
+ objectively with existing black-box production orchestrators---both are
+ influenced by deployment and pricing decisions that may not reflect the
+ underlying efficiency or cost of the system---\name{} performs well in
+ practice (\S\ref {sec:eval}). We find that a representative set of
+ applications run faster and cost significantly less with \name{} than Step
+ Functions (Table~\ref {table:macro}). We also demonstrate that \name{}'s IR
+ allows applications to run faster by using application-specific optimizations
+ and supporting a richer set of interaction patterns.
