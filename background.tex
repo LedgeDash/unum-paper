@@ -52,9 +52,9 @@ formal-foundation-exec-gtnee, durable-semantics} for an entire call-graph, but
 failures and multiple invocations of individual functions can subvert this
 goal without careful consideration.
 
-\subsection{\majoredits{Standalone} Orchestrators}\label{sec:bg:orchestrator}
+\subsection{Standalone Orchestrators}\label{sec:bg:orchestrator}
 
-\majoredits{A common solution to address the needs of complex serverless
+A common solution to address the needs of complex serverless
 applications is to introduce a workflow orchestrator that provides a
 high-level programming interface with support for a rich set of patterns
 (e.g., branching, chaining, fan-out and fan-in)~\cite{excamera, gg-atc,
@@ -63,44 +63,42 @@ durable-functions,temporal}. Many cloud providers offer serverless
 orchestrators as a service~\cite{aws-step-functions, google-cloud-composer,
 google-workflows, durable-functions} or users can build custom
 orchestrators~\cite{temporal, gg-atc, excamera} and deploy them in VMs
-alongside their functions.}
+alongside their functions.
 
-\majoredits{Similar to driver functions, orchestrators operate as
-\emph{logically centralized} controllers. They drive a workflow by invoking
-its functions and hosting application states such as function outputs and
-outstanding invocations.}
+Similar to driver functions, orchestrators operate as \emph{logically
+centralized} controllers. They drive a workflow by invoking its functions and
+hosting application states such as function outputs and outstanding
+invocations.
 
-\majoredits{However, different from driver-functions, orchestrators are
-standalone services. Orchestrators are not limited by
-function timeouts and can be arbitrarily
-long-running~\cite{aws-step-functions-quotas}. Moreover, as standalone services,
-orchestrators are often internally distributed and employ techniques such as replication and sharding
-to provide strong execution guarantees, fault-tolerance and scalability. For
-example, orchestrators can ensure that workflows appear to execute
-exactly-once by choosing one result for each function invocation, even if FaaS
-engines only guarantee at-least once execution. Orchestrators can also persist
-or replicate states during execution so that in face of orchestrator failures,
-applications do not lose executions or retry from the beginning.}
+However, different from driver-functions, orchestrators are standalone
+services. Orchestrators are not limited by function timeouts and can be
+arbitrarily long-running~\cite{aws-step-functions-quotas}. Moreover, as
+standalone services, orchestrators are often internally distributed and employ
+techniques such as replication and sharding to provide strong execution
+guarantees, fault-tolerance and scalability. For example, orchestrators can
+ensure that workflows appear to execute exactly-once by choosing one result
+for each function invocation, even if FaaS engines only guarantee at-least
+once execution. Orchestrators can also persist or replicate states during
+execution so that in face of orchestrator failures, applications do not lose
+executions or retry from the beginning.
 
 While orchestrators are able to address the needs of complex serverless
-applications, introducing a new \majoredits{standalone} service has
-significant drawbacks. Building performant, scalable \majoredits{and
-fault-tolerant} multi-tenant systems is hard and orchestrators introduce
-yet-another potential performance and scalability bottleneck.
-\majoredits{Indeed, we find that, in practice, production systems limit
-end-to-end performance for highly-parallel applications (\S~\ref{sec:eval}).}
+applications, introducing a new standalone service has significant drawbacks.
+Building performant, scalable and fault-tolerant multi-tenant systems is hard
+and orchestrators introduce yet-another potential performance and scalability
+bottleneck. Indeed, we find that, in practice, production systems limit
+end-to-end performance for highly-parallel applications (\S~\ref{sec:eval}).
 
-\majoredits{Moreover, hosting such services can be expensive as they require
-dedicated resources. Deploying a custom orchestrator per user risks
-under-utilization as it cannot multiplex over many users and users pay even
-when the orchestrator is not actively in use, breaking the fine-grained
-billing benefit of serverless. Provider-hosted orchestrators are multi-tenant
-and can amortize this cost. But they still incur engineering expenses as they
-require teams on-call. Indeed, we find that provider-hosted orchestrators cost
-developers significantly and dominate the total cost of running applications
-(\S~\ref{sec:eval}).}
+Moreover, hosting such services is expensive. Deploying a custom orchestrator
+per user risks under-utilization as it cannot multiplex over many users and
+users pay even when the orchestrator is not actively in use, breaking the
+fine-grained billing benefit of serverless. Provider-hosted orchestrators are
+multi-tenant and can amortize this cost. But they still incur engineering
+expenses as they require teams on-call. Indeed, we find that provider-hosted
+orchestrators cost developers significantly and dominate the total cost of
+running applications(\S~\ref{sec:eval}).
 
-\majoredits{Lastly, provider-hosted orchestrators preclude users from making
+Lastly, provider-hosted orchestrators preclude users from making
 application-specific optimizations. Each provider typically offers just a
 single orchestrator service option. While the interface and implementation of
 the orchestrator might efficiently support many applications, it cannot meet
@@ -108,4 +106,4 @@ all applications' needs, resulting in a compromise familiar from operating
 systems~\cite{exokernel,spin}, networks~\cite{active-networks,sdn}, and
 storage systems~\cite{comet,splinter}. Indeed, we find that provider-hosted
 orchestrators force applications to compromise performance by using
-less-efficient patterns (\S~\ref{sec:eval}).}
+less-efficient patterns (\S~\ref{sec:eval}).

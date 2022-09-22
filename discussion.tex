@@ -1,60 +1,57 @@
 \section{Discussion \& Limitations}\label{sec:limitations}
 
-% \majoredits{\textbf{Access control and rate limiting.} Orchestrators often
-% integrate with separte services to support access control. For instance, AWS
-% IAM controls permissions to access Step Functions workflows. Individual
-% function permissions within workflows are also controlled via IAM. \name{}
+% \textbf{Access control and rate limiting.} Orchestrators often integrate
+% with separte services to support access control. For instance, AWS IAM
+% controls permissions to access Step Functions workflows. Individual function
+% permissions within workflows are also controlled via IAM. \name{}
 % applications can control access to workflows by setting the permission of
 % entry functions. Rating limiting is another key functionality that
-% orchestrators support either natively~\cite{aws-step-functions-quotas} or with
-% separate frontend services~\cite{cloudfront-rate-limiting}. \name{}
+% orchestrators support either natively~\cite{aws-step-functions-quotas} or
+% with separate frontend services~\cite{cloudfront-rate-limiting}. \name{}
 % application can similarly control the rate of execution by setting the
 % concurrency limits of entry functions in FaaS engines or in frontend
-% services.}
+% services.
 
 \paragraph{Unsupported applications.} \name{} supports a superset of
 applications that can be expressed using Step Functions, but there are
-applications that do not fit \name{}'s constraints. In particular, \name{} only
-supports statically defined control structures. For example, Durable Functions
-expresses workflows dynamically as code and allows the developer to use
-arbitrary logic to determine what the next workflow step should be at runtime.
-This is not currently possible with \name{}.
-
+applications that do not fit \name{}'s constraints. In particular, \name{}
+only supports statically defined control structures. For example, Durable
+Functions expresses workflows dynamically as code and allows the developer to
+use arbitrary logic to determine what the next workflow step should be at
+runtime. This is not currently possible with \name{}.
+\vspace{0.1in}
 \paragraph{Measurement error.} Due to the opaque design, implementation and
 pricing of production workflow systems, such as Step Functions, comparisons in
 our evaluations are limited in their explanatory power. In particular, we use
-the current \emph{price} of Lambda, DynamoDB, and Step Functions as a proxy for
-the \emph{cost} of providing these services. Of course, prices may be either
-lower or higher for a particular service than the underlying cost.
+the current \emph{price} of Lambda, DynamoDB, and Step Functions as a proxy
+for the \emph{cost} of providing these services. Of course, prices may be
+either lower or higher for a particular service than the underlying cost.
+\vspace{1ex}
+\paragraph{Code Complexity.}While \name{} affords users more flexibility,
+application-level orchestration increases code complexity for developers.
+Coordination and exactly-once execution require careful design and
+implementation to function correctly in a decentralized manner. Introducing
+application-specific optimization also needs additional developer efforts than
+using off-the-shelf patterns from provider-hosted orchestrators.
 
-\secondedits{\paragraph{Code Complexity.}While \name{} affords users more
- flexibility, application-level orchestration increases code complexity for
- developers. Coordination and exactly-once execution require careful design
- and implementation to function correctly in a decentralized manner.
- Introducing application-specific optimization also needs additional
- developer efforts than using off-the-shelf patterns from provider-hosted
- orchestrators.}
-
-\paragraph{Support for more platforms.} While \name{} is designed
-to run on any serverless platform that meets our minimal criteria, our current
-implementation is only complete for AWS Lambda using DynamoDB or S3 for storage.
-We are working on other backends, including for Azure Functions and Google
-Functions.
+\paragraph{Support for more platforms.} While \name{} is designed to run on
+any serverless platform that meets our minimal criteria, our current
+implementation is only complete for AWS Lambda using DynamoDB or S3 for
+storage. We are working on other backends, including for Azure Functions and
+Google Functions.
 
 \section{Conclusion}\label{sec:conclusion}
 
 Serverless platforms allow developers to construct applications from modular
 programming units that can scale quickly and independently, promising
-burst-scalability and fine-grained billing. \secondedits
-{Standalone orchestrators simplify building complex serverless applications
-but are inflexible and expensive to use. We designed and implemented \name
-{}, an application-level, decentralized orchestration system that runs as a
-library on unmodified serverless infrastructure without requiring additional
-services.
+burst-scalability and fine-grained billing. Standalone orchestrators simplify
+building complex serverless applications but are inflexible and expensive to
+use. We designed and implemented \name {}, an application-level, decentralized
+orchestration system that runs as a library on unmodified serverless
+infrastructure without requiring additional services.
 
 Our results show that basic serverless components---function schedulers and
 consistent data stores---are sufficient abstractions for building complex,
 fault-tolerant, and scalable applications. Moreover, \name{} affords
 applications more flexibility, reduces costs and performs well compared with
-standalone orchestrators with similar execution guarantees.}
-
+standalone orchestrators with similar execution guarantees.

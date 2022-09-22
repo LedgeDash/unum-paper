@@ -1,35 +1,34 @@
 \section{Implementation}\label{sec:impl}
 
-We implement a prototype \name{} runtime that supports \secondedits{AWS and
-Google Cloud. We also implement a front-end compiler that transforms AWS Step
-Function definitions to \name{} IR.} Currently our runtime only supports
-Python functions and is itself written in 1,119 lines of code. The Step
-Functions compiler is 549 lines-of-code.
+We implement a prototype \name{} runtime that supports AWS and Google Cloud.
+We also implement a front-end compiler that transforms AWS Step Function
+definitions to \name{} IR. Currently our runtime only supports Python
+functions and is itself written in 1,119 lines of code. The Step Functions
+compiler is 549 lines-of-code.
 
 Implementing the runtime primarily requires specializing high-level
-functionality the IR depends on for a particular FaaS platform and data
-store. The FaaS platform must support asynchronous invocation and the data
-store must be \secondedits{strongly consistent} with support for atomic
-creation and set operations.
+functionality the IR depends on for a particular FaaS platform and data store.
+The FaaS platform must support asynchronous invocation and the data store must
+be strongly consistent with support for atomic creation and set operations.
 
 Importantly, we choose data stores and primitives that only incur per-use
 costs and scale on-demand. For example, we use DynamoDB in on-demand capacity
 mode, rather than provisioned capacity mode, and avoid long-running services
-such as a hosted Redis or cache. As a result, \name{} incurs \secondedits
-{fine-grained costs only when performing orchestration (e.g., per-millisecond
-Lambda runtime costs to execute the \name{} library, per-write DynamoDB costs
-to create checkpoints)}.
+such as a hosted Redis or cache. As a result, \name{} incurs fine-grained
+costs only when performing orchestration (e.g., per-millisecond Lambda runtime
+costs to execute the \name{} library, per-write DynamoDB costs to create
+checkpoints).
 
 \subsection{AWS Lambda \& DynamoDB}
 
 Asynchronous invocation in Lambda is natively supported. In particular, the
 Lambda \texttt{Invoke} API is asynchronous when passed
-\texttt{InvocationType=Event}. \majoredits{In the event of a crash, we use
-Lambda's Failure Destination~\cite{aws-lambda-failure-destination} to redirect
-the fault to an error handler function which runs just the \name{} runtime.
-The error handler checks if the failed function should be retried (e.g.,
-based on the Step Function definition~\cite{aws-step-functions-retry}) and if so,
-retries the function by explicitly invoking it again.}
+\texttt{InvocationType=Event}. In the event of a crash, we use Lambda's
+Failure Destination~\cite{aws-lambda-failure-destination} to redirect the
+fault to an error handler function which runs just the \name{} runtime. The
+error handler checks if the failed function should be retried (e.g., based on
+the Step Function definition~\cite{aws-step-functions-retry}) and if so,
+retries the function by explicitly invoking it again.
 
 DynamoDB organizes data into tables, with each item in a table named by a key.
 Within tables, items are unstructured by default. Our implementation of
@@ -52,10 +51,10 @@ Instead, we allocate function-specific pub-sub queues and subscribe each
 function to its respective queue.  \name{} then asynchronously invoke a
 function by publishing the input data as an event to the function's queue.
 
-\majoredits{GCF supports automatic retry for asynchronous
+GCF supports automatic retry for asynchronous
 functions~\cite{google-cloud-functions-retry}. In the event of a crash, the
 \name{} runtime in the retry execution checks if the failed function should be
-retried and if so, retries the function by explicitly invoking it again.}
+retried and if so, retries the function by explicitly invoking it again.
 
 Firestore organizes data into logical collections (which are created and
 deleted implicitly) containing unstructured items, named by a unique key.

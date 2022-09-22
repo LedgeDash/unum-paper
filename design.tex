@@ -1,14 +1,13 @@
 \section{Design}\label{sec:design}
 
-\majoredits{\name{} is an application-level orchestration system that supports
- complex serverless applications without a standalone orchestrator. It does
- so by decentralizing orchestration logic in a library that runs in-situ with
- user-defined FaaS functions and leverages a scalable consistent data store
- for coordination and execution correctness. By removing standalone
- orchestrators, \name{} improves application flexibility and reduces costs.
- Importantly, \name{} does this while retaining the expressiveness and
- execution guarantees (\S\ref{sec:design:execution}) of standalone
- orchestrators.}
+\name{} is an application-level orchestration system that supports complex
+serverless applications without a standalone orchestrator. It does so by
+decentralizing orchestration logic in a library that runs in-situ with
+user-defined FaaS functions and leverages a scalable consistent data store for
+coordination and execution correctness. By removing standalone orchestrators,
+\name{} improves application flexibility and reduces costs. Importantly,
+\name{} does this while retaining the expressiveness and execution guarantees
+(\S\ref{sec:design:execution}) of standalone orchestrators.
 
 \subsection{Architecture}\label{sec:design:architecture}
 
@@ -29,8 +28,11 @@
 	\begin{subfigure}[b]{\columnwidth}
 		\centering
 		\includegraphics[width=0.8\columnwidth]{figures/unum-arch-centralized.pdf}
-		\caption{\secondedits{A typical standalone orchestrator operates as a logically centralized controller that drives the execution of applications by invoking functions, receiving function results and storing application states}
-		\label{fig:arch:centralized}}
+    \caption{A typical standalone orchestrator operates as a logically
+    centralized controller that drives the execution of applications by
+    invoking functions, receiving function results and storing application
+    states}
+    \label{fig:arch:centralized}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}[b]{\columnwidth}
@@ -63,12 +65,12 @@ placed alongside the function and dynamically imported, rather than statically
 linking an object file} Developers deploy each linked function along with its IR
 to the FaaS platform.
 
-\majoredits{ Each \name{} workflow begins with an ``entry'' function. Invoking
-this function (e.g.\ using an HTTP or storage trigger) starts a workflow.
-Moreover, admission control rules for the workflow, such as access control and
-rate limiting, are implemented by setting appropriate rules on this entry
-function. For example, a workflow can be invoked by a particular principal if
-the entry function is exposed to that principal.}
+Each \name{} workflow begins with an ``entry'' function. Invoking this
+function (e.g.\ using an HTTP or storage trigger) starts a workflow. Moreover,
+admission control rules for the workflow, such as access control and rate
+limiting, are implemented by setting appropriate rules on this entry function.
+For example, a workflow can be invoked by a particular principal if the entry
+function is exposed to that principal.
 
 The runtime library is composed of an ingress and egress component that run
 before and after the user-defined function and unwrap and wrap the results of
@@ -137,10 +139,10 @@ modify it for subsequent functions.}
     \label{fig:design:unum-request}
 \end{figure}
 
-\majoredits{Similar to many standalone orchestrators, \name{} applications are
- modeled as directed execution graphs where nodes represent user-defined FaaS
- functions and edges represent function invocations (incoming edges) with the
- output of one or more other functions (outgoing edges).
+Similar to many standalone orchestrators, \name{} applications are modeled as
+directed execution graphs where nodes represent user-defined FaaS functions
+and edges represent function invocations (incoming edges) with the output of
+one or more other functions (outgoing edges).
 
 An \name{} graph may include fan-outs, where a node's output is used to invoke
 several functions or split up and ``mapped'' multiple times on the same
@@ -148,12 +150,11 @@ function. Each such branch may be taken conditionally, based on the output
 value or dynamic states of the graph. Execution graphs may also contain
 fan-ins, where the outputs of multiple nodes are used to invoke a single
 aggregate function. Cycles are also supported and each iteration through a
-cycle is a different invocation of the target function.}
+cycle is a different invocation of the target function.
 
-\majoredits{The \name{} intermediate representation (IR) is designed to encode
-directed execution graphs in a way that both allows decentralization of
-orchestration and is low-level enough to support application-specific
-patterns.}
+The \name{} intermediate representation (IR) is designed to encode directed
+execution graphs in a way that both allows decentralization of orchestration
+and is low-level enough to support application-specific patterns.
 
 Each function's IR includes the function's name and a sequence of instructions
 (Table~\ref{table:design:irschema}). Instructions direct the runtime to invoke
@@ -217,22 +218,22 @@ expression that has access to the function output and execution metadata
 
 \subsection{Execution Guarantees Using Checkpoints}\label{sec:design:execution}
 
-\majoredits{FaaS functions only provide weak execution guarantees. Functions can
-fail mid-execution and be retried. Even in the absence of failures, one
-function invocation may result in more than one execution because most FaaS
-engines only ensure at-least-once execution. This is problematic for
-applications whose functions are non-deterministic because a single workflow
-invocation can produce multiple \emph{diverging} outputs.}
+FaaS functions only provide weak execution guarantees. Functions can fail
+mid-execution and be retried. Even in the absence of failures, one function
+invocation may result in more than one execution because most FaaS engines
+only ensure at-least-once execution. This is problematic for applications
+whose functions are non-deterministic because a single workflow invocation can
+produce multiple \emph{diverging} outputs.
 
-\majoredits{An important benefit of orchestrators is strong execution semantics
-such that applications appear to execute \emph{exactly-once} even if
-individual functions in the application run multiple times. Because standalone
+An important benefit of orchestrators is strong execution semantics such that
+applications appear to execute \emph{exactly-once} even if individual
+functions in the application run multiple times. Because standalone
 orchestrators are logically centralized, guaranteeing exactly-once is
 conceptually straightforward: the orchestrator can choose a single result from
 executions of the same invocation and use it as input for all downstream
 functions. At the end of the workflow, the result is consistent with an
 execution of the workflow where each function invocation executed
-exactly-once}.
+exactly-once.
 
 A key challenge for \name{} is to provide the same semantics without
 centralizing orchestration. Moreover, because failures and, thus, retries are
@@ -257,12 +258,12 @@ execution of the invocation must have already completed and the operation will
 fail. To invoke downstream functions, the egress component \emph{always} uses
 the value stored in the checkpoint, rather than the result of the recently
 completed function. Essentially, \name{} ``commits'' to result of the first
-successful executions of\majoredits{invocations}.
+successful executions of invocations.
 
-\minoredits{Data stores need to be strongly consistent to support
+Data stores need to be strongly consistent to support
 \texttt{create\_if\_not\_exists}. It is important that a later attempt to
 create an existing checkpoint fails and the slower execution can read the
-existing checkpoint.}
+existing checkpoint.
 
 As a further optimization, the ingress component in the \name{} library checks
 for the checkpoint object before executing the user-defined function. If the
@@ -272,15 +273,15 @@ not necessary for correctness (and it is, of course, possible for the checkpoint
 to be added after a concurrent execution checks for its existence in the ingress
 component) but helps reduce computation that we know will go unused.
 
-\minoredits{Note that the exactly-once guarantee does not automatically extend
-to applications with external side effects, i.e. functions that directly call
+Note that the exactly-once guarantee does not automatically extend to
+applications with external side effects, i.e. functions that directly call
 external services. In such cases, retries can lead to unexpected results if
 the effects are not idempotent. This issue is well known, and independent of
 the orchestrator architecture (centralized vs. decentralized). Thus, we
 consider the question of how to control such side effects to be orthogonal and
 beyond the scope of this paper. However, \name{} does not preclude
 applications from using libraries, such as Beldi~\cite{beldi}, that can solve
-this problem.}
+this problem.
 
 % \begin{table}
 %   \centering
@@ -334,22 +335,21 @@ rather than the result their own execution returned.}
 
 \subsubsection{Fault Tolerance}
 
-\majoredits{Another source of multiple executions is retrying failed
-functions. Retries in \name{} rely on FaaS engines' error handling support.
-All popular FaaS engines provide error handling so that applications do not
-just crash silently without a way to react to failures. Common mechanisms
-include ``automatic retry'' that re-executes the same
-function~\cite{aws-lambda-retry, azure-functions-retry,
+Another source of multiple executions is retrying failed functions. Retries in
+\name{} rely on FaaS engines' error handling support. All popular FaaS engines
+provide error handling so that applications do not just crash silently without
+a way to react to failures. Common mechanisms include ``automatic retry'' that
+re-executes the same function~\cite{aws-lambda-retry, azure-functions-retry,
 google-cloud-functions-retry, openfaas-retry} or failure redirection that
 triggers a pre-configured error-handler
 function~\cite{aws-lambda-failure-destination,
-openwhisk-action-error-handling}. \name{} can work with either mechanism.}
+openwhisk-action-error-handling}. \name{} can work with either mechanism.
 
-\secondedits{The \name{} error handler is part of \name{}'s standard library
-and is triggered in a separate FaaS function after an application function
-crashes. The error handler simply retries the crashed function by invoking it
-again. As part of the orchestration library, the error handler is assumed to
-be bug-free and relies on the FaaS scheduler to execute at least once.}
+The \name{} error handler is part of \name{}'s standard library and is
+triggered in a separate FaaS function after an application function crashes.
+The error handler simply retries the crashed function by invoking it again. As
+part of the orchestration library, the error handler is assumed to be bug-free
+and relies on the FaaS scheduler to execute at least once.
 
 \name{}'s checkpointing mechanism ensures that while faults may occur at any
 point during the execution of a function's user code or the \name{} library,
@@ -358,31 +358,29 @@ executions of the same invocation, a single value is always used to invoke
 downstream functions.
 
 If there is a fault after the user code completes but before creating the
-checkpoint, \majoredits{user code result} is ignored (indeed, never seen) by
-other \majoredits{executions} and another execution's value will be used to
-invoke downstream functions.  If the ``winning'' function crashes after
-creating a checkpoint, and before invoking some or all downstream functions,
-other executions will use the checkpoint value to invoke downstream functions.
-Finally, even if multiple executions invoke some or all downstream functions,
-execution guarantees are still satisfied as these invocations will have
-identical inputs.
+checkpoint, user code result is ignored (indeed, never seen) by other
+executions and another execution's value will be used to invoke downstream
+functions.  If the ``winning'' function crashes after creating a checkpoint,
+and before invoking some or all downstream functions, other executions will
+use the checkpoint value to invoke downstream functions. Finally, even if
+multiple executions invoke some or all downstream functions, execution
+guarantees are still satisfied as these invocations will have identical
+inputs.
 
-% \majoredits{Retries in \name{} rely on FaaS engines' error handling support.
-% All popular FaaS engines provide error handling so that applications do not
-% just crash silently without a way to react to failures. Common mechanisms
-% include ``automatic retry'' that re-executes the same
-% function~\cite{aws-lambda-retry, azure-functions-retry,
-% google-cloud-functions-retry, openfaas-retry} or failure redirection that
-% triggers a pre-configured error-handler
+% Retries in \name{} rely on FaaS engines' error handling support. All popular
+% FaaS engines provide error handling so that applications do not just crash
+% silently without a way to react to failures. Common mechanisms include
+% ``automatic retry'' that re-executes the same function~\cite{aws-lambda-retry,
+% azure-functions-retry, google-cloud-functions-retry, openfaas-retry} or
+% failure redirection that triggers a pre-configured error-handler
 % function~\cite{aws-lambda-failure-destination,
-% openwhisk-action-error-handling}.
-% \name{} just needs a way to regain control on the application-level and can
-% therefore work with both mechanisms.}
+% openwhisk-action-error-handling}. \name{} just needs a way to regain control
+% on the application-level and can therefore work with both mechanisms.
 
-% \majoredits{When a function crashes, the FaaS engine retries the failed function
-% or direct the error to \name{}'s error handling function. In either case, the
-% \name{} runtime in the new execution checks the nature of the failure and, if
-% a re-execution is necessary, invokes the failed function again. The error
+% When a function crashes, the FaaS engine retries the failed function or direct
+% the error to \name{}'s error handling function. In either case, the \name{}
+% runtime in the new execution checks the nature of the failure and, if a
+% re-execution is necessary, invokes the failed function again. The error
 % handling function itself does not run user code. In other words, \name{} does
 % not rely on FaaS engine's automatic retry mechanism for re-executing failed
 % functions; it only uses automatic retry to run the error handling
@@ -391,7 +389,7 @@ identical inputs.
 % limitations on FaaS engine's automatic retry mechanism\footnote{For instance,
 % Lambda's automatic retry only retries up to 3 times}. As long as a FaaS engine
 % allows applications to run error handle code in response to failures, \name{}
-% retry can work.}
+% retry can work.
 
 \subsection{Fan-in Patterns}\label{sec:design:fanin}
 
@@ -418,21 +416,21 @@ target function using all the branches' checkpoints as input.
 
 Importantly, functions do not wait for any other to complete. As long as all
 functions complete eventually (in other words, they run at-least once),
-\emph{some} function will read a full set and invoke the fan-in target function.
-More than one function may observe this condition, resulting in multiple
-invocations, but these invocations will be identical and are handled as spurious
-executions of the same invocation (\S\ref{sec:design:execution}).
+\emph{some} function will read a full set and invoke the fan-in target
+function. More than one function may observe this condition, resulting in
+multiple invocations, but these invocations will be identical and are handled
+as spurious executions of the same invocation (\S\ref{sec:design:execution}).
 
 In order to perform this coordination, branches must know the branching
-factor---the size of the set. The \texttt{FanIn} instruction includes this size,
-which is either specified explicitly, or using a variable from the invocation
-request, commonly the fan-out size.
+factor---the size of the set. The \texttt{FanIn} instruction includes this
+size, which is either specified explicitly, or using a variable from the
+invocation request, commonly the fan-out size.
 
-\minoredits{Similar to checkpoints, the set data structure for coordination
-requires the data store to be strongly consistent. Updates to a set must be
-immediately visible to other branches otherwise the downstream fan-in function
-may ever be invoked. Moreover, the data store must support data structures
-that can implement a ``set'' abstraction.}
+Similar to checkpoints, the set data structure for coordination requires the
+data store to be strongly consistent. Updates to a set must be immediately
+visible to other branches otherwise the downstream fan-in function may ever be
+invoked. Moreover, the data store must support data structures that can
+implement a ``set'' abstraction.
 
 Fan-in supports enable more patterns that commonly arise in applications:
 
@@ -456,20 +454,19 @@ expressible in \name{}.
 
 \subsection{Garbage Collection}\label{sec:design:garbage}
 
-\majoredits{Both checkpointing and fan-in require storing intermediate data
-(e.g., checkpoints and coordination sets) in the data store. These intermediate
-data is only temporally useful and grows with each invocation. This poses a
-garbage collection challenge. Deleting them too early can compromise execution
-guarantees while deleting too late incurs storage costs.}
+Both checkpointing and fan-in require storing intermediate data (e.g.,
+checkpoints and coordination sets) in the data store. These intermediate data
+is only temporally useful and grows with each invocation. This poses a garbage
+collection challenge. Deleting them too early can compromise execution
+guarantees while deleting too late incurs storage costs.
 
-\majoredits{As an application-level library, \name{}'s design allows
-applications to customize their GC strategy. Simple policies such as deleting
-intermediate data older than a set limit are easily implementable via data
-stores or as a cron job. However, in this section, we demonstrate the
-algorithm in \name{}'s standard library that deletes checkpoints and
-coordination sets \emph{as soon as} they are no longer needed for execution
-correctness, to show that \name{}'s decentralized design allows the most
-aggressive strategy.}
+As an application-level library, \name{}'s design allows applications to
+customize their GC strategy. Simple policies such as deleting intermediate
+data older than a set limit are easily implementable via data stores or as a
+cron job. However, in this section, we demonstrate the algorithm in \name{}'s
+standard library that deletes checkpoints and coordination sets \emph{as soon
+as} they are no longer needed for execution correctness, to show that
+\name{}'s decentralized design allows the most aggressive strategy.
 
 \subsubsection{Checkpoint Collection}
 
@@ -483,13 +480,13 @@ to some particular output, future invocations, even with \emph{different} inputs
 will produce the same output, as the node will \emph{always} use the checkpoint
 value.
 
-\majoredits{Note that a duplicate execution that checkpoints after the previous
-checkpoint is garbage collected has the same semantics as a separate
-invocation. It may result in multiple outputs from the workflow, though each
-output is still consistent with an execution of the workflow where each
-function was invoked exactly-once. Any GC policy, no matter how conservative,
-might lead to multiple executions if the FaaS platform might execute
-duplicates of a function invocation an arbitrary time in the future.}
+Note that a duplicate execution that checkpoints after the previous checkpoint
+is garbage collected has the same semantics as a separate invocation. It may
+result in multiple outputs from the workflow, though each output is still
+consistent with an execution of the workflow where each function was invoked
+exactly-once. Any GC policy, no matter how conservative, might lead to
+multiple executions if the FaaS platform might execute duplicates of a
+function invocation an arbitrary time in the future.
 
 In particular, \name{} collects checkpoints by relaxing the constraint that
 nodes always output the same value. Instead, they must only output the same
@@ -503,17 +500,17 @@ end-to-end latency for a workflow.
 
 Fan-out cases are more complicated because deleting the checkpoint must wait
 until all branches have committed to an output. \name{} repurposes the same
-set-based technique from fan-in to collect checkpoints in fan-out cases as well.
-The originating node of a fan-out creates a set for branches to coordinate when
-to delete its checkpoint. Branches add themselves to the set after checkpointing
-their own value. Any node that reads a full set deletes the parent's checkpoint
-as well as the set. This guarantees that the parent's checkpoint is deleted and
-ensures that all branches have first checkpointed.
+set-based technique from fan-in to collect checkpoints in fan-out cases as
+well. The originating node of a fan-out creates a set for branches to
+coordinate when to delete its checkpoint. Branches add themselves to the set
+after checkpointing their own value. Any node that reads a full set deletes
+the parent's checkpoint as well as the set. This guarantees that the parent's
+checkpoint is deleted and ensures that all branches have first checkpointed.
 
-Note that it is possible for one of the branches to re-execute \emph{after} the
-set has been deleted. This is safe because it is the origin of the fan-out that
-creates the set, so a branch's attempt to add itself to a, now, non-existent set
-will simply fail.
+Note that it is possible for one of the branches to re-execute \emph{after}
+the set has been deleted. This is safe because it is the origin of the fan-out
+that creates the set, so a branch's attempt to add itself to a, now,
+non-existent set will simply fail.
 
 % \begin{minted}[
 %     frame=single,
@@ -532,60 +529,61 @@ will simply fail.
 
 \subsubsection{Fan-in Set collection}
 
-Deleting sets used for fan-in works much like removing checkpoints---the target
-node of a fan-in deletes the set once it has generated a checkpoint. However,
-who \emph{creates} the set?
+Deleting sets used for fan-in works much like removing checkpoints---the
+target node of a fan-in deletes the set once it has generated a checkpoint.
+However, who \emph{creates} the set?
 
 If each branch in the fan-in creates the set if it doesn't already exist, a
-spurious execution of one of the branches \emph{after} the fan-in target removes
-the original set will create a new one that is never deleted (because it never
-fills, and thus the target function is never invoked again). To avoid this,
-\name{} places the responsibility to create the set on the node that originates
-the \emph{fan-out} at the same level as the target node.
+spurious execution of one of the branches \emph{after} the fan-in target
+removes the original set will create a new one that is never deleted (because
+it never fills, and thus the target function is never invoked again). To avoid
+this, \name{} places the responsibility to create the set on the node that
+originates the \emph{fan-out} at the same level as the target node.
 
 \subsection{Naming}\label{sec:design:naming}
 
 Much of \name{}'s functionality relies on unique naming. A workflow invocation
 must be named to differentiate it from other concurrent invocations of the
 workflow; functions must be named to invoke them; different invocations of
-functions must have different names to uniquely name invocation checkpoints and
-coordination sets for fan-in.
+functions must have different names to uniquely name invocation checkpoints
+and coordination sets for fan-in.
 
-Each workflow invocation has a unique name that is passed through the execution
-graph. The name is either generated in the ingress to the first function using,
-e.g., a UUID library or, when available, is taken from the FaaS platform's
-invocation identifier for the first function. This enables functions to have
-different names when invoked as part of a specific workflow invocations. The
-function's name is either user-defined or determined by the FaaS platform (e.g.\
-the ARN on AWS Lambda) and determined at ``compile-time'' (i.e.\ when generating
-\name{} IR).
+Each workflow invocation has a unique name that is passed through the
+execution graph. The name is either generated in the ingress to the first
+function using, e.g., a UUID library or, when available, is taken from the
+FaaS platform's invocation identifier for the first function. This enables
+functions to have different names when invoked as part of a specific workflow
+invocations. The function's name is either user-defined or determined by the
+FaaS platform (e.g.\ the ARN on AWS Lambda) and determined at ``compile-time''
+(i.e.\ when generating \name{} IR).
 
 However, this is not sufficient as functions may be invoked multiple times in
-the same workflow due to map patterns---which invoke the same function multiple
-times over an iterable output---and cycles. Moreover, invocation names must be
-determined using local information only. Once running, each function only has
-access to it's own code (including the IR) and metadata passed in its input.
-Nonetheless a particular invocation must be able to determine its own name for
-checkpointing as well as, if it is part of a fan-in, the name of downstream
-invocations to coordinate with other branches.
+the same workflow due to map patterns---which invoke the same function
+multiple times over an iterable output---and cycles. Moreover, invocation
+names must be determined using local information only. Once running, each
+function only has access to it's own code (including the IR) and metadata
+passed in its input. Nonetheless a particular invocation must be able to
+determine its own name for checkpointing as well as, if it is part of a
+fan-in, the name of downstream invocations to coordinate with other branches.
 
 As a result, \name{} names function invocations using a combination of the
 global function name, a vector of branch indexes and iteration numbers (taken
 from the \name{} request fan-out stack) leading to the invocation, and the
-workflow invocation name. Function names are global and the remaining items are
-propagated by \name{} in invocation arguments.
+workflow invocation name. Function names are global and the remaining items
+are propagated by \name{} in invocation arguments.
 
 During a fan-out pattern (multiple scalar invocations or a map invocation), a
 branch index is added to a list in the next functions' input. If the next
-function is an ancestor of the current function (a cycle), an iteration field in
-the input is incremented. Note that a single iteration field is sufficient even
-if there are nested cycles since it is only important that different invocations
-of the same function have \emph{different} names, not that the iteration field
-is sequential. Thus, a monotonically increasing iteration field is sufficient.
+function is an ancestor of the current function (a cycle), an iteration field
+in the input is incremented. Note that a single iteration field is sufficient
+even if there are nested cycles since it is only important that different
+invocations of the same function have \emph{different} names, not that the
+iteration field is sequential. Thus, a monotonically increasing iteration
+field is sufficient.
 
 We note that the format of this name is not significant and, importantly, it
 need not be interpretable. It must only be deterministic and unique for its
-inputs. For example, a reasonable implementation could serialize the inputs and
-take a cryptographic hash over the result, guaranteeing uniqueness (with very
-very high probably) while preventing names from growing too large to use as
-object names.
+inputs. For example, a reasonable implementation could serialize the inputs
+and take a cryptographic hash over the result, guaranteeing uniqueness (with
+very very high probably) while preventing names from growing too large to use
+as object names.
