@@ -211,10 +211,8 @@ than the provider-hosted orchestrator on the same platform (\$27.9 vs
 \$6.279).
 
 Table~\ref{table:macro} shows the cost to run each of the applications we
-implemented based on public pricing information for AWS in the
-\texttt{us-west-1} region using \name{} and Step Functions. \name{} is
-consistently, and up to 9x, cheaper than Step Functions for the applications
-we tested.
+implemented in the \texttt{us-west-1} region. \name{} is consistently,
+and up to 9x, cheaper than Step Functions for the applications we tested.
 
 Figure~\ref{fig:cost-breakdown} shows the cost to run each application using
 \name{} broken down to each component: data store costs for writing and
@@ -249,37 +247,6 @@ to perform a write operation (the dominant cost of \name{}'s data store
 operations).
 
 \subsection{Case Study: ExCamera}\label{sec:eval:excamera}
-
-\begin{figure}[t!]
-    \centering
-    \includegraphics[width=\columnwidth]{figures/ExCameraPattern.pdf}
-    \caption{\name{} ExCamera replicates the application logic from gg and mu
-     where the re-encode stage (xcenc) of a branch can start immediately when
-     the previous branch completes decoding (xcdec) and my own branch
-     completes the initial encoding (vpxenc). Step Functions provides a Map
-     pattern~\cite{aws-step-functions-map-state} for parallel workloads.
-     However, branches in Map must be identical and Map does not support data
-     dependencies between branches. As a result, to ensure previous branches'
-     xcdec have completed, all branches must first finish and fan-in to Step
-     Functions before starting the xcenc step, essentially serializing the
-     stage.}
-    \label{fig:excamera-pattern}
-\end{figure}
-
-\begin{table}
-  \centering
-  \begin{tabular}{|r|r|}
-    \hline
-    \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
-    Original        & 76                         \\ \hline
-    \name{}-aws & 84                         \\ \hline
-    gg                       & 90                         \\ \hline
-    Step Functions & 98                         \\ \hline
-  \end{tabular}
-  \caption{ExCamera performance. \name{} is 7.1\% faster than
-gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
-  \label{table:excamera}
-\end{table}
 
 ExCamera~\mbox{\cite{excamera}} is a video-processing application designed to
 take advantage of high burst-scalability on Lambda using custom orchestration.
@@ -347,3 +314,36 @@ Lastly, deploying an orchestrator per application or per user limits the
 ability to amortize costs through multi-tenancy. A provider-hosted
 orchestrator, such as Step Functions, can achieve larger economies of scale by
 serving many users concurrently with a single deployment.
+
+
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/ExCameraPattern.pdf}
+    \caption{\name{} ExCamera replicates the application logic from gg and mu
+     where the re-encode stage (xcenc) of a branch can start immediately when
+     the previous branch completes decoding (xcdec) and my own branch
+     completes the initial encoding (vpxenc). Step Functions provides a Map
+     pattern~\cite{aws-step-functions-map-state} for parallel workloads.
+     However, branches in Map must be identical and Map does not support data
+     dependencies between branches. As a result, to ensure previous branches'
+     xcdec have completed, all branches must first finish and fan-in to Step
+     Functions before starting the xcenc step, essentially serializing the
+     stage.}
+    \label{fig:excamera-pattern}
+\end{figure}
+
+\begin{table}
+  \centering
+  \begin{tabular}{|r|r|}
+    \hline
+    \textbf{ExCamera Implementation} & \textbf{Latency (seconds)} \\ \hline
+    Original        & 76                         \\ \hline
+    \name{}-aws & 84                         \\ \hline
+    gg                       & 90                         \\ \hline
+    Step Functions & 98                         \\ \hline
+  \end{tabular}
+  \caption{ExCamera performance. \name{} is 7.1\% faster than
+gg~\cite{gg-atc} and 10.5\% slower than the hand-optimized implementation.}
+  \label{table:excamera}
+\end{table}

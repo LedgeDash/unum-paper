@@ -50,10 +50,19 @@ Microsoft Research
 \input{eval}
 \input{related}
 \input{discussion}
-
-% \vspace{5in} % TODO remove this later, just for dodging strange latex error messages caused by bugs in page breaking bibliography
-
+\setlength{\parindent}{0pt}
+% The value of \verb|\parskip| is \texttt{\the\parskip}
+\setlength{\parskip}{1pt plus2pt}
+% The value of \verb|\parskip| is \texttt{\the\parskip}
+\par
+\textbf{Acknowledgments} We thank the anonymous reviewers and our shepherd,
+Douglas Terry, for their insightful comments. We thank Landon Cox for his
+support and feedback during the early stage of this project. This work was
+funded in part by NSF Grant 2028869.
 %-------------------------------------------------------------------
+% \vspace{5in} % TODO remove this later, just for dodging strange latex error messages caused by bugs in page breaking bibliography
+\setlength{\parindent}{10pt}
+\setlength{\parskip}{0pt plus1pt}
 \bibliographystyle{plain}
 \bibliography{references}
 

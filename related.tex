@@ -1,15 +1,14 @@
 \section{Related Work}\label{sec:related}
 
-\paragraph{Serverless Workflows}
-
-Many systems have recognized the need to augment serverless computing with
-support for composing functions to build larger and more complex applications.
-AWS Step Functions~\cite{aws-step-functions} defines serverless workflows as
-state machines using a JSON schema. Google Workflows~\cite{google-workflows}
-uses a YAML-based interface to list steps in a workflow sequentially and
-allows jumps among steps. Azure Durable Functions~\cite{durable-functions}
-uses a ``workflow-as-code'' approach, similar to driver functions, where the
-workflow logic is written in a programming language (e.g., C\#, Python).
+\textbf{Serverless Workflows.} Many systems have recognized the need to
+augment serverless computing with support for composing functions to build
+larger and more complex applications. AWS Step
+Functions~\cite{aws-step-functions} defines serverless workflows as state
+machines using a JSON schema. Google Workflows~\cite{google-workflows} uses a
+YAML-based interface to list steps in a workflow sequentially and allows jumps
+among steps. Azure Durable Functions~\cite{durable-functions} uses a
+``workflow-as-code'' approach, similar to driver functions, where the workflow
+logic is written in a programming language (e.g., C\#, Python).
 
 In all of these systems, orchestration is performed by a \textbf {standalone
 orchestrator}. The nature and location of this component varies: in AWS Step
@@ -27,23 +26,22 @@ Functions, it also exposes a high-level programming language interface.
 Cloudburst~\cite{cloudburst} uses a specialized key-value store to enable
 low-latency execution of serverless functions. Users can express workflows as
 static DAGs and an executor program runs the DAG by passing data and
-coordinate via the key-value store. ExCamera~\cite{excamera} is parallel video
-encoder running on Lambda. It is built with the mu framework which uses a
-long-running coordinator to command a fleet of lambdas, each of which executes
-a state machines where user functions are the states. gg~\cite{gg-atc}
-proposes a thunk abstraction where each thunk executes as a lambda that has no
-nondeterministic or non-idempotent behavior, and a way to program data
-dependencies between thunks. gg uses a standalone coordinator to receive thunk
-updates and lazily launch thunks when their inputs become available.
+coordinate via the key-value store. ExCamera~\cite{excamera} proposes the mu
+framework which uses a long-running coordinator to command a fleet of lambdas,
+each of which executes a state machines where user functions are the states.
+gg~\cite{gg-atc} proposes a thunk abstraction where each thunk executes as a
+deterministic lambda and expresses data dependencies between thunks as DAGs.
+gg uses a standalone coordinator to receive thunk updates and lazily launch
+thunks when their inputs become available.
 
 Similarly, the above systems rely on a standalone orchestrator program. As the
 orchestrator program is not itself executing in a hosted environment, progress
-is not guaranteed when its host crashes, but requires manual restart. Also,
-progress is not checkpointed (except in Kappa), so workflows must restart from
-the beginning in that situation. In contrast, \name{} relies only on a basic,
-highly available serverless platform. Thus, it guarantees progress under all
-faults, including the orchestrator. And \name{} checkpoints each function
-result to minimize redundant computations when handling faults.
+is not guaranteed when its host crashes. Also, progress is not checkpointed
+(except in Kappa), so workflows must restart from the beginning in that
+situation. In contrast, \name{} relies only on a basic, highly available
+serverless platform. Thus, it guarantees progress under all faults, including
+the orchestrator. And \name{} checkpoints each function result to minimize
+redundant computations when handling faults.
 
 Beldi~\cite{beldi} and Boki~\cite{boki} are two recent systems that provide
 exactly-once execution and transactions to stateful serverless applications.
@@ -57,16 +55,16 @@ black box and ensures exactly-once semantics on a workflow-level. However,
 \name{} users who want to ensure exactly-once when writing to DynamoDB can
 additionally use Beldi or Boki in their user code.
 
-\paragraph{Programming Interface}
-
-Most serverless workflow systems require developers to write workflows with
-specialized interfaces. Some uses a declarative approach that defines
-workflows using JSON or YAML schemas (e.g., AWS Step
-Functions~\cite{aws-step-functions}, Google
+\setlength{\parindent}{0pt}
+\textbf{Programming Interface.} Most serverless workflow systems require
+developers to write workflows with specialized interfaces. Some uses a
+declarative approach that defines workflows using JSON or YAML schemas (e.g.,
+AWS Step Functions~\cite{aws-step-functions}, Google
 Workflows~\cite{google-workflows}). Others allow expressing workflow as code
 (e.g., Durable Functions~\cite{durable-functions}, Kappa\cite{kappa}, Fn
 Flow~\cite{fn-flow}).
 
+\setlength{\parindent}{10pt}
 \name{} does not propose a new frontend for defining workflow. Instead,
 \name{} aims to support any existing frontend that explicitly or implicitly
 expresses a directed graph where nodes are functions and edges are transitions
